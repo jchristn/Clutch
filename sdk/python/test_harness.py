@@ -3,7 +3,7 @@
 Non-interactive: exercises the admin (REST) and lock (WebSocket) clients, asserts expected
 behavior, and exits with code 0 on success or 1 on failure.
 
-Usage: python test_harness.py <endpoint> <accessKey> [secretKey]
+Usage: python test_harness.py <endpoint> <accessKey>
 """
 
 import sys
@@ -52,7 +52,6 @@ def unique_key(prefix):
 def main():
     endpoint = sys.argv[1] if len(sys.argv) > 1 else "http://127.0.0.1:8090"
     access_key = sys.argv[2] if len(sys.argv) > 2 else "clutch-default-access-key"
-    secret_key = sys.argv[3] if len(sys.argv) > 3 else None
 
     print("========================================")
     print("  Clutch Python SDK Test Harness")
@@ -69,7 +68,7 @@ def main():
         assert_true(bool(h.get("status")), "status should be present")
 
     def authenticate():
-        token = admin.authenticate_with_key(access_key, secret_key or access_key)
+        token = admin.authenticate_with_key(access_key)
         assert_true(bool(token.get("token")), "token should be returned")
         assert_true(bool(token.get("tenantId")), "tenantId should be returned")
         state["tenant_id"] = token.get("tenantId")
@@ -99,7 +98,6 @@ def main():
         created = admin.create_credential(state["tenant_id"], "sdk-test-cred-" + uuid.uuid4().hex[:8])
         assert_true(bool(created.get("id")), "created credential should have an id")
         assert_true(bool(created.get("accessKey")), "created credential should return an access key")
-        assert_true(bool(created.get("secretKey")), "created credential should return the raw secret key once")
         credentials = admin.list_credentials(state["tenant_id"])
         assert_true(any(c.get("id") == created["id"] for c in credentials), "created credential should appear in the list")
         admin.delete_credential(state["tenant_id"], created["id"])
@@ -124,7 +122,7 @@ def main():
 
     # ---- Lock (WebSocket) ----
 
-    locks = ClutchLockClient(endpoint, access_key, secret_key)
+    locks = ClutchLockClient(endpoint, access_key)
     write_key = unique_key("sdk-test")
 
     def connect():

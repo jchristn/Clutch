@@ -33,7 +33,7 @@ cd Clutch/docker
 docker compose -f compose.yaml -f compose.build.yaml up --build -d
 ```
 
-Then open the dashboard at `http://localhost:3000` and connect to `http://localhost:8080` with the seeded default key (`clutch-default-access-key` / `clutch-default-secret-key`).
+Then open the dashboard at `http://localhost:3000` and connect to `http://localhost:8080` with the seeded default access key (`clutch-default-access-key`). The access key is the sole credential — there is no secret key.
 
 ## Documentation
 

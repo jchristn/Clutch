@@ -16,12 +16,12 @@ Use `wss://` when the server is configured for TLS.
 
 ## Authentication
 
-Authenticate on the upgrade request with the application key. Two ways to present it:
+Authenticate on the upgrade request with the application **access key** — the sole connect credential. A secret key is never sent to the server. Two ways to present it:
 
-- **Header (preferred, used by the SDKs):** `x-clutch-access-key: <accessKey>`, and optionally `x-clutch-secret-key: <secretKey>`. When the secret is supplied it is verified in constant time; when it is omitted, the access key alone authenticates the connection (treat the access key as a secret).
-- **Query string (for browsers and quick tests that cannot set upgrade headers):** `?accessKey=<accessKey>` and optionally `&secretKey=<secretKey>`.
+- **Header (preferred, used by the SDKs):** `x-clutch-access-key: <accessKey>`.
+- **Query string (for browsers and quick tests that cannot set upgrade headers):** `?accessKey=<accessKey>`.
 
-The tenant is resolved from the key. If authentication fails the server closes the socket with close status `PolicyViolation`.
+The tenant is resolved from the key. Treat the access key as a secret. If authentication fails the server closes the socket with close status `PolicyViolation`.
 
 ```
 ws://localhost:8090/v1.0/lock/connect?accessKey=clutch-default-access-key

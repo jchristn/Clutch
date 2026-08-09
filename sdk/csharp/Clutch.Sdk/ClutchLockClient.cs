@@ -23,7 +23,6 @@ namespace Clutch.Sdk
     {
         private readonly string _WebSocketUrl;
         private readonly string _AccessKey;
-        private readonly string? _SecretKey;
         private readonly ClientWebSocket _Socket;
         private readonly JsonSerializerOptions _JsonOptions;
         private readonly SemaphoreSlim _SendLock;
@@ -84,15 +83,13 @@ namespace Clutch.Sdk
         /// </summary>
         /// <param name="endpoint">The base URL of the Clutch server, for example "http://127.0.0.1:8090". The scheme is converted to ws or wss automatically.</param>
         /// <param name="accessKey">The application access key.</param>
-        /// <param name="secretKey">The optional secret key. When supplied it is verified in constant time by the server.</param>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="endpoint"/> or <paramref name="accessKey"/> is null.</exception>
-        public ClutchLockClient(string endpoint, string accessKey, string? secretKey = null)
+        public ClutchLockClient(string endpoint, string accessKey)
         {
             if (endpoint == null) throw new ArgumentNullException(nameof(endpoint));
             if (accessKey == null) throw new ArgumentNullException(nameof(accessKey));
 
             _AccessKey = accessKey;
-            _SecretKey = secretKey;
             _WebSocketUrl = BuildWebSocketUrl(endpoint);
             _Socket = new ClientWebSocket();
             _SendLock = new SemaphoreSlim(1, 1);
@@ -116,10 +113,6 @@ namespace Clutch.Sdk
         public async Task<WelcomeInfo> ConnectAsync(CancellationToken cancellationToken = default)
         {
             _Socket.Options.SetRequestHeader("x-clutch-access-key", _AccessKey);
-            if (!string.IsNullOrEmpty(_SecretKey))
-            {
-                _Socket.Options.SetRequestHeader("x-clutch-secret-key", _SecretKey);
-            }
 
             try
             {

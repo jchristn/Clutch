@@ -404,7 +404,6 @@ namespace Test.Shared
             credential.TenantId = tenant.Id;
             credential.Name = "test-key";
             credential.AccessKey = accessKey;
-            credential.SecretKeyEncrypted = new string('c', 64);
             credential = await db.Credentials.CreateAsync(credential, ct).ConfigureAwait(false);
 
             Credential? found = await db.Credentials.ReadByAccessKeyAsync(accessKey, ct).ConfigureAwait(false);
@@ -419,7 +418,7 @@ namespace Test.Shared
 
             User user = new User(); user.TenantId = tenant.Id; user.Email = "cascade@example.com"; user.PasswordSha256 = new string('a', 64);
             user = await db.Users.CreateAsync(user, ct).ConfigureAwait(false);
-            Credential credential = new Credential(); credential.TenantId = tenant.Id; credential.UserId = user.Id; credential.Name = "k"; credential.AccessKey = "access_" + Guid.NewGuid().ToString("N"); credential.SecretKeyEncrypted = new string('c', 64);
+            Credential credential = new Credential(); credential.TenantId = tenant.Id; credential.UserId = user.Id; credential.Name = "k"; credential.AccessKey = "access_" + Guid.NewGuid().ToString("N");
             await db.Credentials.CreateAsync(credential, ct).ConfigureAwait(false);
             await engine.AcquireAsync(Req(tenant.Id, NewKey(), LockModeEnum.Write, "s1"), LockBehaviorEnum.FailFast, null, ct).ConfigureAwait(false);
 

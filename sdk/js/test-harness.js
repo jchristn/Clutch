@@ -6,7 +6,7 @@
  * Non-interactive: exercises the admin (REST) and lock (WebSocket) clients, asserts expected
  * behavior, and exits with code 0 on success or 1 on failure.
  *
- * Usage: node test-harness.js <endpoint> <accessKey> [secretKey]
+ * Usage: node test-harness.js <endpoint> <accessKey>
  */
 
 const { ClutchAdminClient, LockMode, LockBehavior } = require('./clutch-admin-sdk');
@@ -48,7 +48,6 @@ function uniqueKey(prefix) {
 async function main() {
     const endpoint = process.argv[2] || 'http://127.0.0.1:8090';
     const accessKey = process.argv[3] || 'clutch-default-access-key';
-    const secretKey = process.argv[4] || null;
 
     console.log('========================================');
     console.log('  Clutch JavaScript SDK Test Harness');
@@ -66,7 +65,7 @@ async function main() {
     });
 
     await check('Authenticate with application key', async () => {
-        const token = await admin.authenticateWithKey(accessKey, secretKey || accessKey);
+        const token = await admin.authenticateWithKey(accessKey);
         assert(!!token.token, 'token should be returned');
         assert(!!token.tenantId, 'tenantId should be returned');
         tenantId = token.tenantId;
@@ -101,7 +100,6 @@ async function main() {
         const created = await admin.createCredential(tenantId, 'sdk-test-cred-' + Math.random().toString(36).slice(2, 8));
         assert(!!created.id, 'created credential should have an id');
         assert(!!created.accessKey, 'created credential should return an access key');
-        assert(!!created.secretKey, 'created credential should return the raw secret key once');
         const credentials = await admin.listCredentials(tenantId);
         assert(credentials.some((c) => c.id === created.id), 'created credential should appear in the list');
         await admin.deleteCredential(tenantId, created.id);
@@ -119,7 +117,7 @@ async function main() {
 
     // ---- Lock (WebSocket) ----
 
-    const locks = new ClutchLockClient(endpoint, accessKey, secretKey);
+    const locks = new ClutchLockClient(endpoint, accessKey);
 
     await check('Connect lock client and receive welcome', async () => {
         const welcome = await locks.connect();

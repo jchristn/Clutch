@@ -70,7 +70,7 @@ namespace Clutch.Server.Routes
             }
             List<Credential> credentials = await _Database.Credentials.EnumerateAsync(tid, context.Token).ConfigureAwait(false);
             List<CredentialResponse> projected = new List<CredentialResponse>();
-            foreach (Credential credential in credentials) projected.Add(CredentialResponse.FromModel(credential, null));
+            foreach (Credential credential in credentials) projected.Add(CredentialResponse.FromModel(credential));
             await RouteHelpers.JsonAsync(context, 200, projected).ConfigureAwait(false);
         }
 
@@ -90,18 +90,15 @@ namespace Clutch.Server.Routes
                 return;
             }
 
-            string secretKey = CredentialKeyGenerator.GenerateSecretKey();
             Credential credential = new Credential();
             credential.TenantId = tid;
             credential.UserId = request.UserId;
             credential.Name = request.Name;
             credential.AccessKey = CredentialKeyGenerator.GenerateAccessKey();
-            credential.SecretKeyEncrypted = CredentialKeyGenerator.ComputeVerifier(secretKey);
-            credential.SecretKeyLast4 = CredentialKeyGenerator.Last4(secretKey);
             credential.ExpiresUtc = request.ExpiresUtc;
 
             Credential created = await _Database.Credentials.CreateAsync(credential, context.Token).ConfigureAwait(false);
-            await RouteHelpers.JsonAsync(context, 201, CredentialResponse.FromModel(created, secretKey)).ConfigureAwait(false);
+            await RouteHelpers.JsonAsync(context, 201, CredentialResponse.FromModel(created)).ConfigureAwait(false);
         }
 
         private async Task ReadAsync(HttpContextBase context)
@@ -120,7 +117,7 @@ namespace Clutch.Server.Routes
                 await RouteHelpers.ErrorAsync(context, 404, "NotFound", "Application key not found.").ConfigureAwait(false);
                 return;
             }
-            await RouteHelpers.JsonAsync(context, 200, CredentialResponse.FromModel(credential, null)).ConfigureAwait(false);
+            await RouteHelpers.JsonAsync(context, 200, CredentialResponse.FromModel(credential)).ConfigureAwait(false);
         }
 
         private async Task DeleteAsync(HttpContextBase context)

@@ -12,7 +12,6 @@ export default function Login() {
   const [tab, setTab] = useState('key'); // 'key' | 'password'
   const [serverUrl, setServerUrl] = useState(DEV_DEFAULTS.serverUrl);
   const [accessKey, setAccessKey] = useState(DEV_DEFAULTS.accessKey);
-  const [secretKey, setSecretKey] = useState(DEV_DEFAULTS.secretKey);
   const [tenantId, setTenantId] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -26,7 +25,7 @@ export default function Login() {
     setLoading(true);
     try {
       if (tab === 'key') {
-        await login(serverUrl, 'key', { accessKey, secretKey });
+        await login(serverUrl, 'key', { accessKey });
       } else {
         await login(serverUrl, 'password', { tenantId, email, password });
       }
@@ -95,30 +94,6 @@ export default function Login() {
                   disabled={loading}
                   autoComplete="username"
                 />
-              </div>
-              <div className="field">
-                <label htmlFor="secretKey">{t('login.secretKey')}</label>
-                <div className="password-wrap">
-                  <input
-                    id="secretKey"
-                    type={showSecret ? 'text' : 'password'}
-                    value={secretKey}
-                    onChange={(e) => setSecretKey(e.target.value)}
-                    placeholder={t('login.secretKeyPlaceholder')}
-                    required
-                    disabled={loading}
-                    autoComplete="current-password"
-                  />
-                  <button
-                    type="button"
-                    className="icon-button"
-                    onClick={() => setShowSecret((v) => !v)}
-                    aria-label={showSecret ? t('login.hidePassword') : t('login.showPassword')}
-                    title={showSecret ? t('login.hidePassword') : t('login.showPassword')}
-                  >
-                    {showSecret ? <EyeOffIcon /> : <EyeIcon />}
-                  </button>
-                </div>
               </div>
             </>
           ) : (

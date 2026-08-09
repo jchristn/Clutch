@@ -14,13 +14,13 @@ from clutch_lock_sdk import ClutchLockClient, ClutchLockDeniedError
 
 def print_help():
     print("Commands:")
-    print("  login key <accessKey> [secretKey]     Authenticate with an application key")
+    print("  login key <accessKey>                 Authenticate with an application key")
     print("  login user <tenantId> <email> <pw>    Authenticate with user credentials")
     print("  whoami                                Show the current principal")
     print("  serverinfo                            Show server information")
     print("  tenants                               List tenants")
     print("  locks                                 List active locks in the current tenant")
-    print("  connect <accessKey> [secretKey]       Open the WebSocket lock connection")
+    print("  connect <accessKey>                   Open the WebSocket lock connection")
     print("  acquire <key> <Read|Write|Delete> [wait <ms>]   Acquire a lock")
     print("  held                                  List locks held on this connection")
     print("  release <n>                           Release a held lock by its list number")
@@ -55,7 +55,7 @@ def main():
                 print_help()
             elif command == "login":
                 if len(parts) >= 3 and parts[1].lower() == "key":
-                    token = admin.authenticate_with_key(parts[2], parts[3] if len(parts) >= 4 else parts[2])
+                    token = admin.authenticate_with_key(parts[2])
                     state["tenant_id"] = token.get("tenantId")
                     print(f"Authenticated. Tenant: {token.get('tenantId')}")
                 elif len(parts) >= 5 and parts[1].lower() == "user":
@@ -63,7 +63,7 @@ def main():
                     state["tenant_id"] = token.get("tenantId")
                     print(f"Authenticated. Tenant: {token.get('tenantId')}")
                 else:
-                    print("Usage: login key <accessKey> [secretKey]  |  login user <tenantId> <email> <password>")
+                    print("Usage: login key <accessKey>  |  login user <tenantId> <email> <password>")
             elif command == "whoami":
                 d = admin.get_token_details()
                 print(f"Principal : {d.get('principalName')}")
@@ -92,11 +92,11 @@ def main():
                         print(f"  {h.get('lockKey')}  {h.get('mode')}  fencing={h.get('fencingToken')}  holder={h.get('id')}")
             elif command == "connect":
                 if len(parts) < 2:
-                    print("Usage: connect <accessKey> [secretKey]")
+                    print("Usage: connect <accessKey>")
                 else:
                     if state["locks"] is not None:
                         state["locks"].close()
-                    client = ClutchLockClient(endpoint, parts[1], parts[2] if len(parts) >= 3 else None)
+                    client = ClutchLockClient(endpoint, parts[1])
                     client.on_heartbeat = lambda renewed: print(f"\n[push] heartbeat renewed {len(renewed)} lease(s)")
                     client.on_error = lambda message: print(f"\n[push] error: {message}")
                     client.on_close = lambda reason: print(f"\n[push] connection closed: {reason}")

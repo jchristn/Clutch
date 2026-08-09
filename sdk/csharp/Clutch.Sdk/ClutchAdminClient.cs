@@ -98,17 +98,15 @@ namespace Clutch.Sdk
         /// Authenticates using an application key. On success the resulting token is stored on <see cref="Token"/>.
         /// </summary>
         /// <param name="accessKey">The access key.</param>
-        /// <param name="secretKey">The secret key.</param>
         /// <param name="cancellationToken">A cancellation token.</param>
         /// <returns>The token response, including the bearer token and resolved principal context.</returns>
-        /// <exception cref="ArgumentNullException">Thrown when <paramref name="accessKey"/> or <paramref name="secretKey"/> is null.</exception>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="accessKey"/> is null.</exception>
         /// <exception cref="ClutchException">Thrown when authentication fails.</exception>
-        public async Task<TokenResponse> AuthenticateWithKeyAsync(string accessKey, string secretKey, CancellationToken cancellationToken = default)
+        public async Task<TokenResponse> AuthenticateWithKeyAsync(string accessKey, CancellationToken cancellationToken = default)
         {
             if (accessKey == null) throw new ArgumentNullException(nameof(accessKey));
-            if (secretKey == null) throw new ArgumentNullException(nameof(secretKey));
 
-            object body = new { accessKey = accessKey, secretKey = secretKey };
+            object body = new { accessKey = accessKey };
             TokenResponse response = await SendAsync<TokenResponse>(HttpMethod.Post, "/v1.0/token", body, false, cancellationToken).ConfigureAwait(false);
             _Token = response.Token;
             return response;
@@ -365,7 +363,7 @@ namespace Clutch.Sdk
         #region Credentials
 
         /// <summary>
-        /// Lists application keys within a tenant. Secrets are redacted to their last four characters.
+        /// Lists application keys within a tenant.
         /// </summary>
         /// <param name="tenantId">The tenant identifier.</param>
         /// <param name="cancellationToken">A cancellation token.</param>
@@ -379,7 +377,7 @@ namespace Clutch.Sdk
         }
 
         /// <summary>
-        /// Retrieves a single application key within a tenant. The secret is redacted.
+        /// Retrieves a single application key within a tenant.
         /// </summary>
         /// <param name="tenantId">The tenant identifier.</param>
         /// <param name="credentialId">The credential identifier.</param>
@@ -395,14 +393,14 @@ namespace Clutch.Sdk
         }
 
         /// <summary>
-        /// Creates an application key within a tenant. The raw secret key is returned only in this response.
+        /// Creates an application key within a tenant.
         /// </summary>
         /// <param name="tenantId">The tenant identifier.</param>
         /// <param name="name">The credential name.</param>
         /// <param name="userId">An optional user identifier to associate the credential with.</param>
         /// <param name="expiresUtc">An optional expiry time, in UTC.</param>
         /// <param name="cancellationToken">A cancellation token.</param>
-        /// <returns>The created credential, including the raw secret key.</returns>
+        /// <returns>The created credential, including its access key.</returns>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="tenantId"/> or <paramref name="name"/> is null.</exception>
         /// <exception cref="ClutchException">Thrown when the request fails.</exception>
         public async Task<Credential> CreateCredentialAsync(string tenantId, string name, string? userId = null, DateTime? expiresUtc = null, CancellationToken cancellationToken = default)

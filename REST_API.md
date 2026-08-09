@@ -29,7 +29,7 @@ Status codes: `200` ok, `201` created, `204` no content, `400` bad request, `401
 **`POST /v1.0/token`** — anonymous. Log in with an application key or with user credentials.
 
 ```json
-{ "accessKey": "clutch-default-access-key", "secretKey": "clutch-default-secret-key" }
+{ "accessKey": "clutch-default-access-key" }
 ```
 or
 ```json
@@ -65,11 +65,11 @@ Password hashes are never returned.
 
 Scoped to a tenant.
 
-- **`GET /v1.0/api/tenants/{tid}/credentials`** — secrets are redacted (only `secretKeyLast4`).
-- **`POST /v1.0/api/tenants/{tid}/credentials`** — `{ name, userId?, expiresUtc? }`. The server generates the keys and returns the raw `secretKey` **once** in this response only. `201`.
+- **`GET /v1.0/api/tenants/{tid}/credentials`** — lists application keys.
+- **`POST /v1.0/api/tenants/{tid}/credentials`** — `{ name, userId?, expiresUtc? }`. The server generates the access key and returns it. The access key is the sole credential — there is no secret key. `201`.
 - **`GET|DELETE /v1.0/api/tenants/{tid}/credentials/{id}`**
 
-Create response: `{ id, tenantId, userId, name, accessKey, secretKey, secretKeyLast4, authMode, expiresUtc, active, createdUtc }`.
+Create response: `{ id, tenantId, userId, name, accessKey, authMode, expiresUtc, active, createdUtc }`. The access key is presented on connect (`x-clutch-access-key`); treat it as a secret. No secret key is ever issued or accepted.
 
 ## Locks (observe + administer)
 
@@ -98,7 +98,7 @@ Tenant-scoped from the token; a system admin may widen scope with `?tenantId=`.
 - **`DELETE /v1.0/api/request-history/{id}`** — `204`.
 - **`DELETE /v1.0/api/request-history`** — bulk delete matching the filter; returns `{ deletedCount }`.
 
-Secret-bearing headers (`Authorization`, `x-token`, `x-secret-key`, anything matching `*api-key*`/`*token*`/`*secret*`) are redacted; bodies are truncated to a configurable byte threshold.
+Secret-bearing headers (`Authorization`, `x-token`, anything matching `*api-key*`/`*token*`/`*secret*`) are redacted; bodies are truncated to a configurable byte threshold.
 
 ## Server info
 

@@ -43,8 +43,8 @@ namespace Clutch.Core.Database.Postgresql.Implementations
             credential.LastUpdateUtc = credential.CreatedUtc;
 
             string sql = @"
-INSERT INTO credentials (id, tenantid, userid, name, accesskey, secretkeyencrypted, secretkeylast4, authmode, lastusedutc, expiresutc, active, isprotected, createdutc, lastupdateutc)
-VALUES (@id, @tid, @uid, @name, @access, @secret, @last4, @mode, @lastused, @expires, @active, @protected, @created, @updated);";
+INSERT INTO credentials (id, tenantid, userid, name, accesskey, authmode, lastusedutc, expiresutc, active, isprotected, createdutc, lastupdateutc)
+VALUES (@id, @tid, @uid, @name, @access, @mode, @lastused, @expires, @active, @protected, @created, @updated);";
 
             await _Driver.NonQueryAsync(sql, parameters =>
             {
@@ -53,8 +53,6 @@ VALUES (@id, @tid, @uid, @name, @access, @secret, @last4, @mode, @lastused, @exp
                 parameters.AddWithValue("uid", (object?)credential.UserId ?? DBNull.Value);
                 parameters.AddWithValue("name", credential.Name);
                 parameters.AddWithValue("access", credential.AccessKey);
-                parameters.AddWithValue("secret", credential.SecretKeyEncrypted);
-                parameters.AddWithValue("last4", credential.SecretKeyLast4);
                 parameters.AddWithValue("mode", credential.AuthMode.ToString());
                 parameters.AddWithValue("lastused", (object?)credential.LastUsedUtc ?? DBNull.Value);
                 parameters.AddWithValue("expires", (object?)credential.ExpiresUtc ?? DBNull.Value);

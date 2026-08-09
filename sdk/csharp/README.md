@@ -23,16 +23,16 @@ using Clutch.Sdk;
 using ClutchAdminClient admin = new ClutchAdminClient("http://127.0.0.1:8090");
 
 // Authenticate with an application key (or AuthenticateWithPasswordAsync for user login).
-TokenResponse token = await admin.AuthenticateWithKeyAsync("clutch-default-access-key", "clutch-default-secret-key");
+TokenResponse token = await admin.AuthenticateWithKeyAsync("clutch-default-access-key");
 string tenantId = token.TenantId!;
 
 ServerInfo info = await admin.GetServerInfoAsync();
 List<Tenant> tenants = await admin.ListTenantsAsync();
 List<LockHolder> holders = await admin.ListLocksAsync(tenantId);
 
-// Application keys: the raw secret is returned only once, at creation.
+// Application keys authenticate with the access key alone.
 Credential cred = await admin.CreateCredentialAsync(tenantId, "worker-key");
-Console.WriteLine(cred.SecretKey);
+Console.WriteLine(cred.AccessKey);
 ```
 
 The client is `IDisposable`; every async method accepts a `CancellationToken`. Failures throw `ClutchException`, which carries the HTTP `StatusCode` and raw `ResponseBody` when available.
@@ -44,7 +44,7 @@ Lock acquisition happens over a WebSocket. Every lock the connection holds is re
 ```csharp
 using Clutch.Sdk;
 
-using ClutchLockClient locks = new ClutchLockClient("http://127.0.0.1:8090", "clutch-default-access-key", "clutch-default-secret-key");
+using ClutchLockClient locks = new ClutchLockClient("http://127.0.0.1:8090", "clutch-default-access-key");
 WelcomeInfo welcome = await locks.ConnectAsync();
 
 AcquiredLock held = await locks.AcquireAsync("orders/42", LockMode.Write);
@@ -77,10 +77,10 @@ Events: `HeartbeatReceived`, `ErrorReceived`, and `Closed`.
 ### Run the test application
 
 ```
-dotnet run --project Clutch.Sdk.Test -- http://127.0.0.1:8090 clutch-default-access-key clutch-default-secret-key
+dotnet run --project Clutch.Sdk.Test -- http://127.0.0.1:8090 clutch-default-access-key
 ```
 
-Arguments: `<endpoint> <accessKey> [secretKey]`. The process exits `0` when every check passes, `1` otherwise.
+Arguments: `<endpoint> <accessKey>`. The process exits `0` when every check passes, `1` otherwise.
 
 ### Run the interactive console
 
@@ -88,7 +88,7 @@ Arguments: `<endpoint> <accessKey> [secretKey]`. The process exits `0` when ever
 dotnet run --project Clutch.Sdk.Console -- http://127.0.0.1:8090
 ```
 
-Type `help` at the `clutch>` prompt. A typical session: `login key <accessKey> <secretKey>`, `serverinfo`, `tenants`, `connect <accessKey> <secretKey>`, `acquire orders/42 Write`, `held`, `release 1`.
+Type `help` at the `clutch>` prompt. A typical session: `login key <accessKey>`, `serverinfo`, `tenants`, `connect <accessKey>`, `acquire orders/42 Write`, `held`, `release 1`.
 
 ## License
 

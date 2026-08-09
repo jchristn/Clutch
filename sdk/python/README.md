@@ -21,15 +21,15 @@ Requires Python 3.8+.
 from clutch_admin_sdk import ClutchAdminClient
 
 admin = ClutchAdminClient("http://127.0.0.1:8090")
-admin.authenticate_with_key("clutch-default-access-key", "clutch-default-secret-key")
+admin.authenticate_with_key("clutch-default-access-key")
 
 info = admin.get_server_info()
 tenants = admin.list_tenants()
 holders = admin.list_locks(tenants[0]["id"])
 
-# Application keys: the raw secret is returned only once, at creation.
+# Application keys authenticate with the access key alone.
 cred = admin.create_credential(tenants[0]["id"], "worker-key")
-print(cred["secretKey"])
+print(cred["accessKey"])
 ```
 
 Responses are plain dicts (camelCase keys, as returned by the server). Failures raise `ClutchError`, which carries `status_code` and `response_body`. The client supports the context-manager protocol (`with ClutchAdminClient(...) as admin:`).
@@ -40,7 +40,7 @@ Responses are plain dicts (camelCase keys, as returned by the server). Failures 
 from clutch_admin_sdk import LockMode
 from clutch_lock_sdk import ClutchLockClient
 
-locks = ClutchLockClient("http://127.0.0.1:8090", "clutch-default-access-key", "clutch-default-secret-key")
+locks = ClutchLockClient("http://127.0.0.1:8090", "clutch-default-access-key")
 welcome = locks.connect()
 
 held = locks.acquire("orders/42", LockMode.Write)
@@ -64,7 +64,7 @@ Assign optional callbacks: `locks.on_heartbeat = fn`, `locks.on_error = fn`, `lo
 ## Test harness (non-interactive)
 
 ```
-python test_harness.py http://127.0.0.1:8090 clutch-default-access-key clutch-default-secret-key
+python test_harness.py http://127.0.0.1:8090 clutch-default-access-key
 ```
 
 The process exits `0` when every assertion passes, `1` otherwise.
@@ -75,7 +75,7 @@ The process exits `0` when every assertion passes, `1` otherwise.
 python console.py http://127.0.0.1:8090
 ```
 
-Type `help` at the `clutch>` prompt. A typical session: `login key <accessKey> <secretKey>`, `serverinfo`, `tenants`, `connect <accessKey> <secretKey>`, `acquire orders/42 Write`, `held`, `release 1`.
+Type `help` at the `clutch>` prompt. A typical session: `login key <accessKey>`, `serverinfo`, `tenants`, `connect <accessKey>`, `acquire orders/42 Write`, `held`, `release 1`.
 
 ## License
 

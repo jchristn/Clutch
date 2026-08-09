@@ -178,8 +178,6 @@ namespace Clutch.Core.Database.Postgresql
             credential.UserId = NullableStr(reader, "userid");
             credential.Name = Str(reader, "name");
             credential.AccessKey = Str(reader, "accesskey");
-            credential.SecretKeyEncrypted = Str(reader, "secretkeyencrypted");
-            credential.SecretKeyLast4 = Str(reader, "secretkeylast4");
             credential.AuthMode = Enum.Parse<CredentialAuthModeEnum>(Str(reader, "authmode"));
             credential.LastUsedUtc = NullableDate(reader, "lastusedutc");
             credential.ExpiresUtc = NullableDate(reader, "expiresutc");

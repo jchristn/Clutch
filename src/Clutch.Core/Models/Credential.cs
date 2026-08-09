@@ -82,17 +82,7 @@ namespace Clutch.Core.Models
         }
 
         /// <summary>
-        /// Encrypted secret key or verifier material. The raw secret is shown only once at creation.
-        /// </summary>
-        public string SecretKeyEncrypted { get; set; } = String.Empty;
-
-        /// <summary>
-        /// Last 4 characters of the raw secret, for operator reference.
-        /// </summary>
-        public string SecretKeyLast4 { get; set; } = String.Empty;
-
-        /// <summary>
-        /// How the credential presents its secret when authenticating.
+        /// How the credential presents itself when authenticating. The access key is the sole credential.
         /// </summary>
         public CredentialAuthModeEnum AuthMode { get; set; } = CredentialAuthModeEnum.DirectHeader;
 

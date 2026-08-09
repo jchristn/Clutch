@@ -12,7 +12,7 @@ namespace Clutch.Server.Services
 
     /// <summary>
     /// Resolves inbound requests to a typed <see cref="RequestContext"/> and issues session tokens.
-    /// Supports admin API key, bearer/x-token session tokens, and access-key/secret-key credentials.
+    /// Supports admin API key, bearer/x-token session tokens, and access-key application credentials.
     /// </summary>
     public class AuthenticationService
     {
@@ -94,10 +94,9 @@ namespace Clutch.Server.Services
             }
 
             string? accessKey = context.Request.Headers["x-access-key"];
-            string? secretKey = context.Request.Headers["x-secret-key"];
-            if (!string.IsNullOrEmpty(accessKey) && !string.IsNullOrEmpty(secretKey))
+            if (!string.IsNullOrEmpty(accessKey))
             {
-                Credential? credential = await AuthenticateCredentialLoginAsync(accessKey, secretKey, token).ConfigureAwait(false);
+                Credential? credential = await AuthenticateCredentialLoginAsync(accessKey, token).ConfigureAwait(false);
                 if (credential != null) return await BuildCredentialContextAsync(credential, token).ConfigureAwait(false);
             }
 
@@ -105,7 +104,8 @@ namespace Clutch.Server.Services
         }
 
         /// <summary>
-        /// Authenticate a WebSocket upgrade request from access-key (and optional secret-key) headers.
+        /// Authenticate a WebSocket upgrade request from the access-key header (or query parameter). The
+        /// access key is the sole connect credential; a secret key is never accepted.
         /// </summary>
         /// <param name="context">HTTP context of the upgrade request.</param>
         /// <param name="token">Cancellation token.</param>
@@ -120,17 +120,6 @@ namespace Clutch.Server.Services
             Credential? credential = await _Database.Credentials.ReadByAccessKeyAsync(accessKey, token).ConfigureAwait(false);
             if (credential == null || !credential.Active) return null;
             if (credential.ExpiresUtc.HasValue && credential.ExpiresUtc.Value < DateTime.UtcNow) return null;
-
-            string? secretKey = context.Request.Headers["x-clutch-secret-key"];
-            if (string.IsNullOrEmpty(secretKey)) secretKey = context.Request.Headers["x-secret-key"];
-            if (string.IsNullOrEmpty(secretKey)) secretKey = QueryValue(context, "secretKey");
-            if (!string.IsNullOrEmpty(secretKey))
-            {
-                if (!PasswordHasher.FixedTimeEquals(CredentialKeyGenerator.ComputeVerifier(secretKey), credential.SecretKeyEncrypted))
-                {
-                    return null;
-                }
-            }
 
             await _Database.Credentials.TouchLastUsedAsync(credential.Id, token).ConfigureAwait(false);
             return await BuildCredentialContextAsync(credential, token).ConfigureAwait(false);
@@ -155,20 +144,19 @@ namespace Clutch.Server.Services
         }
 
         /// <summary>
-        /// Validate a credential login by access key and secret key.
+        /// Validate a credential by its access key. The access key is the sole credential; no secret key
+        /// is required or accepted.
         /// </summary>
         /// <param name="accessKey">Access key.</param>
-        /// <param name="secretKey">Secret key.</param>
         /// <param name="token">Cancellation token.</param>
         /// <returns>The credential if valid, otherwise null.</returns>
-        public async Task<Credential?> AuthenticateCredentialLoginAsync(string accessKey, string secretKey, CancellationToken token = default)
+        public async Task<Credential?> AuthenticateCredentialLoginAsync(string accessKey, CancellationToken token = default)
         {
-            if (string.IsNullOrEmpty(accessKey) || string.IsNullOrEmpty(secretKey)) return null;
+            if (string.IsNullOrEmpty(accessKey)) return null;
 
             Credential? credential = await _Database.Credentials.ReadByAccessKeyAsync(accessKey, token).ConfigureAwait(false);
             if (credential == null || !credential.Active) return null;
             if (credential.ExpiresUtc.HasValue && credential.ExpiresUtc.Value < DateTime.UtcNow) return null;
-            if (!PasswordHasher.FixedTimeEquals(CredentialKeyGenerator.ComputeVerifier(secretKey), credential.SecretKeyEncrypted)) return null;
 
             await _Database.Credentials.TouchLastUsedAsync(credential.Id, token).ConfigureAwait(false);
             return credential;

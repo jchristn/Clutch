@@ -69,7 +69,7 @@ export function AuthProvider({ children }) {
   }, [logout]);
 
   /**
-   * Log in. `mode` is 'key' ({ accessKey, secretKey }) or
+   * Log in. `mode` is 'key' ({ accessKey }) or
    * 'password' ({ tenantId, email, password }).
    */
   const login = useCallback(async (url, mode, creds) => {
@@ -77,7 +77,7 @@ export function AuthProvider({ children }) {
     const result =
       mode === 'password'
         ? await tempClient.loginWithPassword(creds.tenantId, creds.email, creds.password)
-        : await tempClient.loginWithKey(creds.accessKey, creds.secretKey);
+        : await tempClient.loginWithKey(creds.accessKey);
 
     const newToken = result?.token;
     if (!newToken) throw new Error('No token returned');

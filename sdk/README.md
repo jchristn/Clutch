@@ -21,14 +21,14 @@ Enumerations are consistent across languages: `LockMode` (`Read`, `Write`, `Dele
 
 ## Running the test applications
 
-Each test application takes `<endpoint> <accessKey> [secretKey]` and exits `0` when every assertion passes, `1` otherwise. Against a local dev server the defaults are `http://127.0.0.1:8090`, `clutch-default-access-key`, `clutch-default-secret-key`.
+Each test application takes `<endpoint> <accessKey>` and exits `0` when every assertion passes, `1` otherwise. Against a local dev server the defaults are `http://127.0.0.1:8090` and `clutch-default-access-key`. Clients authenticate with the access key alone.
 
 **C#**
 
 ```
 cd csharp
 dotnet build Clutch.Sdk.sln
-dotnet run --project Clutch.Sdk.Test -- http://127.0.0.1:8090 clutch-default-access-key clutch-default-secret-key
+dotnet run --project Clutch.Sdk.Test -- http://127.0.0.1:8090 clutch-default-access-key
 ```
 
 **JavaScript**
@@ -36,7 +36,7 @@ dotnet run --project Clutch.Sdk.Test -- http://127.0.0.1:8090 clutch-default-acc
 ```
 cd js
 npm install
-node test-harness.js http://127.0.0.1:8090 clutch-default-access-key clutch-default-secret-key
+node test-harness.js http://127.0.0.1:8090 clutch-default-access-key
 ```
 
 **Python**
@@ -44,14 +44,14 @@ node test-harness.js http://127.0.0.1:8090 clutch-default-access-key clutch-defa
 ```
 cd python
 pip install -r requirements.txt
-python test_harness.py http://127.0.0.1:8090 clutch-default-access-key clutch-default-secret-key
+python test_harness.py http://127.0.0.1:8090 clutch-default-access-key
 ```
 
 Each harness exercises the same behavior: health, authentication, token details, server info, tenant and credential CRUD, lock inspection, request-history summary, WebSocket connect/welcome, acquire/release, monotonic fencing-token increase, shared readers, a write denying a fail-fast read, a waiting read timing out, and heartbeat renewal.
 
 ## Running the interactive consoles
 
-Each console presents a `clutch>` prompt; type `help` for the command list. A typical session is `login key <accessKey> <secretKey>`, `serverinfo`, `tenants`, `connect <accessKey> <secretKey>`, `acquire orders/42 Write`, `held`, `release 1`.
+Each console presents a `clutch>` prompt; type `help` for the command list. A typical session is `login key <accessKey>`, `serverinfo`, `tenants`, `connect <accessKey>`, `acquire orders/42 Write`, `held`, `release 1`.
 
 **C#**
 

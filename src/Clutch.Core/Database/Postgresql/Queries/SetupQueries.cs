@@ -79,8 +79,6 @@ CREATE TABLE IF NOT EXISTS credentials (
     userid VARCHAR(64),
     name TEXT NOT NULL,
     accesskey TEXT NOT NULL,
-    secretkeyencrypted TEXT NOT NULL DEFAULT '',
-    secretkeylast4 VARCHAR(8) NOT NULL DEFAULT '',
     authmode TEXT NOT NULL DEFAULT 'DirectHeader',
     lastusedutc TIMESTAMPTZ,
     expiresutc TIMESTAMPTZ,

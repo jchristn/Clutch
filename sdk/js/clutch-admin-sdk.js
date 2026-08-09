@@ -134,11 +134,10 @@ class ClutchAdminClient {
     /**
      * Authenticates with an application key. Stores the returned token on this client.
      * @param {string} accessKey - The access key.
-     * @param {string} secretKey - The secret key.
      * @returns {Promise<object>} The token response { token, principalType, tenantId }.
      */
-    async authenticateWithKey(accessKey, secretKey) {
-        const result = await this._request('POST', '/v1.0/token', { body: { accessKey, secretKey }, auth: false });
+    async authenticateWithKey(accessKey) {
+        const result = await this._request('POST', '/v1.0/token', { body: { accessKey }, auth: false });
         this.token = result.token;
         return result;
     }
@@ -303,7 +302,7 @@ class ClutchAdminClient {
     // ---- Credentials ----
 
     /**
-     * Lists application keys within a tenant. Secrets are redacted.
+     * Lists application keys within a tenant.
      * @param {string} tenantId - The tenant identifier.
      * @returns {Promise<object[]>} The list of credentials.
      */
@@ -312,7 +311,7 @@ class ClutchAdminClient {
     }
 
     /**
-     * Retrieves a single application key. The secret is redacted.
+     * Retrieves a single application key.
      * @param {string} tenantId - The tenant identifier.
      * @param {string} credentialId - The credential identifier.
      * @returns {Promise<object>} The credential.
@@ -322,11 +321,11 @@ class ClutchAdminClient {
     }
 
     /**
-     * Creates an application key. The raw secret key is returned only in this response.
+     * Creates an application key.
      * @param {string} tenantId - The tenant identifier.
      * @param {string} name - The credential name.
      * @param {object} [options] - { userId?, expiresUtc? }.
-     * @returns {Promise<object>} The created credential, including the raw secret key.
+     * @returns {Promise<object>} The created credential, including its access key.
      */
     async createCredential(tenantId, name, options = {}) {
         const body = { name, userId: options.userId, expiresUtc: options.expiresUtc };

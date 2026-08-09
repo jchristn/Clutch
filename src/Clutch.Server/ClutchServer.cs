@@ -211,7 +211,7 @@ namespace Clutch.Server
             context.Response.StatusCode = 200;
             context.Response.Headers.Add("Access-Control-Allow-Origin", "*");
             context.Response.Headers.Add("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS, HEAD");
-            context.Response.Headers.Add("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Api-Key, x-token, x-access-key, x-secret-key");
+            context.Response.Headers.Add("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Api-Key, x-token, x-access-key, x-clutch-access-key");
             context.Response.Headers.Add("Access-Control-Max-Age", "86400");
             await context.Response.Send().ConfigureAwait(false);
         }
@@ -222,7 +222,7 @@ namespace Clutch.Server
 
             context.Response.Headers.Add("Access-Control-Allow-Origin", "*");
             context.Response.Headers.Add("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS, HEAD");
-            context.Response.Headers.Add("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Api-Key, x-token, x-access-key, x-secret-key");
+            context.Response.Headers.Add("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Api-Key, x-token, x-access-key, x-clutch-access-key");
 
             _Logging.Debug(
                 _Header +

@@ -33,19 +33,10 @@ namespace Clutch.Core.Responses
         public string Name { get; set; } = string.Empty;
 
         /// <summary>
-        /// Public access key.
+        /// Public access key. This is the sole credential; it is presented on connect and there is no
+        /// secret key.
         /// </summary>
         public string AccessKey { get; set; } = string.Empty;
-
-        /// <summary>
-        /// Last four characters of the secret, for reference.
-        /// </summary>
-        public string SecretKeyLast4 { get; set; } = string.Empty;
-
-        /// <summary>
-        /// The raw secret key. Populated only in the create response; null otherwise.
-        /// </summary>
-        public string? SecretKey { get; set; } = null;
 
         /// <summary>
         /// Authentication mode.
@@ -77,12 +68,11 @@ namespace Clutch.Core.Responses
         #region Public-Methods
 
         /// <summary>
-        /// Project a credential model to a response, optionally including the raw secret.
+        /// Project a credential model to a response.
         /// </summary>
         /// <param name="credential">Credential model.</param>
-        /// <param name="rawSecret">Raw secret key to include, or null.</param>
         /// <returns>The response projection.</returns>
-        public static CredentialResponse FromModel(Credential credential, string? rawSecret)
+        public static CredentialResponse FromModel(Credential credential)
         {
             CredentialResponse response = new CredentialResponse();
             response.Id = credential.Id;
@@ -90,8 +80,6 @@ namespace Clutch.Core.Responses
             response.UserId = credential.UserId;
             response.Name = credential.Name;
             response.AccessKey = credential.AccessKey;
-            response.SecretKeyLast4 = credential.SecretKeyLast4;
-            response.SecretKey = rawSecret;
             response.AuthMode = credential.AuthMode;
             response.ExpiresUtc = credential.ExpiresUtc;
             response.Active = credential.Active;

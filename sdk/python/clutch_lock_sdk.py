@@ -59,12 +59,11 @@ class ClutchLockClient:
       - ``on_close(reason: str)`` invoked when the connection closes.
     """
 
-    def __init__(self, endpoint: str, access_key: str, secret_key: Optional[str] = None, request_timeout: float = 30.0):
+    def __init__(self, endpoint: str, access_key: str, request_timeout: float = 30.0):
         """Create a ClutchLockClient.
 
         :param endpoint: Base URL, e.g. "http://127.0.0.1:8090".
         :param access_key: The application access key.
-        :param secret_key: The optional secret key.
         :param request_timeout: Default seconds to wait for a fail-fast response. Default is 30.
         """
         if not endpoint:
@@ -73,7 +72,6 @@ class ClutchLockClient:
             raise ClutchError("access_key is required")
         self.url = _build_ws_url(endpoint)
         self.access_key = access_key
-        self.secret_key = secret_key
         self.request_timeout = request_timeout
         self.welcome: Optional[Dict[str, Any]] = None
 
@@ -101,8 +99,6 @@ class ClutchLockClient:
         :raises ClutchError: When the connection cannot be established.
         """
         header = [f"x-clutch-access-key: {self.access_key}"]
-        if self.secret_key:
-            header.append(f"x-clutch-secret-key: {self.secret_key}")
 
         try:
             self._ws = websocket.create_connection(self.url, header=header, enable_multithread=True)

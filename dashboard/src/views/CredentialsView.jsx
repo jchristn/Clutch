@@ -27,7 +27,7 @@ export default function CredentialsView({ apiClient }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [creating, setCreating] = useState(null); // { name, userId, expiresUtc }
-  const [secret, setSecret] = useState(null); // created credential incl. secretKey
+  const [created, setCreated] = useState(null); // created credential (accessKey)
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [jsonValue, setJsonValue] = useState(null);
   const [busy, setBusy] = useState(false);
@@ -58,7 +58,7 @@ export default function CredentialsView({ apiClient }) {
       if (creating.expiresUtc) body.expiresUtc = new Date(creating.expiresUtc).toISOString();
       const res = await apiClient.createCredential(tenantId, body);
       setCreating(null);
-      setSecret(res);
+      setCreated(res);
       load();
     } catch (e) {
       addToast({ type: 'error', message: e.message });
@@ -83,7 +83,6 @@ export default function CredentialsView({ apiClient }) {
     { key: 'name', label: t('views.credentials.columns.name'), render: (r) => <strong>{r.name}</strong> },
     { key: 'id', label: t('views.credentials.columns.id'), cellClass: 'cell-id', render: (r) => <CopyableId value={r.id} /> },
     { key: 'accessKey', label: t('views.credentials.columns.accessKey'), cellClass: 'cell-id', render: (r) => <CopyableId value={r.accessKey} max={28} /> },
-    { key: 'secretKeyLast4', label: t('views.credentials.columns.secretLast4'), render: (r) => <code className="monospace">····{r.secretKeyLast4}</code> },
     { key: 'expiresUtc', label: t('views.credentials.columns.expires'), render: (r) => (r.expiresUtc ? formatDateTime(r.expiresUtc, i18n.language) : '—') },
     { key: 'lastUsedUtc', label: t('views.credentials.columns.lastUsed'), render: (r) => (r.lastUsedUtc ? formatDateTime(r.lastUsedUtc, i18n.language) : '—') },
     { key: 'active', label: t('views.credentials.columns.active'), render: (r) => <ActiveBadge active={r.active} activeLabel={t('common.generic.active')} inactiveLabel={t('common.generic.inactive')} /> },
@@ -186,34 +185,24 @@ export default function CredentialsView({ apiClient }) {
         )}
       </Modal>
 
-      {/* Secret-shown-once modal */}
+      {/* Created-credential modal */}
       <Modal
-        open={!!secret}
-        onClose={() => setSecret(null)}
+        open={!!created}
+        onClose={() => setCreated(null)}
         title={t('views.credentials.secretTitle')}
         footer={
-          <button type="button" className="button-primary" onClick={() => setSecret(null)}>
+          <button type="button" className="button-primary" onClick={() => setCreated(null)}>
             {t('views.credentials.secretDone')}
           </button>
         }
       >
-        {secret && (
+        {created && (
           <div className="modal-form">
-            <div className="error-banner" style={{ color: 'var(--color-warning)', background: 'color-mix(in srgb, var(--color-warning) 12%, transparent)', borderColor: 'color-mix(in srgb, var(--color-warning) 40%, transparent)' }}>
-              {t('views.credentials.secretIntro')}
-            </div>
             <div className="field">
               <label>{t('views.credentials.accessKeyLabel')}</label>
               <div className="explorer-url">
-                <span style={{ flex: 1 }}>{secret.accessKey}</span>
-                <CopyButton value={secret.accessKey} />
-              </div>
-            </div>
-            <div className="field">
-              <label>{t('views.credentials.secretKeyLabel')}</label>
-              <div className="explorer-url">
-                <span style={{ flex: 1 }}>{secret.secretKey}</span>
-                <CopyButton value={secret.secretKey} />
+                <span style={{ flex: 1 }}>{created.accessKey}</span>
+                <CopyButton value={created.accessKey} />
               </div>
             </div>
           </div>

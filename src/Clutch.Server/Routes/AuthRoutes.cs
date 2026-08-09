@@ -73,12 +73,12 @@ namespace Clutch.Server.Routes
 
             string? userAgent = context.Request.Headers["User-Agent"];
 
-            if (!string.IsNullOrEmpty(request.AccessKey) && !string.IsNullOrEmpty(request.SecretKey))
+            if (!string.IsNullOrEmpty(request.AccessKey))
             {
-                Credential? credential = await _Authentication.AuthenticateCredentialLoginAsync(request.AccessKey, request.SecretKey, context.Token).ConfigureAwait(false);
+                Credential? credential = await _Authentication.AuthenticateCredentialLoginAsync(request.AccessKey, context.Token).ConfigureAwait(false);
                 if (credential == null)
                 {
-                    await RouteHelpers.ErrorAsync(context, 401, "Unauthorized", "Invalid access key or secret key.").ConfigureAwait(false);
+                    await RouteHelpers.ErrorAsync(context, 401, "Unauthorized", "Invalid access key.").ConfigureAwait(false);
                     return;
                 }
                 string token = await _Authentication.IssueSessionForCredentialAsync(credential, null, userAgent, context.Token).ConfigureAwait(false);
@@ -99,7 +99,7 @@ namespace Clutch.Server.Routes
                 return;
             }
 
-            await RouteHelpers.ErrorAsync(context, 400, "BadRequest", "Provide tenantId/email/password or accessKey/secretKey.").ConfigureAwait(false);
+            await RouteHelpers.ErrorAsync(context, 400, "BadRequest", "Provide an accessKey, or tenantId/email/password.").ConfigureAwait(false);
         }
 
         private async Task ValidateAsync(HttpContextBase context)

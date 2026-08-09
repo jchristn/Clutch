@@ -89,13 +89,13 @@ namespace Clutch.Sdk.Console
         private static void PrintHelp()
         {
             SysConsole.WriteLine("Commands:");
-            SysConsole.WriteLine("  login key <accessKey> [secretKey]     Authenticate with an application key");
+            SysConsole.WriteLine("  login key <accessKey>                 Authenticate with an application key");
             SysConsole.WriteLine("  login user <tenantId> <email> <pw>    Authenticate with user credentials");
             SysConsole.WriteLine("  whoami                                Show the current principal");
             SysConsole.WriteLine("  serverinfo                            Show server information");
             SysConsole.WriteLine("  tenants                               List tenants");
             SysConsole.WriteLine("  locks                                 List active locks in the current tenant");
-            SysConsole.WriteLine("  connect <accessKey> [secretKey]       Open the WebSocket lock connection");
+            SysConsole.WriteLine("  connect <accessKey>                   Open the WebSocket lock connection");
             SysConsole.WriteLine("  acquire <key> <Read|Write|Delete> [wait <ms>]   Acquire a lock");
             SysConsole.WriteLine("  held                                  List locks held on this connection");
             SysConsole.WriteLine("  release <n>                           Release a held lock by its list number");
@@ -107,15 +107,9 @@ namespace Clutch.Sdk.Console
         private static async Task LoginAsync(string[] parts)
         {
             if (_Admin == null) return;
-            if (parts.Length >= 4 && parts[1].ToLowerInvariant() == "key")
+            if (parts.Length >= 3 && parts[1].ToLowerInvariant() == "key")
             {
-                TokenResponse token = await _Admin.AuthenticateWithKeyAsync(parts[2], parts[3]).ConfigureAwait(false);
-                _TenantId = token.TenantId;
-                SysConsole.WriteLine($"Authenticated. Tenant: {token.TenantId}");
-            }
-            else if (parts.Length == 3 && parts[1].ToLowerInvariant() == "key")
-            {
-                TokenResponse token = await _Admin.AuthenticateWithKeyAsync(parts[2], parts[2]).ConfigureAwait(false);
+                TokenResponse token = await _Admin.AuthenticateWithKeyAsync(parts[2]).ConfigureAwait(false);
                 _TenantId = token.TenantId;
                 SysConsole.WriteLine($"Authenticated. Tenant: {token.TenantId}");
             }
@@ -127,7 +121,7 @@ namespace Clutch.Sdk.Console
             }
             else
             {
-                SysConsole.WriteLine("Usage: login key <accessKey> [secretKey]  |  login user <tenantId> <email> <password>");
+                SysConsole.WriteLine("Usage: login key <accessKey>  |  login user <tenantId> <email> <password>");
             }
         }
 
@@ -183,11 +177,10 @@ namespace Clutch.Sdk.Console
         {
             if (parts.Length < 2)
             {
-                SysConsole.WriteLine("Usage: connect <accessKey> [secretKey]");
+                SysConsole.WriteLine("Usage: connect <accessKey>");
                 return;
             }
             string accessKey = parts[1];
-            string? secretKey = parts.Length >= 3 ? parts[2] : null;
 
             if (_Locks != null)
             {
@@ -195,7 +188,7 @@ namespace Clutch.Sdk.Console
                 _Locks.Dispose();
             }
 
-            _Locks = new ClutchLockClient(endpoint, accessKey, secretKey);
+            _Locks = new ClutchLockClient(endpoint, accessKey);
             _Locks.HeartbeatReceived += (sender, renewed) =>
             {
                 SysConsole.WriteLine($"[push] heartbeat renewed {renewed.Count} lease(s)");

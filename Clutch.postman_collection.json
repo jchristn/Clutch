@@ -2,14 +2,13 @@
   "info": {
     "name": "Clutch",
     "_postman_id": "clutch-0-1-0",
-    "description": "Clutch distributed lock platform REST API (v0.1.0 alpha).\n\n## Getting started\nThis collection is self-contained — all variables (including `baseUrl` and the seeded dev key) are stored on the collection itself, so there is no separate environment to import.\n\n1. Import this collection.\n2. Adjust the collection variables if needed: `baseUrl` (default http://localhost:8080, the Docker load balancer) and `accessKey`/`secretKey` (defaults are the seeded dev key).\n3. Run **Auth > Login** first: it captures a bearer `token` into a collection variable that every other request uses automatically.\n4. Run **Tenants > List tenants** to capture `tenantId`, then explore the tenant-scoped folders.\n\nEverything is driven by variables — no hard-coded URLs, ids, or tokens. Lock acquisition itself is over the WebSocket API (see WEBSOCKETS_API.md), not REST.",
+    "description": "Clutch distributed lock platform REST API (v0.1.0 alpha).\n\n## Getting started\nThis collection is self-contained — all variables (including `baseUrl` and the seeded dev key) are stored on the collection itself, so there is no separate environment to import.\n\n1. Import this collection.\n2. Adjust the collection variables if needed: `baseUrl` (default http://localhost:8080, the Docker load balancer) and `accessKey` (default is the seeded dev key).\n3. Run **Auth > Login** first: it captures a bearer `token` into a collection variable that every other request uses automatically.\n4. Run **Tenants > List tenants** to capture `tenantId`, then explore the tenant-scoped folders.\n\nEverything is driven by variables — no hard-coded URLs, ids, or tokens. Lock acquisition itself is over the WebSocket API (see WEBSOCKETS_API.md), not REST.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": { "type": "bearer", "bearer": [ { "key": "token", "value": "{{token}}", "type": "string" } ] },
   "variable": [
     { "key": "baseUrl", "value": "http://localhost:8080" },
     { "key": "accessKey", "value": "clutch-default-access-key" },
-    { "key": "secretKey", "value": "clutch-default-secret-key" },
     { "key": "token", "value": "" },
     { "key": "tenantId", "value": "" },
     { "key": "userId", "value": "" },
@@ -28,8 +27,8 @@
             "method": "POST",
             "header": [ { "key": "Content-Type", "value": "application/json" } ],
             "url": { "raw": "{{baseUrl}}/v1.0/token", "host": [ "{{baseUrl}}" ], "path": [ "v1.0", "token" ] },
-            "body": { "mode": "raw", "raw": "{\n  \"accessKey\": \"{{accessKey}}\",\n  \"secretKey\": \"{{secretKey}}\"\n}" },
-            "description": "Exchange an application access/secret key for a session token. Captures `token` and `tenantId`. To log in as a user instead, send { tenantId, email, password }."
+            "body": { "mode": "raw", "raw": "{\n  \"accessKey\": \"{{accessKey}}\"\n}" },
+            "description": "Exchange an application access key for a session token. Captures `token` and `tenantId`. To log in as a user instead, send { tenantId, email, password }."
           },
           "event": [
             {
@@ -104,8 +103,8 @@
         { "name": "List credentials", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/v1.0/api/tenants/{{tenantId}}/credentials", "host": [ "{{baseUrl}}" ], "path": [ "v1.0", "api", "tenants", "{{tenantId}}", "credentials" ] }, "description": "List application keys (secrets redacted)." } },
         {
           "name": "Create credential",
-          "request": { "method": "POST", "header": [ { "key": "Content-Type", "value": "application/json" } ], "url": { "raw": "{{baseUrl}}/v1.0/api/tenants/{{tenantId}}/credentials", "host": [ "{{baseUrl}}" ], "path": [ "v1.0", "api", "tenants", "{{tenantId}}", "credentials" ] }, "body": { "mode": "raw", "raw": "{\n  \"name\": \"ci-runner\"\n}" }, "description": "Tenant admin. Returns accessKey + secretKey ONCE. Captures `credentialId`, `accessKey`, `secretKey`." },
-          "event": [ { "listen": "test", "script": { "exec": [ "if(pm.response.code===201){ const b=pm.response.json(); pm.collectionVariables.set('credentialId', b.id); if(b.accessKey) pm.collectionVariables.set('accessKey', b.accessKey); if(b.secretKey) pm.collectionVariables.set('secretKey', b.secretKey);} " ], "type": "text/javascript" } } ]
+          "request": { "method": "POST", "header": [ { "key": "Content-Type", "value": "application/json" } ], "url": { "raw": "{{baseUrl}}/v1.0/api/tenants/{{tenantId}}/credentials", "host": [ "{{baseUrl}}" ], "path": [ "v1.0", "api", "tenants", "{{tenantId}}", "credentials" ] }, "body": { "mode": "raw", "raw": "{\n  \"name\": \"ci-runner\"\n}" }, "description": "Tenant admin. Returns the application key (accessKey), which is the sole credential — there is no secret key. Captures `credentialId` and `accessKey`." },
+          "event": [ { "listen": "test", "script": { "exec": [ "if(pm.response.code===201){ const b=pm.response.json(); pm.collectionVariables.set('credentialId', b.id); if(b.accessKey) pm.collectionVariables.set('accessKey', b.accessKey);} " ], "type": "text/javascript" } } ]
         },
         { "name": "Read credential", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/v1.0/api/tenants/{{tenantId}}/credentials/{{credentialId}}", "host": [ "{{baseUrl}}" ], "path": [ "v1.0", "api", "tenants", "{{tenantId}}", "credentials", "{{credentialId}}" ] }, "description": "Read an application key." } },
         { "name": "Delete credential", "request": { "method": "DELETE", "url": { "raw": "{{baseUrl}}/v1.0/api/tenants/{{tenantId}}/credentials/{{credentialId}}", "host": [ "{{baseUrl}}" ], "path": [ "v1.0", "api", "tenants", "{{tenantId}}", "credentials", "{{credentialId}}" ] }, "description": "Delete an application key." } }

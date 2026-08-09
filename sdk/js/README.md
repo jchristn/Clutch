@@ -18,15 +18,15 @@ The official JavaScript/Node.js SDK for [Clutch](https://github.com/jchristn/Clu
 const { ClutchAdminClient } = require('./clutch-admin-sdk');
 
 const admin = new ClutchAdminClient('http://127.0.0.1:8090');
-await admin.authenticateWithKey('clutch-default-access-key', 'clutch-default-secret-key');
+await admin.authenticateWithKey('clutch-default-access-key');
 
 const info = await admin.getServerInfo();
 const tenants = await admin.listTenants();
 const holders = await admin.listLocks(tenants[0].id);
 
-// Application keys: the raw secret is returned only once, at creation.
+// Application keys authenticate with the access key alone.
 const cred = await admin.createCredential(tenants[0].id, 'worker-key');
-console.log(cred.secretKey);
+console.log(cred.accessKey);
 ```
 
 Failures throw `ClutchError`, which carries `statusCode` and `responseBody`.
@@ -36,7 +36,7 @@ Failures throw `ClutchError`, which carries `statusCode` and `responseBody`.
 ```js
 const { ClutchLockClient, LockMode } = require('./clutch-lock-sdk');
 
-const locks = new ClutchLockClient('http://127.0.0.1:8090', 'clutch-default-access-key', 'clutch-default-secret-key');
+const locks = new ClutchLockClient('http://127.0.0.1:8090', 'clutch-default-access-key');
 const welcome = await locks.connect();
 
 const held = await locks.acquire('orders/42', LockMode.Write);
@@ -61,7 +61,7 @@ The lock client is an `EventEmitter`. Events: `'heartbeat'` (renewed leases), `'
 
 ```
 npm install
-node test-harness.js http://127.0.0.1:8090 clutch-default-access-key clutch-default-secret-key
+node test-harness.js http://127.0.0.1:8090 clutch-default-access-key
 ```
 
 The process exits `0` when every assertion passes, `1` otherwise.
@@ -72,7 +72,7 @@ The process exits `0` when every assertion passes, `1` otherwise.
 npm run console
 ```
 
-Type `help` at the `clutch>` prompt. A typical session: `login key <accessKey> <secretKey>`, `serverinfo`, `tenants`, `connect <accessKey> <secretKey>`, `acquire orders/42 Write`, `held`, `release 1`.
+Type `help` at the `clutch>` prompt. A typical session: `login key <accessKey>`, `serverinfo`, `tenants`, `connect <accessKey>`, `acquire orders/42 Write`, `held`, `release 1`.
 
 ## License
 

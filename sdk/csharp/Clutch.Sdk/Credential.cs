@@ -3,7 +3,7 @@ namespace Clutch.Sdk
     using System;
 
     /// <summary>
-    /// An application key (credential) scoped to a tenant. The raw secret key is returned only once, at creation.
+    /// An application key (credential) scoped to a tenant. Authentication uses the access key alone.
     /// </summary>
     public class Credential
     {
@@ -31,16 +31,6 @@ namespace Clutch.Sdk
         /// The access key. Present when the credential is listed or read.
         /// </summary>
         public string? AccessKey { get; set; }
-
-        /// <summary>
-        /// The raw secret key. Populated only in the response to credential creation; null thereafter.
-        /// </summary>
-        public string? SecretKey { get; set; }
-
-        /// <summary>
-        /// The last four characters of the secret key, used for display when the full secret is redacted.
-        /// </summary>
-        public string? SecretKeyLast4 { get; set; }
 
         /// <summary>
         /// The authentication mode for the credential.

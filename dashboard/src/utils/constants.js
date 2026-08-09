@@ -14,8 +14,7 @@ export const GITHUB_URL = 'https://github.com/jchristn/Clutch';
 // Dev defaults pre-filled into the login form for local development.
 export const DEV_DEFAULTS = {
   serverUrl: 'http://localhost:8080',
-  accessKey: 'clutch-default-access-key',
-  secretKey: 'clutch-default-secret-key'
+  accessKey: 'clutch-default-access-key'
 };
 
 export const PAGE_SIZE_OPTIONS = [10, 25, 50, 100, 250];

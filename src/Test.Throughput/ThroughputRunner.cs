@@ -26,16 +26,15 @@ namespace Test.Throughput
         /// Run the load and print a report.
         /// </summary>
         /// <param name="endpoint">HTTP(S) base endpoint, for example http://localhost:8080.</param>
-        /// <param name="accessKey">Application access key.</param>
-        /// <param name="secretKey">Optional secret key.</param>
+        /// <param name="accessKey">Application access key. This is the sole connect credential.</param>
         /// <param name="threads">Number of emulated clients.</param>
         /// <param name="durationSeconds">Load duration in seconds.</param>
         /// <param name="keyCount">Size of the shared key namespace.</param>
         /// <param name="seed">RNG seed for reproducibility.</param>
         /// <returns>Awaitable task.</returns>
-        public async Task RunAsync(string endpoint, string accessKey, string? secretKey, int threads, int durationSeconds, int keyCount, int seed)
+        public async Task RunAsync(string endpoint, string accessKey, int threads, int durationSeconds, int keyCount, int seed)
         {
-            string wsUrl = BuildWebSocketUrl(endpoint, accessKey, secretKey);
+            string wsUrl = BuildWebSocketUrl(endpoint, accessKey);
 
             string[] keys = new string[keyCount];
             for (int i = 0; i < keyCount; i++) keys[i] = "throughput-key-" + i;
@@ -171,22 +170,20 @@ namespace Test.Throughput
             }
         }
 
-        private static string BuildWebSocketUrl(string endpoint, string accessKey, string? secretKey)
+        private static string BuildWebSocketUrl(string endpoint, string accessKey)
         {
             string trimmed = endpoint.TrimEnd('/');
             string scheme = trimmed.StartsWith("https", StringComparison.OrdinalIgnoreCase) ? "wss" : "ws";
             string hostPart = trimmed;
             int schemeIndex = trimmed.IndexOf("://", StringComparison.Ordinal);
             if (schemeIndex >= 0) hostPart = trimmed.Substring(schemeIndex + 3);
-            string url = scheme + "://" + hostPart + "/v1.0/lock/connect?accessKey=" + Uri.EscapeDataString(accessKey);
-            if (!string.IsNullOrEmpty(secretKey)) url += "&secretKey=" + Uri.EscapeDataString(secretKey);
-            return url;
+            return scheme + "://" + hostPart + "/v1.0/lock/connect?accessKey=" + Uri.EscapeDataString(accessKey);
         }
 
         private static string Redact(string url)
         {
-            int secretIndex = url.IndexOf("&secretKey=", StringComparison.Ordinal);
-            return secretIndex >= 0 ? url.Substring(0, secretIndex) + "&secretKey=***" : url;
+            int keyIndex = url.IndexOf("accessKey=", StringComparison.Ordinal);
+            return keyIndex >= 0 ? url.Substring(0, keyIndex) + "accessKey=***" : url;
         }
 
         private static void PrintReport(ClientResult[] results, int threads, int keyCount, double runtimeSeconds)

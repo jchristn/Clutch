@@ -58,7 +58,8 @@ Open the dashboard at http://localhost:3000 and log in with the seeded default a
 
 - Server URL: `http://localhost:8080`
 - Access key: `clutch-default-access-key`
-- Secret key: `clutch-default-secret-key`
+
+The access key is the sole credential — there is no secret key.
 
 Change the default admin credentials and the `CLUTCH_AUTH_SIGNING_KEY` before exposing Clutch anywhere real.
 

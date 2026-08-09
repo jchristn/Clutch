@@ -32,14 +32,9 @@ namespace Clutch.Core.Services
         public const string DefaultAdminPassword = "clutchadmin";
 
         /// <summary>
-        /// Default application key access key.
+        /// Default application key access key. The access key is the sole credential; there is no secret key.
         /// </summary>
         public const string DefaultAccessKey = "clutch-default-access-key";
-
-        /// <summary>
-        /// Default application key secret. Shown here only for local development convenience.
-        /// </summary>
-        public const string DefaultSecretKey = "clutch-default-secret-key";
 
         #endregion
 
@@ -90,12 +85,10 @@ namespace Clutch.Core.Services
                 credential.UserId = admin.Id;
                 credential.Name = "Default Application Key";
                 credential.AccessKey = DefaultAccessKey;
-                credential.SecretKeyEncrypted = CredentialKeyGenerator.ComputeVerifier(DefaultSecretKey);
-                credential.SecretKeyLast4 = CredentialKeyGenerator.Last4(DefaultSecretKey);
                 credential.AuthMode = CredentialAuthModeEnum.DirectHeader;
                 credential.IsProtected = true;
                 credential = await database.Credentials.CreateAsync(credential, token).ConfigureAwait(false);
-                if (log != null) log("[Seed] created default application key access=" + DefaultAccessKey + " secret=" + DefaultSecretKey);
+                if (log != null) log("[Seed] created default application key access=" + DefaultAccessKey);
             }
         }
 

@@ -19,14 +19,13 @@ namespace Clutch.Sdk.Test
         {
             if (args.Length < 2)
             {
-                Console.WriteLine("Usage: Clutch.Sdk.Test <endpoint> <accessKey> [secretKey]");
-                Console.WriteLine("Example: Clutch.Sdk.Test http://127.0.0.1:8090 clutch-default-access-key clutch-default-secret-key");
+                Console.WriteLine("Usage: Clutch.Sdk.Test <endpoint> <accessKey>");
+                Console.WriteLine("Example: Clutch.Sdk.Test http://127.0.0.1:8090 clutch-default-access-key");
                 return 1;
             }
 
             string endpoint = args[0];
             string accessKey = args[1];
-            string? secretKey = args.Length >= 3 ? args[2] : null;
 
             Console.WriteLine("========================================");
             Console.WriteLine("  Clutch SDK Test Application");
@@ -37,7 +36,7 @@ namespace Clutch.Sdk.Test
 
             try
             {
-                await RunAsync(endpoint, accessKey, secretKey).ConfigureAwait(false);
+                await RunAsync(endpoint, accessKey).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
@@ -53,7 +52,7 @@ namespace Clutch.Sdk.Test
             return _Failed == 0 ? 0 : 1;
         }
 
-        private static async Task RunAsync(string endpoint, string accessKey, string? secretKey)
+        private static async Task RunAsync(string endpoint, string accessKey)
         {
             using ClutchAdminClient admin = new ClutchAdminClient(endpoint);
 
@@ -67,7 +66,7 @@ namespace Clutch.Sdk.Test
 
             await CheckAsync("Authenticate with application key", async () =>
             {
-                TokenResponse token = await admin.AuthenticateWithKeyAsync(accessKey, secretKey ?? accessKey).ConfigureAwait(false);
+                TokenResponse token = await admin.AuthenticateWithKeyAsync(accessKey).ConfigureAwait(false);
                 Assert(!string.IsNullOrEmpty(token.Token), "token should be returned");
                 Assert(!string.IsNullOrEmpty(token.TenantId), "tenantId should be returned");
             }).ConfigureAwait(false);
@@ -114,7 +113,6 @@ namespace Clutch.Sdk.Test
                 Credential created = await admin.CreateCredentialAsync(tenantId, credName).ConfigureAwait(false);
                 Assert(!string.IsNullOrEmpty(created.Id), "created credential should have an id");
                 Assert(!string.IsNullOrEmpty(created.AccessKey), "created credential should return an access key");
-                Assert(!string.IsNullOrEmpty(created.SecretKey), "created credential should return the raw secret key once");
 
                 List<Credential> credentials = await admin.ListCredentialsAsync(tenantId).ConfigureAwait(false);
                 Assert(credentials.Exists(c => c.Id == created.Id), "created credential should appear in the list");
@@ -143,7 +141,7 @@ namespace Clutch.Sdk.Test
 
             // ---- Lock (WebSocket) ----
 
-            using ClutchLockClient locks = new ClutchLockClient(endpoint, accessKey, secretKey);
+            using ClutchLockClient locks = new ClutchLockClient(endpoint, accessKey);
 
             await CheckAsync("Connect lock client and receive welcome", async () =>
             {

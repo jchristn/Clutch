@@ -120,12 +120,12 @@ class ClutchAdminClient:
 
     # ---- Tokens ----
 
-    def authenticate_with_key(self, access_key: str, secret_key: str) -> Dict[str, Any]:
+    def authenticate_with_key(self, access_key: str) -> Dict[str, Any]:
         """Authenticate with an application key. Stores the returned token on this client.
 
         :returns: The token response {token, principalType, tenantId}.
         """
-        result = self._request("POST", "/v1.0/token", {"accessKey": access_key, "secretKey": secret_key}, auth=False)
+        result = self._request("POST", "/v1.0/token", {"accessKey": access_key}, auth=False)
         self.token = result.get("token")
         return result
 
@@ -214,18 +214,18 @@ class ClutchAdminClient:
     # ---- Credentials ----
 
     def list_credentials(self, tenant_id: str) -> List[Dict[str, Any]]:
-        """List application keys within a tenant. Secrets are redacted."""
+        """List application keys within a tenant."""
         return self._request("GET", f"/v1.0/api/tenants/{tenant_id}/credentials")
 
     def get_credential(self, tenant_id: str, credential_id: str) -> Dict[str, Any]:
-        """Retrieve a single application key. The secret is redacted."""
+        """Retrieve a single application key."""
         return self._request("GET", f"/v1.0/api/tenants/{tenant_id}/credentials/{credential_id}")
 
     def create_credential(self, tenant_id: str, name: str, user_id: Optional[str] = None,
                           expires_utc: Optional[str] = None) -> Dict[str, Any]:
-        """Create an application key. The raw secret key is returned only in this response.
+        """Create an application key.
 
-        :returns: The created credential, including the raw secret key.
+        :returns: The created credential, including its access key.
         """
         body = self._clean({"name": name, "userId": user_id, "expiresUtc": expires_utc})
         return self._request("POST", f"/v1.0/api/tenants/{tenant_id}/credentials", body)

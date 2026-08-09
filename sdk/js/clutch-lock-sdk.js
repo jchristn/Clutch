@@ -53,15 +53,13 @@ class ClutchLockClient extends EventEmitter {
     /**
      * @param {string} endpoint - Base URL, e.g. "http://127.0.0.1:8090".
      * @param {string} accessKey - The application access key.
-     * @param {string|null} [secretKey=null] - The optional secret key.
      */
-    constructor(endpoint, accessKey, secretKey = null) {
+    constructor(endpoint, accessKey) {
         super();
         if (!endpoint) throw new ClutchError('endpoint is required');
         if (!accessKey) throw new ClutchError('accessKey is required');
         this.url = buildWebSocketUrl(endpoint);
         this.accessKey = accessKey;
-        this.secretKey = secretKey;
         this.welcome = null;
         this._ws = null;
         this._pending = new Map();
@@ -77,7 +75,6 @@ class ClutchLockClient extends EventEmitter {
     connect() {
         return new Promise((resolve, reject) => {
             const headers = { 'x-clutch-access-key': this.accessKey };
-            if (this.secretKey) headers['x-clutch-secret-key'] = this.secretKey;
 
             this._ws = new WebSocket(this.url, { headers });
 

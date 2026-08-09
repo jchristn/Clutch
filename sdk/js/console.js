@@ -24,13 +24,13 @@ const rl = readline.createInterface({ input: process.stdin, output: process.stdo
 
 function printHelp() {
     console.log('Commands:');
-    console.log('  login key <accessKey> [secretKey]     Authenticate with an application key');
+    console.log('  login key <accessKey>                 Authenticate with an application key');
     console.log('  login user <tenantId> <email> <pw>    Authenticate with user credentials');
     console.log('  whoami                                Show the current principal');
     console.log('  serverinfo                            Show server information');
     console.log('  tenants                               List tenants');
     console.log('  locks                                 List active locks in the current tenant');
-    console.log('  connect <accessKey> [secretKey]       Open the WebSocket lock connection');
+    console.log('  connect <accessKey>                   Open the WebSocket lock connection');
     console.log('  acquire <key> <Read|Write|Delete> [wait <ms>]   Acquire a lock');
     console.log('  held                                  List locks held on this connection');
     console.log('  release <n>                           Release a held lock by its list number');
@@ -50,7 +50,7 @@ async function handle(line) {
             break;
         case 'login': {
             if (parts[1] === 'key' && parts.length >= 3) {
-                const token = await admin.authenticateWithKey(parts[2], parts[3] || parts[2]);
+                const token = await admin.authenticateWithKey(parts[2]);
                 tenantId = token.tenantId;
                 console.log(`Authenticated. Tenant: ${token.tenantId}`);
             } else if (parts[1] === 'user' && parts.length >= 5) {
@@ -58,7 +58,7 @@ async function handle(line) {
                 tenantId = token.tenantId;
                 console.log(`Authenticated. Tenant: ${token.tenantId}`);
             } else {
-                console.log('Usage: login key <accessKey> [secretKey]  |  login user <tenantId> <email> <password>');
+                console.log('Usage: login key <accessKey>  |  login user <tenantId> <email> <password>');
             }
             break;
         }
@@ -93,9 +93,9 @@ async function handle(line) {
             break;
         }
         case 'connect': {
-            if (parts.length < 2) { console.log('Usage: connect <accessKey> [secretKey]'); break; }
+            if (parts.length < 2) { console.log('Usage: connect <accessKey>'); break; }
             if (locks) await locks.close();
-            locks = new ClutchLockClient(endpoint, parts[1], parts[2] || null);
+            locks = new ClutchLockClient(endpoint, parts[1]);
             locks.on('heartbeat', (renewed) => console.log(`\n[push] heartbeat renewed ${renewed.length} lease(s)`));
             locks.on('error', (message) => console.log(`\n[push] error: ${message}`));
             locks.on('close', (reason) => console.log(`\n[push] connection closed: ${reason}`));

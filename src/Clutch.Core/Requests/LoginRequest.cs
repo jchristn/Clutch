@@ -1,8 +1,8 @@
 namespace Clutch.Core.Requests
 {
     /// <summary>
-    /// A login request. Supply either tenant/email/password for a user login, or access key and secret
-    /// key for a credential login.
+    /// A login request. Supply either tenant/email/password for a user login, or an access key for a
+    /// credential login. A credential's secret key is never sent to the server.
     /// </summary>
     public class LoginRequest
     {
@@ -27,11 +27,6 @@ namespace Clutch.Core.Requests
         /// Access key, for a credential login.
         /// </summary>
         public string? AccessKey { get; set; } = null;
-
-        /// <summary>
-        /// Secret key, for a credential login.
-        /// </summary>
-        public string? SecretKey { get; set; } = null;
 
         #endregion
     }

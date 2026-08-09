@@ -16,7 +16,7 @@ namespace Test.Throughput
         /// Main entry point.
         /// </summary>
         /// <param name="args">
-        /// --duration &lt;sec&gt; --threads &lt;n&gt; --endpoint &lt;url&gt; --access-key &lt;k&gt; --secret-key &lt;k&gt;
+        /// --duration &lt;sec&gt; --threads &lt;n&gt; --endpoint &lt;url&gt; --access-key &lt;k&gt;
         /// --keys &lt;n&gt; --seed &lt;n&gt; --compose &lt;path&gt; --no-docker
         /// </param>
         /// <returns>Process exit code.</returns>
@@ -26,7 +26,6 @@ namespace Test.Throughput
             int threads = IntArg(args, "--threads", 16);
             string endpoint = StringArg(args, "--endpoint", "http://localhost:8080");
             string accessKey = StringArg(args, "--access-key", "clutch-default-access-key");
-            string? secretKey = HasArg(args, "--secret-key") ? StringArg(args, "--secret-key", "") : null;
             int keys = IntArg(args, "--keys", 32);
             int seed = IntArg(args, "--seed", 20260808);
             string composeFile = StringArg(args, "--compose", "docker/compose.yaml");
@@ -53,7 +52,7 @@ namespace Test.Throughput
                 }
 
                 ThroughputRunner runner = new ThroughputRunner();
-                await runner.RunAsync(endpoint, accessKey, secretKey, threads, duration, keys, seed).ConfigureAwait(false);
+                await runner.RunAsync(endpoint, accessKey, threads, duration, keys, seed).ConfigureAwait(false);
                 return 0;
             }
             finally

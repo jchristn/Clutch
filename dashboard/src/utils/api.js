@@ -74,9 +74,9 @@ class ApiClient {
     return this._request('GET', '/v1.0/token');
   }
 
-  /** Login with an application key (access/secret). Returns { token, principalType, tenantId }. */
-  async loginWithKey(accessKey, secretKey) {
-    return this._request('POST', '/v1.0/token', { body: { accessKey, secretKey } });
+  /** Login with an application key (access key only). Returns { token, principalType, tenantId }. */
+  async loginWithKey(accessKey) {
+    return this._request('POST', '/v1.0/token', { body: { accessKey } });
   }
 
   /** Login with tenant credentials (email/password). Returns { token, principalType, tenantId }. */
@@ -169,7 +169,7 @@ class ApiClient {
     return this._request('GET', `/v1.0/api/tenants/${encodeURIComponent(tenantId)}/credentials`);
   }
 
-  /** Create a credential. Response includes accessKey + secretKey (shown once). */
+  /** Create a credential. Response includes the accessKey. */
   async createCredential(tenantId, body) {
     return this._request('POST', `/v1.0/api/tenants/${encodeURIComponent(tenantId)}/credentials`, { body });
   }
