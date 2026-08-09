@@ -194,6 +194,7 @@ namespace Clutch.Server
             new LockAuditRoutes(_Database, _AuthorizationService).Register(_Server);
             new RequestHistoryRoutes(_Database, _AuthorizationService).Register(_Server);
             new ServerInfoRoutes(Settings, _WsManager).Register(_Server);
+            new SettingsRoutes(Settings, _AuthorizationService, _Logging).Register(_Server);
 
             _Server.WebSocket("/v1.0/lock/connect", _WsHandler.HandleAsync);
         }

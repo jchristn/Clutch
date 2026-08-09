@@ -42,15 +42,25 @@ namespace Clutch.Server.Telemetry
                 radiant.Metrics.IncludeRuntime = settings.MetricsIncludeRuntime;
                 radiant.Metrics.IncludeProcess = settings.MetricsIncludeProcess;
                 radiant.Prometheus.Enable = settings.Enabled && settings.PrometheusEnable;
-                radiant.Prometheus.Hostname = settings.PrometheusHostname == "*" ? "+" : settings.PrometheusHostname;
+                radiant.Prometheus.Hostname = settings.PrometheusHostname;
                 radiant.Prometheus.Port = settings.PrometheusPort;
                 radiant.Prometheus.Path = settings.PrometheusPath;
 
+                // OTLP push export (used by the Docker deployment, where the in-process Prometheus
+                // HttpListener is not supported on Linux; metrics are pushed to an otel-collector).
+                radiant.Otlp.Enable = settings.Enabled && settings.OtlpEnable;
+                if (!string.IsNullOrEmpty(settings.OtlpEndpoint)) radiant.Otlp.Endpoint = settings.OtlpEndpoint;
+
                 _Host = RadiantHost.Start(radiant);
                 _Client = _Host.Client;
+                string sink = radiant.Prometheus.Enable
+                    ? "prometheus " + radiant.Prometheus.Hostname + ":" + radiant.Prometheus.Port + radiant.Prometheus.Path
+                    : (radiant.Otlp.Enable ? "otlp " + radiant.Otlp.Endpoint : "no exporter");
+                Console.Error.WriteLine("[Clutch.Telemetry] started (" + sink + ")");
             }
             catch (Exception e)
             {
+                Console.Error.WriteLine("[Clutch.Telemetry] disabled: " + e);
                 if (diagnostic != null) diagnostic("telemetry disabled: " + e.Message);
                 _Host = null;
                 _Client = null;

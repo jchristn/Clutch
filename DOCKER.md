@@ -68,7 +68,9 @@ Each node reads a mounted settings file (`docker/server/clutch.node1.json`, `clu
 
 ## Observability
 
-Prometheus scrapes each node's `/metrics` endpoint on port 9464 and Grafana loads a provisioned **Clutch Overview** dashboard (acquires/denials by outcome, release rate, acquire-latency p95, HTTP request rate, active WebSocket connections, blocked waiters, process memory).
+Each node pushes OTLP metrics to an `otel-collector`, which re-exposes them in Prometheus format for Prometheus to scrape (this path is used because .NET's in-process Prometheus `HttpListener` exporter is not hostable on Linux). Grafana loads a provisioned **Clutch Overview** dashboard (acquires/denials by outcome, release rate, acquire-latency p95, HTTP request rate, active WebSocket connections, blocked waiters, process memory).
+
+For a standalone (non-Docker) node, set `Telemetry.PrometheusEnable=true` to host `/metrics` directly on `PrometheusPort` (9464) instead of pushing OTLP.
 
 ## Factory reset
 

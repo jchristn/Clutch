@@ -1,0 +1,27 @@
+# OpenTelemetry Collector: receives OTLP metrics pushed by the Clutch nodes and
+# re-exposes them in Prometheus format for Prometheus to scrape. This path is used
+# because .NET's HttpListener-based Prometheus exporter is not hostable on Linux.
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+processors:
+  batch: {}
+
+exporters:
+  prometheus:
+    endpoint: 0.0.0.0:8889
+    enable_open_metrics: true
+    resource_to_telemetry_conversion:
+      enabled: true
+
+service:
+  pipelines:
+    metrics:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [prometheus]

@@ -5,13 +5,9 @@
 #   docker compose -f compose.yaml -f compose.build.yaml up --build
 
 services:
+  # Only node1 builds the shared server image; node2 reuses the same tag. Building
+  # the same tag from two services concurrently races on the image export.
   clutch-node1:
-    build:
-      context: ..
-      dockerfile: src/Clutch.Server/Dockerfile
-    image: jchristn77/clutch-server:v0.1.0
-
-  clutch-node2:
     build:
       context: ..
       dockerfile: src/Clutch.Server/Dockerfile

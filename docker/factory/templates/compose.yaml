@@ -84,11 +84,17 @@ services:
       - "3000:80"
     restart: unless-stopped
 
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.109.0
+    command: ["--config=/etc/otelcol-contrib/config.yaml"]
+    volumes:
+      - ./otel/otel-collector-config.yaml:/etc/otelcol-contrib/config.yaml:ro
+    restart: unless-stopped
+
   prometheus:
     image: prom/prometheus:v2.55.1
     depends_on:
-      - clutch-node1
-      - clutch-node2
+      - otel-collector
     ports:
       - "9090:9090"
     volumes:

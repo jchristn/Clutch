@@ -15,6 +15,12 @@ namespace Clutch.Server.Settings
         #region Public-Members
 
         /// <summary>
+        /// The file this settings object was loaded from. Not serialized. Used to persist edits.
+        /// </summary>
+        [JsonIgnore]
+        public string? SourceFile { get; set; } = null;
+
+        /// <summary>
         /// Settings creation timestamp.
         /// </summary>
         public DateTime CreatedUtc { get; set; } = DateTime.UtcNow;
@@ -181,13 +187,26 @@ namespace Clutch.Server.Settings
             if (!File.Exists(filename))
             {
                 ClutchSettings defaults = new ClutchSettings();
+                defaults.SourceFile = filename;
                 defaults.ToFile(filename);
                 return defaults;
             }
 
             string json = File.ReadAllText(filename);
             ClutchSettings? settings = JsonSerializer.Deserialize<ClutchSettings>(json, GetJsonSerializerOptions());
-            return settings ?? new ClutchSettings();
+            settings ??= new ClutchSettings();
+            settings.SourceFile = filename;
+            return settings;
+        }
+
+        /// <summary>
+        /// Persist settings back to the file they were loaded from.
+        /// </summary>
+        /// <exception cref="InvalidOperationException">Thrown when no source file is known.</exception>
+        public void Save()
+        {
+            if (string.IsNullOrEmpty(SourceFile)) throw new InvalidOperationException("No source settings file is known.");
+            ToFile(SourceFile);
         }
 
         /// <summary>
