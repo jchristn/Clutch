@@ -7,6 +7,7 @@ namespace Clutch.Server
     using Clutch.Core.Services;
     using Clutch.Server.Services;
     using Clutch.Server.Settings;
+    using Clutch.Server.Telemetry;
     using SyslogLogging;
 
     /// <summary>
@@ -52,8 +53,13 @@ namespace Clutch.Server
             TokenService tokenService = new TokenService(settings.Auth.SigningKey, settings.Auth.Issuer, settings.Auth.TokenLifetimeMinutes);
             AuthenticationService authenticationService = new AuthenticationService(database, tokenService, settings.Auth);
             AuthorizationService authorizationService = new AuthorizationService();
+            ClutchTelemetry telemetry = new ClutchTelemetry(settings.Telemetry, settings.NodeId, message => logging.Debug("[Clutch.Telemetry] " + message));
+            if (settings.Telemetry.Enabled && settings.Telemetry.PrometheusEnable)
+            {
+                logging.Info("[Clutch] telemetry metrics on :" + settings.Telemetry.PrometheusPort + settings.Telemetry.PrometheusPath);
+            }
 
-            ClutchServer server = new ClutchServer(settings, logging, database, authenticationService, authorizationService);
+            ClutchServer server = new ClutchServer(settings, logging, database, authenticationService, authorizationService, telemetry);
             server.Start();
             logging.Info("[Clutch] node '" + settings.NodeId + "' listening on " + settings.Rest.Hostname + ":" + settings.Rest.Port);
 
@@ -70,6 +76,7 @@ namespace Clutch.Server
             logging.Info("[Clutch] node '" + settings.NodeId + "' stopping");
             server.Stop();
             server.Dispose();
+            telemetry.Dispose();
             database.Dispose();
         }
 

@@ -2,6 +2,7 @@ namespace Clutch.Server.WebSocket
 {
     using System;
     using System.Collections.Generic;
+    using System.Diagnostics;
     using System.Net.WebSockets;
     using System.Threading;
     using System.Threading.Tasks;
@@ -13,6 +14,7 @@ namespace Clutch.Server.WebSocket
     using Clutch.Core.Services;
     using Clutch.Server.Serialization;
     using Clutch.Server.Services;
+    using Clutch.Server.Telemetry;
     using SyslogLogging;
     using WatsonWebserver.Core;
     using WatsonWebserver.Core.WebSockets;
@@ -30,6 +32,7 @@ namespace Clutch.Server.WebSocket
         private readonly LockEngine _Engine;
         private readonly WebSocketConnectionManager _Manager;
         private readonly LoggingModule _Logging;
+        private readonly ClutchTelemetry _Telemetry;
         private readonly string _NodeId;
         private readonly int _DefaultLeaseMs;
         private readonly int _HeartbeatIntervalMs;
@@ -45,6 +48,7 @@ namespace Clutch.Server.WebSocket
         /// <param name="engine">Lock engine.</param>
         /// <param name="manager">Connection manager.</param>
         /// <param name="logging">Logging module.</param>
+        /// <param name="telemetry">Telemetry host.</param>
         /// <param name="nodeId">Node identifier.</param>
         /// <param name="defaultLeaseMs">Default lease advertised in the welcome frame.</param>
         /// <param name="heartbeatIntervalMs">Recommended client heartbeat interval.</param>
@@ -54,6 +58,7 @@ namespace Clutch.Server.WebSocket
             LockEngine engine,
             WebSocketConnectionManager manager,
             LoggingModule logging,
+            ClutchTelemetry telemetry,
             string nodeId,
             int defaultLeaseMs,
             int heartbeatIntervalMs)
@@ -62,6 +67,7 @@ namespace Clutch.Server.WebSocket
             _Engine = engine ?? throw new ArgumentNullException(nameof(engine));
             _Manager = manager ?? throw new ArgumentNullException(nameof(manager));
             _Logging = logging ?? throw new ArgumentNullException(nameof(logging));
+            _Telemetry = telemetry ?? throw new ArgumentNullException(nameof(telemetry));
             _NodeId = string.IsNullOrEmpty(nodeId) ? "node" : nodeId;
             _DefaultLeaseMs = defaultLeaseMs;
             _HeartbeatIntervalMs = heartbeatIntervalMs;
@@ -183,7 +189,10 @@ namespace Clutch.Server.WebSocket
                 request.Policy = message.Policy;
 
                 LockBehaviorEnum behavior = message.Behavior ?? LockBehaviorEnum.FailFast;
+                long startTimestamp = Stopwatch.GetTimestamp();
                 LockResult result = await _Engine.AcquireAsync(request, behavior, message.TimeoutMs, token).ConfigureAwait(false);
+                double seconds = Stopwatch.GetElapsedTime(startTimestamp).TotalSeconds;
+                _Telemetry.RecordAcquire(request.Mode.ToString(), result.Result.ToString().ToLowerInvariant(), seconds);
 
                 if (result.IsGranted() && result.Holder != null)
                 {
@@ -229,6 +238,7 @@ namespace Clutch.Server.WebSocket
             }
 
             bool released = await _Engine.ReleaseAsync(session.TenantId, message.HolderId, session.SessionId, token).ConfigureAwait(false);
+            if (released) _Telemetry.RecordRelease(message.Mode?.ToString() ?? "any");
             await session.SendAsync(new
             {
                 type = "released",

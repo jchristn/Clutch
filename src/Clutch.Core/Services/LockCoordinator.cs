@@ -23,6 +23,19 @@ namespace Clutch.Core.Services
         #region Public-Methods
 
         /// <summary>
+        /// The current number of blocked waiters across all keys on this node.
+        /// </summary>
+        public int WaiterCount
+        {
+            get
+            {
+                int total = 0;
+                foreach (ConcurrentDictionary<long, TaskCompletionSource<bool>> bag in _Waiters.Values) total += bag.Count;
+                return total;
+            }
+        }
+
+        /// <summary>
         /// Wait until the given key is signaled or the timeout elapses, whichever comes first.
         /// </summary>
         /// <param name="tenantKey">Composite tenant and key value.</param>

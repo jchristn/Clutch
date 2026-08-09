@@ -11,6 +11,7 @@ namespace Clutch.Server
     using Clutch.Server.Routes;
     using Clutch.Server.Services;
     using Clutch.Server.Settings;
+    using Clutch.Server.Telemetry;
     using Clutch.Server.WebSocket;
     using SyslogLogging;
     using WatsonWebserver;
@@ -48,6 +49,7 @@ namespace Clutch.Server
         private readonly LockWebSocketHandler _WsHandler;
         private readonly PostgresNotificationListener? _Listener;
         private readonly RequestHistoryCaptureService _Capture;
+        private readonly ClutchTelemetry _Telemetry;
 
         private readonly string _Header = "[ClutchServer] ";
         private bool _Disposed = false;
@@ -64,25 +66,29 @@ namespace Clutch.Server
         /// <param name="database">Initialized database driver.</param>
         /// <param name="authenticationService">Authentication service.</param>
         /// <param name="authorizationService">Authorization service.</param>
+        /// <param name="telemetry">Telemetry host.</param>
         /// <exception cref="ArgumentNullException">Thrown when a required argument is null.</exception>
         public ClutchServer(
             ClutchSettings settings,
             LoggingModule logging,
             DatabaseDriverBase database,
             AuthenticationService authenticationService,
-            AuthorizationService authorizationService)
+            AuthorizationService authorizationService,
+            ClutchTelemetry telemetry)
         {
             if (settings == null) throw new ArgumentNullException(nameof(settings));
             if (logging == null) throw new ArgumentNullException(nameof(logging));
             if (database == null) throw new ArgumentNullException(nameof(database));
             if (authenticationService == null) throw new ArgumentNullException(nameof(authenticationService));
             if (authorizationService == null) throw new ArgumentNullException(nameof(authorizationService));
+            if (telemetry == null) throw new ArgumentNullException(nameof(telemetry));
 
             Settings = settings;
             _Logging = logging;
             _Database = database;
             _AuthenticationService = authenticationService;
             _AuthorizationService = authorizationService;
+            _Telemetry = telemetry;
 
             _Coordinator = new LockCoordinator();
 
@@ -98,7 +104,7 @@ namespace Clutch.Server
             _WsManager = new WebSocketConnectionManager();
 
             int heartbeatInterval = Math.Max(1000, settings.Lock.DefaultLeaseMs / 3);
-            _WsHandler = new LockWebSocketHandler(authenticationService, _Engine, _WsManager, logging, settings.NodeId, settings.Lock.DefaultLeaseMs, heartbeatInterval);
+            _WsHandler = new LockWebSocketHandler(authenticationService, _Engine, _WsManager, logging, telemetry, settings.NodeId, settings.Lock.DefaultLeaseMs, heartbeatInterval);
             _Capture = new RequestHistoryCaptureService(database, settings.RequestHistory, logging);
 
             if (database is PostgresqlDatabaseDriver postgres)
@@ -129,6 +135,7 @@ namespace Clutch.Server
             ConfigureRoutes();
             _Server.Start();
 
+            _Telemetry.RegisterGauges(() => _WsManager.Count, () => _Coordinator.WaiterCount);
             _Sweeper.Start();
             _Retention.Start();
             if (_Listener != null)
@@ -223,6 +230,9 @@ namespace Clutch.Server
                 context.Response.StatusCode);
 
             if (Settings.RequestHistory.Enabled) _Capture.Capture(context);
+
+            double durationSeconds = (context.Timestamp.TotalMs ?? 0) / 1000.0;
+            _Telemetry.RecordHttp(context.Request.Method.ToString(), context.Response.StatusCode, durationSeconds);
 
             await Task.CompletedTask.ConfigureAwait(false);
         }
