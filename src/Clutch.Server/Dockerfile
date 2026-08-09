@@ -1,10 +1,13 @@
 # Clutch server image. Build context is the repository root:
 #   docker build -f src/Clutch.Server/Dockerfile -t jchristn77/clutch-server:v0.1.0 .
-FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+# The projects multi-target net8.0;net10.0, so the build uses the .NET 10 SDK
+# (which can compile both) and pins the published output to net8.0 to match the
+# net8.0 runtime base image below.
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 
 COPY src/ ./src/
-RUN dotnet publish src/Clutch.Server/Clutch.Server.csproj -c Release -o /app /p:UseAppHost=false
+RUN dotnet publish src/Clutch.Server/Clutch.Server.csproj -c Release -f net8.0 -o /app /p:UseAppHost=false
 
 FROM mcr.microsoft.com/dotnet/runtime:8.0 AS runtime
 WORKDIR /app
