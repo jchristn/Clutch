@@ -149,7 +149,7 @@ namespace Clutch.Sdk.Console
         private static async Task TenantsAsync()
         {
             if (_Admin == null) return;
-            List<Tenant> tenants = await _Admin.ListTenantsAsync().ConfigureAwait(false);
+            List<Tenant> tenants = (await _Admin.ListTenantsAsync().ConfigureAwait(false)).Objects;
             SysConsole.WriteLine($"{tenants.Count} tenant(s):");
             foreach (Tenant t in tenants)
             {
@@ -165,7 +165,7 @@ namespace Clutch.Sdk.Console
                 SysConsole.WriteLine("Not authenticated. Use 'login' first.");
                 return;
             }
-            List<LockHolder> holders = await _Admin.ListLocksAsync(_TenantId!).ConfigureAwait(false);
+            List<LockHolder> holders = (await _Admin.ListLocksAsync(_TenantId!).ConfigureAwait(false)).Objects;
             SysConsole.WriteLine($"{holders.Count} active holder(s):");
             foreach (LockHolder h in holders)
             {

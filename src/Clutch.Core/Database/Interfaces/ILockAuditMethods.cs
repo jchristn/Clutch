@@ -3,6 +3,7 @@ namespace Clutch.Core.Database.Interfaces
     using System;
     using System.Threading;
     using System.Threading.Tasks;
+    using Clutch.Core.Enumeration;
     using Clutch.Core.Models;
     using Clutch.Core.Requests;
     using Clutch.Core.Responses;
@@ -36,7 +37,7 @@ namespace Clutch.Core.Database.Interfaces
         /// <param name="filter">Filter.</param>
         /// <param name="token">Cancellation token.</param>
         /// <returns>A page of entries.</returns>
-        Task<LockAuditPage> EnumerateAsync(LockAuditFilter filter, CancellationToken token = default);
+        Task<EnumerationResult<LockAuditEntry>> EnumerateAsync(LockAuditFilter filter, CancellationToken token = default);
 
         /// <summary>
         /// Produce time-bucketed lock activity for the chart.

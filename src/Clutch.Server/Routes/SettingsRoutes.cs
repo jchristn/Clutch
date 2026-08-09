@@ -104,6 +104,7 @@ namespace Clutch.Server.Routes
                 _Settings.Lock = incoming.Lock;
                 _Settings.RequestHistory = incoming.RequestHistory;
                 _Settings.Telemetry = incoming.Telemetry;
+                _Settings.Mcp = incoming.Mcp;
 
                 _Settings.Save();
                 _Logging.Info("[Clutch] settings updated and written to " + _Settings.SourceFile);

@@ -85,6 +85,16 @@ const SECTIONS = [
     ]
   },
   {
+    group: 'mcp',
+    fields: [
+      { name: 'enable', type: 'checkbox' },
+      { name: 'hostname', type: 'text' },
+      { name: 'port', type: 'number' },
+      { name: 'mcpPath', type: 'text' },
+      { name: 'serverName', type: 'text' }
+    ]
+  },
+  {
     group: 'telemetry',
     fields: [
       { name: 'enabled', type: 'checkbox' },
@@ -253,9 +263,21 @@ export default function ServerSettingsView({ apiClient }) {
       ) : (
         <>
           {!canEdit && <div className="settings-note settings-note-neutral">{t('views.serverSettings.readOnlyNotice')}</div>}
+
+          {canEdit && (
+            <div className="settings-toolbar">
+              <button type="button" className="button-primary" onClick={save} disabled={busy}>
+                {busy ? t('common.generic.saving') : t('views.serverSettings.save')}
+              </button>
+              <button type="button" className="button-danger" onClick={() => setRestartOpen(true)} disabled={busy}>
+                {t('views.serverSettings.restart')}
+              </button>
+            </div>
+          )}
+
           <div className="settings-note">{t('views.serverSettings.restartBanner')}</div>
 
-          <div className="info-grid">
+          <div className="settings-grid">
             {SECTIONS.map((section) => (
               <div className="panel" key={section.group}>
                 <div className="section-title">{t(`views.serverSettings.sections.${section.group}`)}</div>
@@ -265,17 +287,6 @@ export default function ServerSettingsView({ apiClient }) {
               </div>
             ))}
           </div>
-
-          {canEdit && (
-            <div className="settings-actions">
-              <button type="button" className="button-primary" onClick={save} disabled={busy}>
-                {busy ? t('common.generic.saving') : t('views.serverSettings.save')}
-              </button>
-              <button type="button" className="button-danger" onClick={() => setRestartOpen(true)} disabled={busy}>
-                {t('views.serverSettings.restart')}
-              </button>
-            </div>
-          )}
         </>
       )}
 

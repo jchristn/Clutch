@@ -1,6 +1,7 @@
 namespace Clutch.Core.Models
 {
     using System;
+    using System.Text.Json.Serialization;
     using Clutch.Core.Helpers;
 
     /// <summary>
@@ -69,8 +70,9 @@ namespace Clutch.Core.Models
         }
 
         /// <summary>
-        /// SHA-256 hash of the password, hex-encoded.
+        /// SHA-256 hash of the password, hex-encoded. Never serialized to any client-facing surface.
         /// </summary>
+        [JsonIgnore]
         public string PasswordSha256
         {
             get

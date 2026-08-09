@@ -58,7 +58,7 @@ export default function RequestDetailsModal({ open, onClose, apiClient, requestI
     <Modal
       open={open}
       onClose={onClose}
-      size="xlarge"
+      size="full"
       title={t('components.requestDetails.title')}
       headerMeta={entry ? <CopyableId value={entry.id} max={40} /> : null}
     >
@@ -96,39 +96,45 @@ export default function RequestDetailsModal({ open, onClose, apiClient, requestI
             </div>
           </Section>
 
-          <Section title={t('components.requestDetails.requestHeaders')}>
-            <CodeBlock value={entry.requestHeaders} prettyJson emptyText={t('components.requestDetails.empty')} />
-          </Section>
+          <div className="request-details-grid">
+            <div className="request-details-col">
+              <Section title={t('components.requestDetails.requestHeaders')}>
+                <CodeBlock value={entry.requestHeaders} prettyJson emptyText={t('components.requestDetails.empty')} />
+              </Section>
 
-          <Section
-            title={t('components.requestDetails.requestBody')}
-            meta={
-              entry.requestBodyTruncated ? (
-                <span className="pill pill-warning">
-                  {t('components.requestDetails.truncated', { bytes: formatBytes(entry.requestBodyBytes) })}
-                </span>
-              ) : null
-            }
-          >
-            <CodeBlock value={entry.requestBody} prettyJson emptyText={t('components.requestDetails.empty')} />
-          </Section>
+              <Section
+                title={t('components.requestDetails.requestBody')}
+                meta={
+                  entry.requestBodyTruncated ? (
+                    <span className="pill pill-warning">
+                      {t('components.requestDetails.truncated', { bytes: formatBytes(entry.requestBodyBytes) })}
+                    </span>
+                  ) : null
+                }
+              >
+                <CodeBlock value={entry.requestBody} prettyJson emptyText={t('components.requestDetails.empty')} />
+              </Section>
+            </div>
 
-          <Section title={t('components.requestDetails.responseHeaders')}>
-            <CodeBlock value={entry.responseHeaders} prettyJson emptyText={t('components.requestDetails.empty')} />
-          </Section>
+            <div className="request-details-col">
+              <Section title={t('components.requestDetails.responseHeaders')}>
+                <CodeBlock value={entry.responseHeaders} prettyJson emptyText={t('components.requestDetails.empty')} />
+              </Section>
 
-          <Section
-            title={t('components.requestDetails.responseBody')}
-            meta={
-              entry.responseBodyTruncated ? (
-                <span className="pill pill-warning">
-                  {t('components.requestDetails.truncated', { bytes: formatBytes(entry.responseBodyBytes) })}
-                </span>
-              ) : null
-            }
-          >
-            <CodeBlock value={entry.responseBody} prettyJson emptyText={t('components.requestDetails.empty')} />
-          </Section>
+              <Section
+                title={t('components.requestDetails.responseBody')}
+                meta={
+                  entry.responseBodyTruncated ? (
+                    <span className="pill pill-warning">
+                      {t('components.requestDetails.truncated', { bytes: formatBytes(entry.responseBodyBytes) })}
+                    </span>
+                  ) : null
+                }
+              >
+                <CodeBlock value={entry.responseBody} prettyJson emptyText={t('components.requestDetails.empty')} />
+              </Section>
+            </div>
+          </div>
 
           <Section title={t('components.requestDetails.rawJson')}>
             <CodeBlock value={entry} prettyJson />

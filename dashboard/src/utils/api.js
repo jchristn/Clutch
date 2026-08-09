@@ -28,6 +28,42 @@ class ApiClient {
     return headers;
   }
 
+  /**
+   * Translate a caller's { pageNumber, pageSize, ...filters } into the server's paginated
+   * EnumerationQuery params { maxResults, skip, ...filters }. Filters pass through untouched.
+   */
+  _enumParams(params = {}) {
+    const { pageNumber, pageSize, ...rest } = params || {};
+    const out = { ...rest };
+    if (pageSize != null) {
+      out.maxResults = pageSize;
+      out.skip = ((pageNumber || 1) - 1) * pageSize;
+    }
+    return out;
+  }
+
+  /**
+   * Normalize a server EnumerationResult ({ objects, totalRecords, skip, maxResults, ... }) into the
+   * page shape the dashboard tables consume ({ items, objects, pageNumber, pageSize, totalCount }).
+   */
+  _normalizeEnum(result, requestedPageNumber, requestedPageSize) {
+    const objects = Array.isArray(result?.objects) ? result.objects : Array.isArray(result) ? result : [];
+    const total = result?.totalRecords ?? objects.length;
+    const size = result?.maxResults ?? requestedPageSize ?? (objects.length || 25);
+    const skip = result?.skip ?? 0;
+    const pageNumber = size > 0 ? Math.floor(skip / size) + 1 : requestedPageNumber || 1;
+    return {
+      items: objects,
+      objects,
+      pageNumber,
+      pageSize: size,
+      totalCount: total,
+      totalRecords: total,
+      recordsRemaining: result?.recordsRemaining ?? Math.max(0, total - (skip + objects.length)),
+      endOfResults: result?.endOfResults ?? true
+    };
+  }
+
   async _request(method, path, { query = null, body = null, headers = {} } = {}) {
     const url = new URL(this.baseUrl + path);
     if (query) {
@@ -117,8 +153,10 @@ class ApiClient {
   // Tenants
   // ------------------------------------------------------------------
 
-  async listTenants() {
-    return this._request('GET', '/v1.0/api/tenants');
+  /** Paginated. params: { pageNumber, pageSize, ordering } -> { items, pageNumber, pageSize, totalCount }. */
+  async listTenants(params = {}) {
+    const res = await this._request('GET', '/v1.0/api/tenants', { query: this._enumParams(params) });
+    return this._normalizeEnum(res, params.pageNumber, params.pageSize);
   }
 
   async createTenant(body) {
@@ -137,12 +175,23 @@ class ApiClient {
     return this._request('DELETE', `/v1.0/api/tenants/${encodeURIComponent(id)}`);
   }
 
+  /**
+   * Destroy a tenant and every record scoped to it (system-admin only).
+   * body: { tenantId, confirmTenantId, reason, includeAuditRecords, includeRequestHistory }
+   * Returns { operationId, tenantId, tenantName, deleted, startedUtc, completedUtc }.
+   */
+  async nukeTenant(body) {
+    return this._request('POST', '/v1.0/api/admin/nuke/tenant', { body });
+  }
+
   // ------------------------------------------------------------------
   // Users
   // ------------------------------------------------------------------
 
-  async listUsers(tenantId) {
-    return this._request('GET', `/v1.0/api/tenants/${encodeURIComponent(tenantId)}/users`);
+  /** Paginated. params: { pageNumber, pageSize, ordering } -> { items, pageNumber, pageSize, totalCount }. */
+  async listUsers(tenantId, params = {}) {
+    const res = await this._request('GET', `/v1.0/api/tenants/${encodeURIComponent(tenantId)}/users`, { query: this._enumParams(params) });
+    return this._normalizeEnum(res, params.pageNumber, params.pageSize);
   }
 
   async createUser(tenantId, body) {
@@ -165,8 +214,10 @@ class ApiClient {
   // Credentials (application keys)
   // ------------------------------------------------------------------
 
-  async listCredentials(tenantId) {
-    return this._request('GET', `/v1.0/api/tenants/${encodeURIComponent(tenantId)}/credentials`);
+  /** Paginated. params: { pageNumber, pageSize, ordering } -> { items, pageNumber, pageSize, totalCount }. */
+  async listCredentials(tenantId, params = {}) {
+    const res = await this._request('GET', `/v1.0/api/tenants/${encodeURIComponent(tenantId)}/credentials`, { query: this._enumParams(params) });
+    return this._normalizeEnum(res, params.pageNumber, params.pageSize);
   }
 
   /** Create a credential. Response includes the accessKey. */
@@ -186,9 +237,10 @@ class ApiClient {
   // Locks (observe + admin force-release)
   // ------------------------------------------------------------------
 
-  /** List active holders. filters: { name, mode } */
+  /** List active holders (paginated). filters: { name, mode, pageNumber, pageSize } -> { items, pageNumber, pageSize, totalCount }. */
   async listLocks(tenantId, filters = {}) {
-    return this._request('GET', `/v1.0/api/tenants/${encodeURIComponent(tenantId)}/locks`, { query: filters });
+    const res = await this._request('GET', `/v1.0/api/tenants/${encodeURIComponent(tenantId)}/locks`, { query: this._enumParams(filters) });
+    return this._normalizeEnum(res, filters.pageNumber, filters.pageSize);
   }
 
   /** Get a single lock: { definition, holders }. */
@@ -207,7 +259,8 @@ class ApiClient {
 
   /** filters: { name, mode, fromUtc, toUtc, pageNumber, pageSize } -> { items, pageNumber, pageSize, totalCount } */
   async getLockAudit(tenantId, filters = {}) {
-    return this._request('GET', `/v1.0/api/tenants/${encodeURIComponent(tenantId)}/lock-audit`, { query: filters });
+    const res = await this._request('GET', `/v1.0/api/tenants/${encodeURIComponent(tenantId)}/lock-audit`, { query: this._enumParams(filters) });
+    return this._normalizeEnum(res, filters.pageNumber, filters.pageSize);
   }
 
   /** filters: { name, mode, fromUtc, toUtc, bucketCount } -> LockChartSummary */
@@ -220,7 +273,8 @@ class ApiClient {
   // ------------------------------------------------------------------
 
   async getRequestHistory(filters = {}) {
-    return this._request('GET', '/v1.0/api/request-history', { query: filters });
+    const res = await this._request('GET', '/v1.0/api/request-history', { query: this._enumParams(filters) });
+    return this._normalizeEnum(res, filters.pageNumber, filters.pageSize);
   }
 
   async getRequestHistorySummary(filters = {}) {

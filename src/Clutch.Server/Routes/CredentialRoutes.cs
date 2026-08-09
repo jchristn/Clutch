@@ -4,6 +4,7 @@ namespace Clutch.Server.Routes
     using System.Collections.Generic;
     using System.Threading.Tasks;
     using Clutch.Core.Database;
+    using Clutch.Core.Enumeration;
     using Clutch.Core.Models;
     using Clutch.Core.Requests;
     using Clutch.Core.Responses;
@@ -68,10 +69,21 @@ namespace Clutch.Server.Routes
                 await RouteHelpers.ErrorAsync(context, 403, "Forbidden", "Not permitted to read this tenant.").ConfigureAwait(false);
                 return;
             }
-            List<Credential> credentials = await _Database.Credentials.EnumerateAsync(tid, context.Token).ConfigureAwait(false);
+            EnumerationResult<Credential> result = await _Database.Credentials.EnumerateAsync(tid, RouteHelpers.Enumeration(context), context.Token).ConfigureAwait(false);
             List<CredentialResponse> projected = new List<CredentialResponse>();
-            foreach (Credential credential in credentials) projected.Add(CredentialResponse.FromModel(credential));
-            await RouteHelpers.JsonAsync(context, 200, projected).ConfigureAwait(false);
+            foreach (Credential credential in result.Objects) projected.Add(CredentialResponse.FromModel(credential));
+            EnumerationResult<CredentialResponse> response = new EnumerationResult<CredentialResponse>
+            {
+                Success = result.Success,
+                MaxResults = result.MaxResults,
+                Skip = result.Skip,
+                TotalRecords = result.TotalRecords,
+                RecordsRemaining = result.RecordsRemaining,
+                EndOfResults = result.EndOfResults,
+                TimestampUtc = result.TimestampUtc,
+                Objects = projected
+            };
+            await RouteHelpers.JsonAsync(context, 200, response).ConfigureAwait(false);
         }
 
         private async Task CreateAsync(HttpContextBase context)

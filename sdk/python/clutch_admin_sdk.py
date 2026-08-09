@@ -159,9 +159,13 @@ class ClutchAdminClient:
 
     # ---- Tenants ----
 
-    def list_tenants(self) -> List[Dict[str, Any]]:
-        """List tenants."""
-        return self._request("GET", "/v1.0/api/tenants")
+    def list_tenants(self, **filters: Any) -> List[Dict[str, Any]]:
+        """List tenants (paginated). Returns the page's objects.
+
+        :param filters: maxResults, skip, ordering.
+        """
+        result = self._request_with_params("GET", "/v1.0/api/tenants", self._clean(filters))
+        return (result or {}).get("objects", [])
 
     def get_tenant(self, tenant_id: str) -> Dict[str, Any]:
         """Retrieve a single tenant."""
@@ -191,9 +195,13 @@ class ClutchAdminClient:
 
     # ---- Users ----
 
-    def list_users(self, tenant_id: str) -> List[Dict[str, Any]]:
-        """List users within a tenant."""
-        return self._request("GET", f"/v1.0/api/tenants/{tenant_id}/users")
+    def list_users(self, tenant_id: str, **filters: Any) -> List[Dict[str, Any]]:
+        """List users within a tenant (paginated). Returns the page's objects.
+
+        :param filters: maxResults, skip, ordering.
+        """
+        result = self._request_with_params("GET", f"/v1.0/api/tenants/{tenant_id}/users", self._clean(filters))
+        return (result or {}).get("objects", [])
 
     def get_user(self, tenant_id: str, user_id: str) -> Dict[str, Any]:
         """Retrieve a single user."""
@@ -213,9 +221,13 @@ class ClutchAdminClient:
 
     # ---- Credentials ----
 
-    def list_credentials(self, tenant_id: str) -> List[Dict[str, Any]]:
-        """List application keys within a tenant."""
-        return self._request("GET", f"/v1.0/api/tenants/{tenant_id}/credentials")
+    def list_credentials(self, tenant_id: str, **filters: Any) -> List[Dict[str, Any]]:
+        """List application keys within a tenant (paginated). Returns the page's objects.
+
+        :param filters: maxResults, skip, ordering.
+        """
+        result = self._request_with_params("GET", f"/v1.0/api/tenants/{tenant_id}/credentials", self._clean(filters))
+        return (result or {}).get("objects", [])
 
     def get_credential(self, tenant_id: str, credential_id: str) -> Dict[str, Any]:
         """Retrieve a single application key."""
@@ -236,10 +248,14 @@ class ClutchAdminClient:
 
     # ---- Locks ----
 
-    def list_locks(self, tenant_id: str, name: Optional[str] = None, mode: Optional[str] = None) -> List[Dict[str, Any]]:
-        """List active lock holders within a tenant, optionally filtered by key substring and mode."""
-        params = self._clean({"name": name, "mode": mode})
-        return self._request_with_params("GET", f"/v1.0/api/tenants/{tenant_id}/locks", params)
+    def list_locks(self, tenant_id: str, name: Optional[str] = None, mode: Optional[str] = None, **filters: Any) -> List[Dict[str, Any]]:
+        """List active lock holders within a tenant (paginated), optionally filtered by key substring and mode.
+
+        :param filters: maxResults, skip, ordering.
+        """
+        params = self._clean({"name": name, "mode": mode, **filters})
+        result = self._request_with_params("GET", f"/v1.0/api/tenants/{tenant_id}/locks", params)
+        return (result or {}).get("objects", [])
 
     def get_lock(self, tenant_id: str, key: str) -> Dict[str, Any]:
         """Retrieve the definition and holders for a single lock key."""
@@ -257,8 +273,8 @@ class ClutchAdminClient:
     def get_lock_audit(self, tenant_id: str, **filters: Any) -> Dict[str, Any]:
         """Retrieve a page of lock audit entries.
 
-        :param filters: name, mode, fromUtc, toUtc, pageNumber, pageSize.
-        :returns: A page {items, pageNumber, pageSize, totalCount}.
+        :param filters: name, mode, fromUtc, toUtc, maxResults, skip, ordering.
+        :returns: An EnumerationResult {objects, totalRecords, recordsRemaining, endOfResults, maxResults, skip}.
         """
         return self._request_with_params("GET", f"/v1.0/api/tenants/{tenant_id}/lock-audit", self._clean(filters))
 
@@ -274,7 +290,8 @@ class ClutchAdminClient:
     def get_request_history(self, **filters: Any) -> Dict[str, Any]:
         """Retrieve a page of request history.
 
-        :param filters: method, statusCode, pathContains, fromUtc, toUtc, pageNumber, pageSize, tenantId.
+        :param filters: method, statusCode, pathContains, fromUtc, toUtc, maxResults, skip, ordering, tenantId.
+        :returns: An EnumerationResult {objects, totalRecords, recordsRemaining, endOfResults, maxResults, skip}.
         """
         return self._request_with_params("GET", "/v1.0/api/request-history", self._clean(filters))
 

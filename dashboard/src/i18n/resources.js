@@ -195,6 +195,7 @@ const en = {
       from: 'From',
       to: 'To',
       tenant: 'Tenant',
+      allTenants: 'All tenants',
       name: 'Lock name',
       mode: 'Lock mode',
       eventType: 'Event type',
@@ -295,7 +296,31 @@ const en = {
       confirmDeleteMessage: 'Delete tenant "{{name}}"? This cannot be undone.',
       days: '{{count}} days',
       emptyTitle: 'No tenants',
-      emptyBody: 'Create a tenant to isolate a set of locks, users, and application keys.'
+      emptyBody: 'Create a tenant to isolate a set of locks, users, and application keys.',
+      nuke: {
+        action: 'Nuke tenant',
+        title: 'Nuke tenant',
+        execute: 'Nuke tenant',
+        warning: 'This permanently destroys the tenant and every record scoped to it — users, application keys, locks, and audit history. This cannot be undone.',
+        confirmId: 'Type the tenant ID to confirm',
+        reason: 'Administrative reason (minimum 10 characters)',
+        includeAudit: 'Include lock audit records',
+        includeRequests: 'Include request history',
+        hint: 'The button is enabled once the exact tenant ID and a reason of at least 10 characters are provided.',
+        resultTitle: 'Tenant "{{name}}" destroyed',
+        entity: 'Entity',
+        deleted: 'Deleted',
+        entities: {
+          lockHolders: 'Lock holders',
+          lockDefinitions: 'Lock definitions',
+          lockAudit: 'Lock audit records',
+          authSessions: 'Auth sessions',
+          credentials: 'Application keys',
+          users: 'Users',
+          requestHistory: 'Request history',
+          tenant: 'Tenant'
+        }
+      }
     },
     users: {
       title: 'Users',
@@ -470,6 +495,7 @@ const en = {
         auth: 'Authentication',
         lock: 'Lock',
         requestHistory: 'Request History',
+        mcp: 'MCP Server',
         telemetry: 'Telemetry'
       },
       fields: {
@@ -517,6 +543,13 @@ const en = {
           maxRequestBodyBytes: 'Max request body (bytes)',
           maxResponseBodyBytes: 'Max response body (bytes)',
           retentionDays: 'Retention (days)'
+        },
+        mcp: {
+          enable: 'Enabled',
+          hostname: 'Hostname',
+          port: 'Port',
+          mcpPath: 'MCP path',
+          serverName: 'Server name'
         },
         telemetry: {
           enabled: 'Enabled',

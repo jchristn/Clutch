@@ -7,8 +7,10 @@ if "%~1"=="" (
 )
 
 set "IMAGE_TAG=%~1"
-call build-server.bat "%IMAGE_TAG%" || exit /b 1
-call build-dashboard.bat "%IMAGE_TAG%" || exit /b 1
+pushd "%~dp0"
+call "%~dp0build-server.bat" "%IMAGE_TAG%" || (popd & exit /b 1)
+call "%~dp0build-dashboard.bat" "%IMAGE_TAG%" || (popd & exit /b 1)
+popd
 
 echo.
 echo ============================================

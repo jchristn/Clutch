@@ -4,6 +4,7 @@ namespace Clutch.Server.Routes
     using System.Collections.Generic;
     using System.Threading.Tasks;
     using Clutch.Core.Database;
+    using Clutch.Core.Enumeration;
     using Clutch.Core.Models;
     using Clutch.Core.Security;
     using Clutch.Server.Services;
@@ -61,10 +62,11 @@ namespace Clutch.Server.Routes
         private async Task ListAsync(HttpContextBase context)
         {
             RequestContext ctx = RouteHelpers.Context(context);
+            EnumerationQuery query = RouteHelpers.Enumeration(context);
             if (_Authorization.CanManageTenants(ctx))
             {
-                List<Tenant> tenants = await _Database.Tenants.EnumerateAsync(context.Token).ConfigureAwait(false);
-                await RouteHelpers.JsonAsync(context, 200, tenants).ConfigureAwait(false);
+                EnumerationResult<Tenant> result = await _Database.Tenants.EnumerateAsync(query, context.Token).ConfigureAwait(false);
+                await RouteHelpers.JsonAsync(context, 200, result).ConfigureAwait(false);
                 return;
             }
 
@@ -74,7 +76,7 @@ namespace Clutch.Server.Routes
                 Tenant? own = await _Database.Tenants.ReadAsync(ctx.TenantId, context.Token).ConfigureAwait(false);
                 if (own != null) scoped.Add(own);
             }
-            await RouteHelpers.JsonAsync(context, 200, scoped).ConfigureAwait(false);
+            await RouteHelpers.JsonAsync(context, 200, EnumerationResult<Tenant>.Build(query, scoped.Count, scoped)).ConfigureAwait(false);
         }
 
         private async Task CreateAsync(HttpContextBase context)

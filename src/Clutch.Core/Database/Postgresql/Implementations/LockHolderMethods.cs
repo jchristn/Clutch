@@ -326,6 +326,37 @@ RETURNING h.*;";
         }
 
         /// <inheritdoc />
+        public async Task<Clutch.Core.Enumeration.EnumerationResult<LockHolder>> EnumerateByTenantAsync(string tenantId, string? lockKeyContains, LockModeEnum? mode, Clutch.Core.Enumeration.EnumerationQuery query, CancellationToken token = default)
+        {
+            if (String.IsNullOrEmpty(tenantId)) throw new ArgumentNullException(nameof(tenantId));
+            query ??= new Clutch.Core.Enumeration.EnumerationQuery();
+
+            string where = " WHERE tenantid = @tid";
+            if (!string.IsNullOrEmpty(lockKeyContains)) where += " AND lockkey ILIKE @keyfilter";
+            if (mode.HasValue) where += " AND mode = @mode";
+
+            Action<NpgsqlParameterCollection> bindFilters = parameters =>
+            {
+                parameters.AddWithValue("tid", tenantId);
+                if (!string.IsNullOrEmpty(lockKeyContains)) parameters.AddWithValue("keyfilter", "%" + lockKeyContains + "%");
+                if (mode.HasValue) parameters.AddWithValue("mode", mode.Value.ToString());
+            };
+
+            object? countResult = await _Driver.ScalarAsync("SELECT COUNT(*) FROM lock_holders" + where + ";", bindFilters, token).ConfigureAwait(false);
+            long total = countResult == null ? 0 : (long)countResult;
+
+            string sql = "SELECT * FROM lock_holders" + where + EnumerationSql.OrderClause(query, "acquiredutc", "lockkey") + " OFFSET @skip LIMIT @max;";
+            List<LockHolder> objects = await _Driver.QueryAsync(sql, parameters =>
+            {
+                bindFilters(parameters);
+                parameters.AddWithValue("skip", query.Skip);
+                parameters.AddWithValue("max", query.MaxResults);
+            }, Converters.ToLockHolder, token).ConfigureAwait(false);
+
+            return Clutch.Core.Enumeration.EnumerationResult<LockHolder>.Build(query, total, objects);
+        }
+
+        /// <inheritdoc />
         public async Task<List<LockHolder>> EnumerateByKeyAsync(string tenantId, string lockKey, CancellationToken token = default)
         {
             if (String.IsNullOrEmpty(tenantId)) throw new ArgumentNullException(nameof(tenantId));

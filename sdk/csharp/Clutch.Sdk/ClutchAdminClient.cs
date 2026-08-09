@@ -190,11 +190,17 @@ namespace Clutch.Sdk
         /// Lists tenants. A system administrator sees all tenants; other principals see only their own.
         /// </summary>
         /// <param name="cancellationToken">A cancellation token.</param>
-        /// <returns>The list of tenants.</returns>
+        /// <param name="maxResults">The maximum page size (1-1000). When null, the server default (25) applies.</param>
+        /// <param name="skip">The number of records to skip before the page. When null, 0 applies.</param>
+        /// <param name="ordering">The ordering to apply. When null, newest-first applies.</param>
+        /// <returns>A page of tenants.</returns>
         /// <exception cref="ClutchException">Thrown when the request fails.</exception>
-        public async Task<List<Tenant>> ListTenantsAsync(CancellationToken cancellationToken = default)
+        public async Task<EnumerationResult<Tenant>> ListTenantsAsync(int? maxResults = null, int? skip = null, EnumerationOrder? ordering = null, CancellationToken cancellationToken = default)
         {
-            return await SendAsync<List<Tenant>>(HttpMethod.Get, "/v1.0/api/tenants", null, true, cancellationToken).ConfigureAwait(false);
+            Dictionary<string, string?> query = new Dictionary<string, string?>();
+            AddEnumeration(query, maxResults, skip, ordering);
+            string path = "/v1.0/api/tenants" + BuildQuery(query);
+            return await SendAsync<EnumerationResult<Tenant>>(HttpMethod.Get, path, null, true, cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -271,13 +277,19 @@ namespace Clutch.Sdk
         /// </summary>
         /// <param name="tenantId">The tenant identifier.</param>
         /// <param name="cancellationToken">A cancellation token.</param>
-        /// <returns>The list of users.</returns>
+        /// <param name="maxResults">The maximum page size (1-1000). When null, the server default (25) applies.</param>
+        /// <param name="skip">The number of records to skip before the page. When null, 0 applies.</param>
+        /// <param name="ordering">The ordering to apply. When null, newest-first applies.</param>
+        /// <returns>A page of users.</returns>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="tenantId"/> is null.</exception>
         /// <exception cref="ClutchException">Thrown when the request fails.</exception>
-        public async Task<List<User>> ListUsersAsync(string tenantId, CancellationToken cancellationToken = default)
+        public async Task<EnumerationResult<User>> ListUsersAsync(string tenantId, int? maxResults = null, int? skip = null, EnumerationOrder? ordering = null, CancellationToken cancellationToken = default)
         {
             if (tenantId == null) throw new ArgumentNullException(nameof(tenantId));
-            return await SendAsync<List<User>>(HttpMethod.Get, $"/v1.0/api/tenants/{Uri.EscapeDataString(tenantId)}/users", null, true, cancellationToken).ConfigureAwait(false);
+            Dictionary<string, string?> query = new Dictionary<string, string?>();
+            AddEnumeration(query, maxResults, skip, ordering);
+            string path = $"/v1.0/api/tenants/{Uri.EscapeDataString(tenantId)}/users" + BuildQuery(query);
+            return await SendAsync<EnumerationResult<User>>(HttpMethod.Get, path, null, true, cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -367,13 +379,19 @@ namespace Clutch.Sdk
         /// </summary>
         /// <param name="tenantId">The tenant identifier.</param>
         /// <param name="cancellationToken">A cancellation token.</param>
-        /// <returns>The list of credentials.</returns>
+        /// <param name="maxResults">The maximum page size (1-1000). When null, the server default (25) applies.</param>
+        /// <param name="skip">The number of records to skip before the page. When null, 0 applies.</param>
+        /// <param name="ordering">The ordering to apply. When null, newest-first applies.</param>
+        /// <returns>A page of credentials.</returns>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="tenantId"/> is null.</exception>
         /// <exception cref="ClutchException">Thrown when the request fails.</exception>
-        public async Task<List<Credential>> ListCredentialsAsync(string tenantId, CancellationToken cancellationToken = default)
+        public async Task<EnumerationResult<Credential>> ListCredentialsAsync(string tenantId, int? maxResults = null, int? skip = null, EnumerationOrder? ordering = null, CancellationToken cancellationToken = default)
         {
             if (tenantId == null) throw new ArgumentNullException(nameof(tenantId));
-            return await SendAsync<List<Credential>>(HttpMethod.Get, $"/v1.0/api/tenants/{Uri.EscapeDataString(tenantId)}/credentials", null, true, cancellationToken).ConfigureAwait(false);
+            Dictionary<string, string?> query = new Dictionary<string, string?>();
+            AddEnumeration(query, maxResults, skip, ordering);
+            string path = $"/v1.0/api/tenants/{Uri.EscapeDataString(tenantId)}/credentials" + BuildQuery(query);
+            return await SendAsync<EnumerationResult<Credential>>(HttpMethod.Get, path, null, true, cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -437,17 +455,21 @@ namespace Clutch.Sdk
         /// <param name="name">An optional key substring filter.</param>
         /// <param name="mode">An optional lock mode filter.</param>
         /// <param name="cancellationToken">A cancellation token.</param>
-        /// <returns>The list of active holders.</returns>
+        /// <param name="maxResults">The maximum page size (1-1000). When null, the server default (25) applies.</param>
+        /// <param name="skip">The number of records to skip before the page. When null, 0 applies.</param>
+        /// <param name="ordering">The ordering to apply. When null, newest-first applies.</param>
+        /// <returns>A page of active holders.</returns>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="tenantId"/> is null.</exception>
         /// <exception cref="ClutchException">Thrown when the request fails.</exception>
-        public async Task<List<LockHolder>> ListLocksAsync(string tenantId, string? name = null, LockMode? mode = null, CancellationToken cancellationToken = default)
+        public async Task<EnumerationResult<LockHolder>> ListLocksAsync(string tenantId, string? name = null, LockMode? mode = null, int? maxResults = null, int? skip = null, EnumerationOrder? ordering = null, CancellationToken cancellationToken = default)
         {
             if (tenantId == null) throw new ArgumentNullException(nameof(tenantId));
             Dictionary<string, string?> query = new Dictionary<string, string?>();
             query["name"] = name;
             query["mode"] = mode?.ToString();
+            AddEnumeration(query, maxResults, skip, ordering);
             string path = $"/v1.0/api/tenants/{Uri.EscapeDataString(tenantId)}/locks" + BuildQuery(query);
-            return await SendAsync<List<LockHolder>>(HttpMethod.Get, path, null, true, cancellationToken).ConfigureAwait(false);
+            return await SendAsync<EnumerationResult<LockHolder>>(HttpMethod.Get, path, null, true, cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -494,13 +516,14 @@ namespace Clutch.Sdk
         /// <param name="mode">An optional lock mode filter.</param>
         /// <param name="fromUtc">An optional inclusive lower bound, in UTC.</param>
         /// <param name="toUtc">An optional exclusive upper bound, in UTC.</param>
-        /// <param name="pageNumber">An optional one-based page number.</param>
-        /// <param name="pageSize">An optional page size.</param>
+        /// <param name="maxResults">An optional maximum page size (1-1000).</param>
+        /// <param name="skip">An optional number of records to skip before the page.</param>
+        /// <param name="ordering">An optional ordering.</param>
         /// <param name="cancellationToken">A cancellation token.</param>
         /// <returns>A page of audit entries.</returns>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="tenantId"/> is null.</exception>
         /// <exception cref="ClutchException">Thrown when the request fails.</exception>
-        public async Task<PagedResult<LockAuditEntry>> GetLockAuditAsync(string tenantId, string? name = null, LockMode? mode = null, DateTime? fromUtc = null, DateTime? toUtc = null, int? pageNumber = null, int? pageSize = null, CancellationToken cancellationToken = default)
+        public async Task<EnumerationResult<LockAuditEntry>> GetLockAuditAsync(string tenantId, string? name = null, LockMode? mode = null, DateTime? fromUtc = null, DateTime? toUtc = null, int? maxResults = null, int? skip = null, EnumerationOrder? ordering = null, CancellationToken cancellationToken = default)
         {
             if (tenantId == null) throw new ArgumentNullException(nameof(tenantId));
             Dictionary<string, string?> query = new Dictionary<string, string?>();
@@ -508,10 +531,9 @@ namespace Clutch.Sdk
             query["mode"] = mode?.ToString();
             query["fromUtc"] = FormatUtc(fromUtc);
             query["toUtc"] = FormatUtc(toUtc);
-            query["pageNumber"] = pageNumber?.ToString(CultureInfo.InvariantCulture);
-            query["pageSize"] = pageSize?.ToString(CultureInfo.InvariantCulture);
+            AddEnumeration(query, maxResults, skip, ordering);
             string path = $"/v1.0/api/tenants/{Uri.EscapeDataString(tenantId)}/lock-audit" + BuildQuery(query);
-            return await SendAsync<PagedResult<LockAuditEntry>>(HttpMethod.Get, path, null, true, cancellationToken).ConfigureAwait(false);
+            return await SendAsync<EnumerationResult<LockAuditEntry>>(HttpMethod.Get, path, null, true, cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -552,13 +574,14 @@ namespace Clutch.Sdk
         /// <param name="pathContains">An optional path substring filter.</param>
         /// <param name="fromUtc">An optional inclusive lower bound, in UTC.</param>
         /// <param name="toUtc">An optional exclusive upper bound, in UTC.</param>
-        /// <param name="pageNumber">An optional one-based page number.</param>
-        /// <param name="pageSize">An optional page size.</param>
+        /// <param name="maxResults">An optional maximum page size (1-1000).</param>
+        /// <param name="skip">An optional number of records to skip before the page.</param>
+        /// <param name="ordering">An optional ordering.</param>
         /// <param name="tenantId">An optional tenant identifier to widen scope; honored for system administrators.</param>
         /// <param name="cancellationToken">A cancellation token.</param>
         /// <returns>A page of request history entries.</returns>
         /// <exception cref="ClutchException">Thrown when the request fails.</exception>
-        public async Task<PagedResult<RequestHistoryEntry>> GetRequestHistoryAsync(string? method = null, int? statusCode = null, string? pathContains = null, DateTime? fromUtc = null, DateTime? toUtc = null, int? pageNumber = null, int? pageSize = null, string? tenantId = null, CancellationToken cancellationToken = default)
+        public async Task<EnumerationResult<RequestHistoryEntry>> GetRequestHistoryAsync(string? method = null, int? statusCode = null, string? pathContains = null, DateTime? fromUtc = null, DateTime? toUtc = null, int? maxResults = null, int? skip = null, EnumerationOrder? ordering = null, string? tenantId = null, CancellationToken cancellationToken = default)
         {
             Dictionary<string, string?> query = new Dictionary<string, string?>();
             query["method"] = method;
@@ -566,11 +589,10 @@ namespace Clutch.Sdk
             query["pathContains"] = pathContains;
             query["fromUtc"] = FormatUtc(fromUtc);
             query["toUtc"] = FormatUtc(toUtc);
-            query["pageNumber"] = pageNumber?.ToString(CultureInfo.InvariantCulture);
-            query["pageSize"] = pageSize?.ToString(CultureInfo.InvariantCulture);
+            AddEnumeration(query, maxResults, skip, ordering);
             query["tenantId"] = tenantId;
             string path = "/v1.0/api/request-history" + BuildQuery(query);
-            return await SendAsync<PagedResult<RequestHistoryEntry>>(HttpMethod.Get, path, null, true, cancellationToken).ConfigureAwait(false);
+            return await SendAsync<EnumerationResult<RequestHistoryEntry>>(HttpMethod.Get, path, null, true, cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -660,6 +682,13 @@ namespace Clutch.Sdk
         {
             if (value == null) return null;
             return value.Value.ToUniversalTime().ToString("o", CultureInfo.InvariantCulture);
+        }
+
+        private static void AddEnumeration(Dictionary<string, string?> query, int? maxResults, int? skip, EnumerationOrder? ordering)
+        {
+            if (maxResults.HasValue) query["maxResults"] = maxResults.Value.ToString(CultureInfo.InvariantCulture);
+            if (skip.HasValue) query["skip"] = skip.Value.ToString(CultureInfo.InvariantCulture);
+            if (ordering.HasValue) query["ordering"] = ordering.Value.ToString();
         }
 
         private static string BuildQuery(Dictionary<string, string?> parameters)

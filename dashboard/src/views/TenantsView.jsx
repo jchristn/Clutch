@@ -1,19 +1,21 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import PageHeader from '../components/PageHeader';
-import DataTable from '../components/DataTable';
-import TableAutoRefreshBar from '../components/TableAutoRefreshBar';
+import TableFrame from '../components/TableFrame';
 import Modal from '../components/Modal';
 import ConfirmModal from '../components/ConfirmModal';
 import JsonViewerModal from '../components/JsonViewerModal';
+import NukeTenantModal from '../components/NukeTenantModal';
 import ActionMenu from '../components/ActionMenu';
 import CopyableId from '../components/CopyableId';
 import { ActiveBadge } from '../components/StatusBadge';
 import { EmptyState, ErrorBanner } from '../components/States';
 import { PlusIcon } from '../components/Icons';
 import useAutoRefresh from '../hooks/useAutoRefresh';
+import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
-import { DEFAULT_AUTO_REFRESH } from '../utils/constants';
+import { principalCaps } from '../utils/principal';
+import { DEFAULT_AUTO_REFRESH, DEFAULT_PAGE_SIZE } from '../utils/constants';
 import { formatDateTime, formatNumber } from '../i18n/formatters';
 
 const BLANK = { name: '', lockHistoryRetentionDays: 7, defaultLeaseMs: 30000, maxLeaseMs: 300000 };
@@ -21,31 +23,41 @@ const BLANK = { name: '', lockHistoryRetentionDays: 7, defaultLeaseMs: 30000, ma
 export default function TenantsView({ apiClient }) {
   const { t, i18n } = useTranslation();
   const { addToast } = useToast();
+  const { principal } = useAuth();
+  const isSystemAdmin = principalCaps(principal).isSystemAdmin;
 
   const [items, setItems] = useState([]);
+  const [page, setPage] = useState({ pageNumber: 1, pageSize: DEFAULT_PAGE_SIZE, totalCount: 0 });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [editing, setEditing] = useState(null); // { mode:'create'|'edit', data }
   const [deleteTarget, setDeleteTarget] = useState(null);
+  const [nukeTarget, setNukeTarget] = useState(null);
   const [jsonValue, setJsonValue] = useState(null);
   const [busy, setBusy] = useState(false);
   const [autoRefreshSeconds, setAutoRefreshSeconds] = useState(DEFAULT_AUTO_REFRESH);
 
-  const load = useCallback(() => {
-    setLoading(true);
-    setError(null);
-    apiClient
-      .listTenants()
-      .then((r) => setItems(Array.isArray(r) ? r : []))
-      .catch((e) => setError(e.message))
-      .finally(() => setLoading(false));
-  }, [apiClient]);
+  const load = useCallback(
+    (pageNumber = 1, pageSize = DEFAULT_PAGE_SIZE) => {
+      setLoading(true);
+      setError(null);
+      apiClient
+        .listTenants({ pageNumber, pageSize })
+        .then((r) => {
+          setItems(r.items || []);
+          setPage({ pageNumber: r.pageNumber, pageSize: r.pageSize, totalCount: r.totalCount });
+        })
+        .catch((e) => setError(e.message))
+        .finally(() => setLoading(false));
+    },
+    [apiClient]
+  );
 
   useEffect(() => {
-    load();
+    load(1, DEFAULT_PAGE_SIZE);
   }, [load]);
 
-  useAutoRefresh(load, autoRefreshSeconds);
+  useAutoRefresh(() => load(page.pageNumber, page.pageSize), autoRefreshSeconds);
 
   const save = async () => {
     setBusy(true);
@@ -99,7 +111,8 @@ export default function TenantsView({ apiClient }) {
           items={[
             { label: t('common.actions.edit'), onClick: () => setEditing({ mode: 'edit', data: { ...r } }) },
             { label: t('common.actions.viewJson'), onClick: () => setJsonValue(r) },
-            { label: t('common.actions.delete'), danger: true, hidden: r.isProtected, onClick: () => setDeleteTarget(r) }
+            { label: t('common.actions.delete'), danger: true, hidden: r.isProtected, onClick: () => setDeleteTarget(r) },
+            { label: t('views.tenants.nuke.action'), danger: true, hidden: !isSystemAdmin || r.isProtected, onClick: () => setNukeTarget(r) }
           ]}
         />
       )
@@ -122,20 +135,27 @@ export default function TenantsView({ apiClient }) {
 
       {error && <ErrorBanner message={error} onRetry={load} />}
 
-      <div className="table-frame">
-        <TableAutoRefreshBar
-          totalRecords={items.length}
+      {items.length === 0 && !loading ? (
+        <div className="table-frame">
+          <EmptyState title={t('views.tenants.emptyTitle')} body={t('views.tenants.emptyBody')} />
+        </div>
+      ) : (
+        <TableFrame
+          columns={columns}
+          items={items}
+          loading={loading}
+          rowId={(r) => r.id}
+          onRowClick={(r) => setEditing({ mode: 'edit', data: { ...r } })}
+          totalRecords={page.totalCount}
+          pageNumber={page.pageNumber}
+          pageSize={page.pageSize}
+          onPageChange={(p) => load(p, page.pageSize)}
+          onPageSizeChange={(s) => load(1, s)}
+          onRefresh={() => load(page.pageNumber, page.pageSize)}
           autoRefreshSeconds={autoRefreshSeconds}
           onAutoRefreshChange={setAutoRefreshSeconds}
-          onRefresh={load}
-          disabled={loading}
         />
-        {items.length === 0 && !loading ? (
-          <EmptyState title={t('views.tenants.emptyTitle')} body={t('views.tenants.emptyBody')} />
-        ) : (
-          <DataTable columns={columns} items={items} loading={loading} rowId={(r) => r.id} />
-        )}
-      </div>
+      )}
 
       <Modal
         open={!!editing}
@@ -184,6 +204,14 @@ export default function TenantsView({ apiClient }) {
         onCancel={() => setDeleteTarget(null)}
       />
       <JsonViewerModal open={!!jsonValue} value={jsonValue} onClose={() => setJsonValue(null)} />
+
+      <NukeTenantModal
+        open={!!nukeTarget}
+        tenant={nukeTarget}
+        apiClient={apiClient}
+        onClose={() => setNukeTarget(null)}
+        onComplete={load}
+      />
     </div>
   );
 }

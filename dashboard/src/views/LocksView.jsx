@@ -1,8 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import PageHeader from '../components/PageHeader';
-import DataTable from '../components/DataTable';
-import TableAutoRefreshBar from '../components/TableAutoRefreshBar';
+import TableFrame from '../components/TableFrame';
 import { MethodPill } from '../components/StatusBadge';
 import ActionMenu from '../components/ActionMenu';
 import ConfirmModal from '../components/ConfirmModal';
@@ -13,7 +12,7 @@ import { RefreshIcon } from '../components/Icons';
 import useTenantScope from '../hooks/useTenantScope';
 import useAutoRefresh from '../hooks/useAutoRefresh';
 import { useToast } from '../context/ToastContext';
-import { LOCK_MODES, DEFAULT_AUTO_REFRESH } from '../utils/constants';
+import { LOCK_MODES, DEFAULT_AUTO_REFRESH, DEFAULT_PAGE_SIZE } from '../utils/constants';
 import { formatDateTime, formatRelativeTime } from '../i18n/formatters';
 
 export default function LocksView({ apiClient }) {
@@ -24,28 +23,36 @@ export default function LocksView({ apiClient }) {
   const [name, setName] = useState('');
   const [mode, setMode] = useState('');
   const [items, setItems] = useState([]);
+  const [page, setPage] = useState({ pageNumber: 1, pageSize: DEFAULT_PAGE_SIZE, totalCount: 0 });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [releaseTarget, setReleaseTarget] = useState(null);
   const [jsonValue, setJsonValue] = useState(null);
   const [autoRefreshSeconds, setAutoRefreshSeconds] = useState(DEFAULT_AUTO_REFRESH);
 
-  const load = useCallback(() => {
-    if (!tenantId) return;
-    setLoading(true);
-    setError(null);
-    apiClient
-      .listLocks(tenantId, { name: name || undefined, mode: mode || undefined })
-      .then((res) => setItems(Array.isArray(res) ? res : []))
-      .catch((e) => setError(e.message))
-      .finally(() => setLoading(false));
-  }, [apiClient, tenantId, name, mode]);
+  const load = useCallback(
+    (pageNumber = 1, pageSize = DEFAULT_PAGE_SIZE) => {
+      if (!tenantId) return;
+      setLoading(true);
+      setError(null);
+      apiClient
+        .listLocks(tenantId, { name: name || undefined, mode: mode || undefined, pageNumber, pageSize })
+        .then((res) => {
+          setItems(res.items || []);
+          setPage({ pageNumber: res.pageNumber, pageSize: res.pageSize, totalCount: res.totalCount });
+        })
+        .catch((e) => setError(e.message))
+        .finally(() => setLoading(false));
+    },
+    [apiClient, tenantId, name, mode]
+  );
 
   useEffect(() => {
-    load();
+    load(1, page.pageSize);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [load]);
 
-  useAutoRefresh(load, autoRefreshSeconds);
+  useAutoRefresh(() => load(page.pageNumber, page.pageSize), autoRefreshSeconds);
 
   const doRelease = async () => {
     try {
@@ -118,35 +125,42 @@ export default function LocksView({ apiClient }) {
             </select>
           </div>
           <div className="filter-actions">
-            <button type="button" className="button-primary button-sm" onClick={load}>
+            <button type="button" className="button-primary button-sm" onClick={() => load(1, page.pageSize)}>
               {t('common.actions.apply')}
             </button>
             <button type="button" className="button-secondary button-sm" onClick={() => { setName(''); setMode(''); }}>
               {t('common.actions.clear')}
             </button>
-            <button type="button" className="icon-button" onClick={load} title={t('common.actions.refresh')} aria-label={t('common.actions.refresh')}>
+            <button type="button" className="icon-button" onClick={() => load(page.pageNumber, page.pageSize)} title={t('common.actions.refresh')} aria-label={t('common.actions.refresh')}>
               <RefreshIcon size={16} />
             </button>
           </div>
         </div>
       </div>
 
-      {error && <ErrorBanner message={error} onRetry={load} />}
+      {error && <ErrorBanner message={error} onRetry={() => load(page.pageNumber, page.pageSize)} />}
 
-      <div className="table-frame">
-        <TableAutoRefreshBar
-          totalRecords={items.length}
+      {items.length === 0 && !loading ? (
+        <div className="table-frame">
+          <EmptyState title={t('views.locks.emptyTitle')} body={t('views.locks.emptyBody')} />
+        </div>
+      ) : (
+        <TableFrame
+          columns={columns}
+          items={items}
+          loading={loading}
+          rowId={(r) => r.id}
+          onRowClick={(r) => setJsonValue(r)}
+          totalRecords={page.totalCount}
+          pageNumber={page.pageNumber}
+          pageSize={page.pageSize}
+          onPageChange={(p) => load(p, page.pageSize)}
+          onPageSizeChange={(s) => load(1, s)}
+          onRefresh={() => load(page.pageNumber, page.pageSize)}
           autoRefreshSeconds={autoRefreshSeconds}
           onAutoRefreshChange={setAutoRefreshSeconds}
-          onRefresh={load}
-          disabled={loading}
         />
-        {items.length === 0 && !loading ? (
-          <EmptyState title={t('views.locks.emptyTitle')} body={t('views.locks.emptyBody')} />
-        ) : (
-          <DataTable columns={columns} items={items} loading={loading} rowId={(r) => r.id} />
-        )}
-      </div>
+      )}
 
       <ConfirmModal
         open={!!releaseTarget}

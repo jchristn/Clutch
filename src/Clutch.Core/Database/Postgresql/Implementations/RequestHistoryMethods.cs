@@ -5,6 +5,7 @@ namespace Clutch.Core.Database.Postgresql.Implementations
     using System.Threading;
     using System.Threading.Tasks;
     using Clutch.Core.Database.Interfaces;
+    using Clutch.Core.Enumeration;
     using Clutch.Core.Models;
     using Clutch.Core.Requests;
     using Clutch.Core.Responses;
@@ -96,29 +97,24 @@ VALUES (@id, @tid, @uid, @pname, @method, @path, @url, @status, @duration, @ip, 
         }
 
         /// <inheritdoc />
-        public async Task<RequestHistoryPage> EnumerateAsync(RequestHistoryFilter filter, CancellationToken token = default)
+        public async Task<EnumerationResult<RequestHistoryEntry>> EnumerateAsync(RequestHistoryFilter filter, CancellationToken token = default)
         {
             if (filter == null) throw new ArgumentNullException(nameof(filter));
 
             string where = BuildWhere(filter, out Action<NpgsqlParameterCollection> bind);
 
-            RequestHistoryPage page = new RequestHistoryPage();
-            page.PageNumber = filter.PageNumber;
-            page.PageSize = filter.PageSize;
-
             object? countResult = await _Driver.ScalarAsync("SELECT COUNT(*) FROM request_history" + where + ";", bind, token).ConfigureAwait(false);
-            page.TotalCount = countResult == null ? 0 : (long)countResult;
+            long total = countResult == null ? 0 : (long)countResult;
 
-            int offset = (filter.PageNumber - 1) * filter.PageSize;
-            string listSql = "SELECT " + ListColumns + " FROM request_history" + where + " ORDER BY createdutc DESC OFFSET @offset LIMIT @limit;";
-            page.Items = await _Driver.QueryAsync(listSql, parameters =>
+            string listSql = "SELECT " + ListColumns + " FROM request_history" + where + EnumerationSql.OrderClause(filter, "createdutc", "path") + " OFFSET @skip LIMIT @max;";
+            List<RequestHistoryEntry> objects = await _Driver.QueryAsync(listSql, parameters =>
             {
                 bind(parameters);
-                parameters.AddWithValue("offset", offset);
-                parameters.AddWithValue("limit", filter.PageSize);
+                parameters.AddWithValue("skip", filter.Skip);
+                parameters.AddWithValue("max", filter.MaxResults);
             }, reader => Converters.ToRequestHistoryEntry(reader, false), token).ConfigureAwait(false);
 
-            return page;
+            return EnumerationResult<RequestHistoryEntry>.Build(filter, total, objects);
         }
 
         /// <inheritdoc />

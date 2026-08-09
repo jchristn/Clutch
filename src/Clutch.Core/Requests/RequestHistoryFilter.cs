@@ -1,11 +1,13 @@
 namespace Clutch.Core.Requests
 {
     using System;
+    using Clutch.Core.Enumeration;
 
     /// <summary>
-    /// Filter for listing and summarizing captured request history.
+    /// Filter for listing and summarizing captured request history. Pagination fields (MaxResults, Skip,
+    /// Ordering) are inherited from <see cref="EnumerationQuery"/>.
     /// </summary>
-    public class RequestHistoryFilter
+    public class RequestHistoryFilter : EnumerationQuery
     {
         #region Public-Members
 
@@ -59,43 +61,11 @@ namespace Clutch.Core.Requests
             }
         }
 
-        /// <summary>
-        /// Page number, 1-based. Minimum 1. Defaults to 1.
-        /// </summary>
-        public int PageNumber
-        {
-            get
-            {
-                return _PageNumber;
-            }
-            set
-            {
-                _PageNumber = value < 1 ? 1 : value;
-            }
-        }
-
-        /// <summary>
-        /// Page size. Minimum 1, maximum 1000. Defaults to 25.
-        /// </summary>
-        public int PageSize
-        {
-            get
-            {
-                return _PageSize;
-            }
-            set
-            {
-                _PageSize = Math.Clamp(value, 1, 1000);
-            }
-        }
-
         #endregion
 
         #region Private-Members
 
         private int _BucketMinutes = 15;
-        private int _PageNumber = 1;
-        private int _PageSize = 25;
 
         #endregion
     }

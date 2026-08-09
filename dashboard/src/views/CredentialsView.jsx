@@ -1,8 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import PageHeader from '../components/PageHeader';
-import DataTable from '../components/DataTable';
-import TableAutoRefreshBar from '../components/TableAutoRefreshBar';
+import TableFrame from '../components/TableFrame';
 import Modal from '../components/Modal';
 import ConfirmModal from '../components/ConfirmModal';
 import JsonViewerModal from '../components/JsonViewerModal';
@@ -15,7 +14,7 @@ import { PlusIcon } from '../components/Icons';
 import useTenantScope from '../hooks/useTenantScope';
 import useAutoRefresh from '../hooks/useAutoRefresh';
 import { useToast } from '../context/ToastContext';
-import { DEFAULT_AUTO_REFRESH } from '../utils/constants';
+import { DEFAULT_AUTO_REFRESH, DEFAULT_PAGE_SIZE } from '../utils/constants';
 import { formatDateTime } from '../i18n/formatters';
 
 export default function CredentialsView({ apiClient }) {
@@ -24,6 +23,7 @@ export default function CredentialsView({ apiClient }) {
   const { tenants, tenantId, setTenantId, isSystemAdmin } = useTenantScope();
 
   const [items, setItems] = useState([]);
+  const [page, setPage] = useState({ pageNumber: 1, pageSize: DEFAULT_PAGE_SIZE, totalCount: 0 });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [creating, setCreating] = useState(null); // { name, userId, expiresUtc }
@@ -33,22 +33,28 @@ export default function CredentialsView({ apiClient }) {
   const [busy, setBusy] = useState(false);
   const [autoRefreshSeconds, setAutoRefreshSeconds] = useState(DEFAULT_AUTO_REFRESH);
 
-  const load = useCallback(() => {
-    if (!tenantId) return;
-    setLoading(true);
-    setError(null);
-    apiClient
-      .listCredentials(tenantId)
-      .then((r) => setItems(Array.isArray(r) ? r : []))
-      .catch((e) => setError(e.message))
-      .finally(() => setLoading(false));
-  }, [apiClient, tenantId]);
+  const load = useCallback(
+    (pageNumber = 1, pageSize = DEFAULT_PAGE_SIZE) => {
+      if (!tenantId) return;
+      setLoading(true);
+      setError(null);
+      apiClient
+        .listCredentials(tenantId, { pageNumber, pageSize })
+        .then((r) => {
+          setItems(r.items || []);
+          setPage({ pageNumber: r.pageNumber, pageSize: r.pageSize, totalCount: r.totalCount });
+        })
+        .catch((e) => setError(e.message))
+        .finally(() => setLoading(false));
+    },
+    [apiClient, tenantId]
+  );
 
   useEffect(() => {
-    load();
+    load(1, DEFAULT_PAGE_SIZE);
   }, [load]);
 
-  useAutoRefresh(load, autoRefreshSeconds);
+  useAutoRefresh(() => load(page.pageNumber, page.pageSize), autoRefreshSeconds);
 
   const create = async () => {
     setBusy(true);
@@ -134,22 +140,31 @@ export default function CredentialsView({ apiClient }) {
 
       {error && <ErrorBanner message={error} onRetry={load} />}
 
-      <div className="table-frame">
-        <TableAutoRefreshBar
-          totalRecords={items.length}
+      {!tenantId ? (
+        <div className="table-frame">
+          <EmptyState title={t('views.credentials.title')} body={t('views.credentials.selectTenant')} />
+        </div>
+      ) : items.length === 0 && !loading ? (
+        <div className="table-frame">
+          <EmptyState title={t('views.credentials.emptyTitle')} body={t('views.credentials.emptyBody')} />
+        </div>
+      ) : (
+        <TableFrame
+          columns={columns}
+          items={items}
+          loading={loading}
+          rowId={(r) => r.id}
+          onRowClick={(r) => setJsonValue(r)}
+          totalRecords={page.totalCount}
+          pageNumber={page.pageNumber}
+          pageSize={page.pageSize}
+          onPageChange={(p) => load(p, page.pageSize)}
+          onPageSizeChange={(s) => load(1, s)}
+          onRefresh={() => load(page.pageNumber, page.pageSize)}
           autoRefreshSeconds={autoRefreshSeconds}
           onAutoRefreshChange={setAutoRefreshSeconds}
-          onRefresh={load}
-          disabled={loading || !tenantId}
         />
-        {!tenantId ? (
-          <EmptyState title={t('views.credentials.title')} body={t('views.credentials.selectTenant')} />
-        ) : items.length === 0 && !loading ? (
-          <EmptyState title={t('views.credentials.emptyTitle')} body={t('views.credentials.emptyBody')} />
-        ) : (
-          <DataTable columns={columns} items={items} loading={loading} rowId={(r) => r.id} />
-        )}
-      </div>
+      )}
 
       {/* Create modal */}
       <Modal

@@ -117,6 +117,12 @@ namespace Clutch.Server
 
             string? restPort = Environment.GetEnvironmentVariable("CLUTCH_REST_PORT");
             if (!String.IsNullOrEmpty(restPort) && Int32.TryParse(restPort, out int rp)) settings.Rest.Port = rp;
+
+            string? mcpEnable = Environment.GetEnvironmentVariable("CLUTCH_MCP_ENABLE");
+            if (!String.IsNullOrEmpty(mcpEnable) && Boolean.TryParse(mcpEnable, out bool me)) settings.Mcp.Enable = me;
+
+            string? mcpPort = Environment.GetEnvironmentVariable("CLUTCH_MCP_PORT");
+            if (!String.IsNullOrEmpty(mcpPort) && Int32.TryParse(mcpPort, out int mp)) settings.Mcp.Port = mp;
         }
 
         private static LoggingModule BuildLogging(ClutchSettings settings)

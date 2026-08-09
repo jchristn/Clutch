@@ -74,11 +74,10 @@ namespace Clutch.Server.Routes
             if (mode.HasValue) filter.Modes = new List<LockModeEnum> { mode.Value };
             filter.FromUtc = ParseDate(RouteHelpers.Query(context, "fromUtc"));
             filter.ToUtc = ParseDate(RouteHelpers.Query(context, "toUtc"));
-            filter.PageNumber = RouteHelpers.QueryInt(context, "pageNumber") ?? 1;
-            filter.PageSize = RouteHelpers.QueryInt(context, "pageSize") ?? 25;
+            RouteHelpers.ApplyEnumeration(context, filter);
 
-            LockAuditPage page = await _Database.LockAudit.EnumerateAsync(filter, context.Token).ConfigureAwait(false);
-            await RouteHelpers.JsonAsync(context, 200, page).ConfigureAwait(false);
+            var result = await _Database.LockAudit.EnumerateAsync(filter, context.Token).ConfigureAwait(false);
+            await RouteHelpers.JsonAsync(context, 200, result).ConfigureAwait(false);
         }
 
         private async Task SummaryAsync(HttpContextBase context)

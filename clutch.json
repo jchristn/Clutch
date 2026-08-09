@@ -53,5 +53,12 @@
     "OtlpEndpoint": null,
     "MetricsIncludeRuntime": true,
     "MetricsIncludeProcess": true
+  },
+  "Mcp": {
+    "Enable": true,
+    "Hostname": "localhost",
+    "Port": 8100,
+    "McpPath": "/mcp",
+    "ServerName": "Clutch MCP"
   }
 }

@@ -3,6 +3,7 @@ namespace Clutch.Core.Database.Interfaces
     using System.Collections.Generic;
     using System.Threading;
     using System.Threading.Tasks;
+    using Clutch.Core.Enumeration;
     using Clutch.Core.Models;
 
     /// <summary>
@@ -44,6 +45,15 @@ namespace Clutch.Core.Database.Interfaces
         /// <param name="token">Cancellation token.</param>
         /// <returns>The users in the tenant.</returns>
         Task<List<User>> EnumerateAsync(string tenantId, CancellationToken token = default);
+
+        /// <summary>
+        /// Enumerate a paginated page of users within a tenant.
+        /// </summary>
+        /// <param name="tenantId">Tenant identifier.</param>
+        /// <param name="query">Pagination query.</param>
+        /// <param name="token">Cancellation token.</param>
+        /// <returns>A page of users.</returns>
+        Task<EnumerationResult<User>> EnumerateAsync(string tenantId, EnumerationQuery query, CancellationToken token = default);
 
         /// <summary>
         /// Update a user.

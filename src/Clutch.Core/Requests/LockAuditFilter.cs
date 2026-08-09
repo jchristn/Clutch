@@ -2,12 +2,14 @@ namespace Clutch.Core.Requests
 {
     using System;
     using System.Collections.Generic;
+    using Clutch.Core.Enumeration;
     using Clutch.Core.Enums;
 
     /// <summary>
-    /// Filter for paging through lock audit entries.
+    /// Filter for paging through lock audit entries. Pagination fields (MaxResults, Skip, Ordering) are
+    /// inherited from <see cref="EnumerationQuery"/>.
     /// </summary>
-    public class LockAuditFilter
+    public class LockAuditFilter : EnumerationQuery
     {
         #region Public-Members
 
@@ -40,43 +42,6 @@ namespace Clutch.Core.Requests
         /// Optional exclusive upper bound on event time.
         /// </summary>
         public DateTime? ToUtc { get; set; } = null;
-
-        /// <summary>
-        /// Page number, 1-based. Minimum 1. Defaults to 1.
-        /// </summary>
-        public int PageNumber
-        {
-            get
-            {
-                return _PageNumber;
-            }
-            set
-            {
-                _PageNumber = value < 1 ? 1 : value;
-            }
-        }
-
-        /// <summary>
-        /// Page size. Minimum 1, maximum 1000. Defaults to 25.
-        /// </summary>
-        public int PageSize
-        {
-            get
-            {
-                return _PageSize;
-            }
-            set
-            {
-                _PageSize = Math.Clamp(value, 1, 1000);
-            }
-        }
-
-        #endregion
-
-        #region Private-Members
-
-        private int _PageNumber = 1;
-        private int _PageSize = 25;
 
         #endregion
     }

@@ -76,8 +76,8 @@
       "item": [
         {
           "name": "List tenants",
-          "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/v1.0/api/tenants", "host": [ "{{baseUrl}}" ], "path": [ "v1.0", "api", "tenants" ] }, "description": "Captures the first tenant id into `tenantId`." },
-          "event": [ { "listen": "test", "script": { "exec": [ "if (pm.response.code===200){ const a=pm.response.json(); if(Array.isArray(a)&&a.length){ pm.collectionVariables.set('tenantId', a[0].id);} }" ], "type": "text/javascript" } } ]
+          "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/v1.0/api/tenants?maxResults=25&skip=0", "host": [ "{{baseUrl}}" ], "path": [ "v1.0", "api", "tenants" ], "query": [ { "key": "maxResults", "value": "25" }, { "key": "skip", "value": "0" }, { "key": "ordering", "value": "CreatedDescending", "disabled": true } ] }, "description": "Paginated. Returns an EnumerationResult: { objects, totalRecords, recordsRemaining, endOfResults, maxResults, skip }. Query params: maxResults (1-1000, default 25), skip, ordering. Captures the first tenant id into `tenantId`." },
+          "event": [ { "listen": "test", "script": { "exec": [ "if (pm.response.code===200){ const r=pm.response.json(); const a=(r&&r.objects)||[]; if(a.length){ pm.collectionVariables.set('tenantId', a[0].id);} }" ], "type": "text/javascript" } } ]
         },
         { "name": "Create tenant", "request": { "method": "POST", "header": [ { "key": "Content-Type", "value": "application/json" } ], "url": { "raw": "{{baseUrl}}/v1.0/api/tenants", "host": [ "{{baseUrl}}" ], "path": [ "v1.0", "api", "tenants" ] }, "body": { "mode": "raw", "raw": "{\n  \"name\": \"acme\",\n  \"lockHistoryRetentionDays\": 7\n}" }, "description": "System admin only. Creates a tenant." } },
         { "name": "Read tenant", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/v1.0/api/tenants/{{tenantId}}", "host": [ "{{baseUrl}}" ], "path": [ "v1.0", "api", "tenants", "{{tenantId}}" ] }, "description": "Read a tenant by id." } },
@@ -89,7 +89,7 @@
       "name": "Users",
       "description": "User administration, scoped to {{tenantId}}.",
       "item": [
-        { "name": "List users", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/v1.0/api/tenants/{{tenantId}}/users", "host": [ "{{baseUrl}}" ], "path": [ "v1.0", "api", "tenants", "{{tenantId}}", "users" ] }, "description": "List users in the tenant." } },
+        { "name": "List users", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/v1.0/api/tenants/{{tenantId}}/users?maxResults=25&skip=0", "host": [ "{{baseUrl}}" ], "path": [ "v1.0", "api", "tenants", "{{tenantId}}", "users" ], "query": [ { "key": "maxResults", "value": "25" }, { "key": "skip", "value": "0" } ] }, "description": "Paginated (EnumerationResult with `objects`). Query params: maxResults, skip, ordering." } },
         {
           "name": "Create user",
           "request": { "method": "POST", "header": [ { "key": "Content-Type", "value": "application/json" } ], "url": { "raw": "{{baseUrl}}/v1.0/api/tenants/{{tenantId}}/users", "host": [ "{{baseUrl}}" ], "path": [ "v1.0", "api", "tenants", "{{tenantId}}", "users" ] }, "body": { "mode": "raw", "raw": "{\n  \"email\": \"ops@acme.com\",\n  \"password\": \"change-me\",\n  \"firstName\": \"Ops\",\n  \"lastName\": \"User\",\n  \"isTenantAdmin\": true\n}" }, "description": "Tenant admin. Captures `userId`." },
@@ -103,7 +103,7 @@
       "name": "Credentials",
       "description": "Application keys, scoped to {{tenantId}}. The raw secret is returned only on create.",
       "item": [
-        { "name": "List credentials", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/v1.0/api/tenants/{{tenantId}}/credentials", "host": [ "{{baseUrl}}" ], "path": [ "v1.0", "api", "tenants", "{{tenantId}}", "credentials" ] }, "description": "List application keys (secrets redacted)." } },
+        { "name": "List credentials", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/v1.0/api/tenants/{{tenantId}}/credentials?maxResults=25&skip=0", "host": [ "{{baseUrl}}" ], "path": [ "v1.0", "api", "tenants", "{{tenantId}}", "credentials" ], "query": [ { "key": "maxResults", "value": "25" }, { "key": "skip", "value": "0" } ] }, "description": "Paginated (EnumerationResult with `objects`; secrets redacted). Query params: maxResults, skip, ordering." } },
         {
           "name": "Create credential",
           "request": { "method": "POST", "header": [ { "key": "Content-Type", "value": "application/json" } ], "url": { "raw": "{{baseUrl}}/v1.0/api/tenants/{{tenantId}}/credentials", "host": [ "{{baseUrl}}" ], "path": [ "v1.0", "api", "tenants", "{{tenantId}}", "credentials" ] }, "body": { "mode": "raw", "raw": "{\n  \"name\": \"ci-runner\"\n}" }, "description": "Tenant admin. Returns the application key (accessKey), which is the sole credential — there is no secret key. Captures `credentialId` and `accessKey`." },
@@ -117,7 +117,7 @@
       "name": "Locks",
       "description": "Acquire, heartbeat, and release locks over REST — the same operations a client performs over the WebSocket API — plus observe live state and force-release a key. Run 'Acquire lock' first; it captures sessionId, holderId, and fencingToken for the release/heartbeat requests.",
       "item": [
-        { "name": "List active locks", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/v1.0/api/tenants/{{tenantId}}/locks?name=&mode=", "host": [ "{{baseUrl}}" ], "path": [ "v1.0", "api", "tenants", "{{tenantId}}", "locks" ], "query": [ { "key": "name", "value": "" }, { "key": "mode", "value": "" } ] }, "description": "Active holders. Optional filters: name (key substring), mode (Read|Write|Delete)." } },
+        { "name": "List active locks", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/v1.0/api/tenants/{{tenantId}}/locks?name=&mode=&maxResults=25&skip=0", "host": [ "{{baseUrl}}" ], "path": [ "v1.0", "api", "tenants", "{{tenantId}}", "locks" ], "query": [ { "key": "name", "value": "" }, { "key": "mode", "value": "" }, { "key": "maxResults", "value": "25" }, { "key": "skip", "value": "0" } ] }, "description": "Paginated active holders (EnumerationResult with `objects`). Optional filters: name (key substring), mode (Read|Write|Delete). Pagination: maxResults, skip, ordering." } },
         { "name": "Holders on a key", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/v1.0/api/tenants/{{tenantId}}/locks/{{lockKey}}", "host": [ "{{baseUrl}}" ], "path": [ "v1.0", "api", "tenants", "{{tenantId}}", "locks", "{{lockKey}}" ] }, "description": "Definition + holders for one key." } },
         {
           "name": "Acquire lock",
@@ -173,7 +173,7 @@
       "name": "Lock Audit",
       "description": "Audit history and the lock-activity chart summary.",
       "item": [
-        { "name": "List audit entries", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/v1.0/api/tenants/{{tenantId}}/lock-audit?pageNumber=1&pageSize=25", "host": [ "{{baseUrl}}" ], "path": [ "v1.0", "api", "tenants", "{{tenantId}}", "lock-audit" ], "query": [ { "key": "pageNumber", "value": "1" }, { "key": "pageSize", "value": "25" }, { "key": "name", "value": "", "disabled": true }, { "key": "mode", "value": "", "disabled": true }, { "key": "fromUtc", "value": "", "disabled": true }, { "key": "toUtc", "value": "", "disabled": true } ] }, "description": "Paginated audit entries with optional filters." } },
+        { "name": "List audit entries", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/v1.0/api/tenants/{{tenantId}}/lock-audit?maxResults=25&skip=0", "host": [ "{{baseUrl}}" ], "path": [ "v1.0", "api", "tenants", "{{tenantId}}", "lock-audit" ], "query": [ { "key": "maxResults", "value": "25" }, { "key": "skip", "value": "0" }, { "key": "name", "value": "", "disabled": true }, { "key": "mode", "value": "", "disabled": true }, { "key": "fromUtc", "value": "", "disabled": true }, { "key": "toUtc", "value": "", "disabled": true } ] }, "description": "Paginated audit entries (EnumerationResult with `objects`). Pagination: maxResults, skip, ordering; plus optional name/mode/fromUtc/toUtc filters." } },
         { "name": "Activity chart summary", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/v1.0/api/tenants/{{tenantId}}/lock-audit/summary?bucketCount=96", "host": [ "{{baseUrl}}" ], "path": [ "v1.0", "api", "tenants", "{{tenantId}}", "lock-audit", "summary" ], "query": [ { "key": "bucketCount", "value": "96" }, { "key": "name", "value": "", "disabled": true }, { "key": "mode", "value": "", "disabled": true }, { "key": "fromUtc", "value": "", "disabled": true }, { "key": "toUtc", "value": "", "disabled": true } ] }, "description": "Time-bucketed acquire counts per lock key/mode for the chart." } }
       ]
     },
@@ -181,7 +181,7 @@
       "name": "Request History",
       "description": "Captured request history for observability. Tenant-scoped; admins may pass tenantId.",
       "item": [
-        { "name": "List requests", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/v1.0/api/request-history?pageNumber=1&pageSize=25", "host": [ "{{baseUrl}}" ], "path": [ "v1.0", "api", "request-history" ], "query": [ { "key": "pageNumber", "value": "1" }, { "key": "pageSize", "value": "25" }, { "key": "method", "value": "", "disabled": true }, { "key": "statusCode", "value": "", "disabled": true }, { "key": "pathContains", "value": "", "disabled": true } ] }, "description": "Paginated request list (bodies omitted)." } },
+        { "name": "List requests", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/v1.0/api/request-history?maxResults=25&skip=0", "host": [ "{{baseUrl}}" ], "path": [ "v1.0", "api", "request-history" ], "query": [ { "key": "maxResults", "value": "25" }, { "key": "skip", "value": "0" }, { "key": "method", "value": "", "disabled": true }, { "key": "statusCode", "value": "", "disabled": true }, { "key": "pathContains", "value": "", "disabled": true } ] }, "description": "Paginated request list (EnumerationResult with `objects`; bodies omitted). Pagination: maxResults, skip, ordering." } },
         { "name": "Summary", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/v1.0/api/request-history/summary?bucketMinutes=15", "host": [ "{{baseUrl}}" ], "path": [ "v1.0", "api", "request-history", "summary" ], "query": [ { "key": "bucketMinutes", "value": "15" } ] }, "description": "Time-bucketed success/failure counts for the activity chart." } },
         { "name": "Bulk delete", "request": { "method": "DELETE", "url": { "raw": "{{baseUrl}}/v1.0/api/request-history?statusCode=404", "host": [ "{{baseUrl}}" ], "path": [ "v1.0", "api", "request-history" ], "query": [ { "key": "statusCode", "value": "404" } ] }, "description": "Delete all entries matching the filter; returns deletedCount." } }
       ]

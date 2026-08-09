@@ -5,6 +5,7 @@ import PageHeader from '../components/PageHeader';
 import ActivityChart from '../components/ActivityChart';
 import LockChart from '../components/LockChart';
 import DataTable from '../components/DataTable';
+import JsonViewerModal from '../components/JsonViewerModal';
 import { MethodPill, Badge } from '../components/StatusBadge';
 import { EmptyState } from '../components/States';
 import { LockIcon, ListIcon, PlayIcon, KeyIcon } from '../components/Icons';
@@ -18,21 +19,26 @@ const EVENT_TONE = { Denied: 'danger', Expired: 'warning', Revoked: 'danger' };
 export default function HomeView({ apiClient }) {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
-  const { tenants, tenantId, isSystemAdmin } = useTenantScope();
+  const { tenants, tenantId, setTenantId, isSystemAdmin } = useTenantScope();
 
   const [reqRange, setReqRange] = useState('day');
+  const [reqTenantId, setReqTenantId] = useState('');
   const [lockRange, setLockRange] = useState('day');
   const [reqSummary, setReqSummary] = useState(null);
   const [lockSummary, setLockSummary] = useState(null);
   const [holders, setHolders] = useState([]);
   const [credentials, setCredentials] = useState([]);
   const [recentEvents, setRecentEvents] = useState([]);
+  const [jsonValue, setJsonValue] = useState(null);
 
-  // Request activity (global; not tenant-scoped).
+  // Request activity. Optionally filtered to a single tenant via the per-chart selector.
   const loadReq = useCallback(() => {
     const p = requestRangeToParams(reqRange);
-    apiClient.getRequestHistorySummary(p).then(setReqSummary).catch(() => setReqSummary(null));
-  }, [apiClient, reqRange]);
+    apiClient
+      .getRequestHistorySummary({ ...p, tenantId: reqTenantId || undefined })
+      .then(setReqSummary)
+      .catch(() => setReqSummary(null));
+  }, [apiClient, reqRange, reqTenantId]);
 
   const loadLockChart = useCallback(() => {
     if (!tenantId) return;
@@ -50,8 +56,8 @@ export default function HomeView({ apiClient }) {
   // Tenant-scoped KPI panels (partial-failure tolerant).
   useEffect(() => {
     if (!tenantId) return;
-    apiClient.listLocks(tenantId, {}).then((r) => setHolders(Array.isArray(r) ? r : [])).catch(() => setHolders([]));
-    apiClient.listCredentials(tenantId).then((r) => setCredentials(Array.isArray(r) ? r : [])).catch(() => setCredentials([]));
+    apiClient.listLocks(tenantId, { pageSize: 1000 }).then((r) => setHolders(r?.items || [])).catch(() => setHolders([]));
+    apiClient.listCredentials(tenantId, { pageSize: 1000 }).then((r) => setCredentials(r?.items || [])).catch(() => setCredentials([]));
     apiClient
       .getLockAudit(tenantId, { pageNumber: 1, pageSize: 50 })
       .then((r) => setRecentEvents((r?.items || []).filter((e) => ATTENTION_EVENTS.has(e.eventType)).slice(0, 8)))
@@ -101,7 +107,15 @@ export default function HomeView({ apiClient }) {
       </div>
 
       <div className="section">
-        <LockChart summary={lockSummary} rangeId={lockRange} onRangeChange={setLockRange} onRefresh={loadLockChart} />
+        <LockChart
+          summary={lockSummary}
+          rangeId={lockRange}
+          onRangeChange={setLockRange}
+          onRefresh={loadLockChart}
+          tenants={isSystemAdmin ? tenants : null}
+          tenantId={tenantId}
+          onTenantChange={setTenantId}
+        />
       </div>
 
       <div className="section">
@@ -110,6 +124,9 @@ export default function HomeView({ apiClient }) {
           rangeId={reqRange}
           onRangeChange={setReqRange}
           onRefresh={loadReq}
+          tenants={isSystemAdmin ? tenants : null}
+          tenantId={reqTenantId}
+          onTenantChange={setReqTenantId}
           onBucketClick={(b) =>
             navigate(`/dashboard/requests?fromUtc=${encodeURIComponent(b.bucketStartUtc)}&toUtc=${encodeURIComponent(b.bucketEndUtc)}`)
           }
@@ -122,10 +139,12 @@ export default function HomeView({ apiClient }) {
           {recentEvents.length === 0 ? (
             <EmptyState title={t('views.home.recentEvents')} body={t('views.home.recentEventsEmpty')} />
           ) : (
-            <DataTable columns={eventColumns} items={recentEvents} rowId={(r) => r.id} />
+            <DataTable columns={eventColumns} items={recentEvents} rowId={(r) => r.id} onRowClick={(r) => setJsonValue(r)} />
           )}
         </div>
       </div>
+
+      <JsonViewerModal open={!!jsonValue} value={jsonValue} onClose={() => setJsonValue(null)} />
 
       <div className="section">
         <div className="section-title">{t('views.home.cta.title')}</div>

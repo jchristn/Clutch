@@ -193,11 +193,14 @@ class ClutchAdminClient {
     // ---- Tenants ----
 
     /**
-     * Lists tenants.
-     * @returns {Promise<object[]>} The list of tenants.
+     * Lists tenants (paginated). Returns the page's objects.
+     * @param {object} [filters] - { maxResults?, skip?, ordering? }.
+     * @returns {Promise<object[]>} The tenants on the page.
      */
-    async listTenants() {
-        return this._request('GET', '/v1.0/api/tenants');
+    async listTenants(filters = {}) {
+        const q = this._query(filters);
+        const res = await this._request('GET', `/v1.0/api/tenants${q}`);
+        return (res && res.objects) || [];
     }
 
     /**
@@ -250,12 +253,15 @@ class ClutchAdminClient {
     // ---- Users ----
 
     /**
-     * Lists users within a tenant.
+     * Lists users within a tenant (paginated). Returns the page's objects.
      * @param {string} tenantId - The tenant identifier.
-     * @returns {Promise<object[]>} The list of users.
+     * @param {object} [filters] - { maxResults?, skip?, ordering? }.
+     * @returns {Promise<object[]>} The users on the page.
      */
-    async listUsers(tenantId) {
-        return this._request('GET', `/v1.0/api/tenants/${encodeURIComponent(tenantId)}/users`);
+    async listUsers(tenantId, filters = {}) {
+        const q = this._query(filters);
+        const res = await this._request('GET', `/v1.0/api/tenants/${encodeURIComponent(tenantId)}/users${q}`);
+        return (res && res.objects) || [];
     }
 
     /**
@@ -302,12 +308,15 @@ class ClutchAdminClient {
     // ---- Credentials ----
 
     /**
-     * Lists application keys within a tenant.
+     * Lists application keys within a tenant (paginated). Returns the page's objects.
      * @param {string} tenantId - The tenant identifier.
-     * @returns {Promise<object[]>} The list of credentials.
+     * @param {object} [filters] - { maxResults?, skip?, ordering? }.
+     * @returns {Promise<object[]>} The credentials on the page.
      */
-    async listCredentials(tenantId) {
-        return this._request('GET', `/v1.0/api/tenants/${encodeURIComponent(tenantId)}/credentials`);
+    async listCredentials(tenantId, filters = {}) {
+        const q = this._query(filters);
+        const res = await this._request('GET', `/v1.0/api/tenants/${encodeURIComponent(tenantId)}/credentials${q}`);
+        return (res && res.objects) || [];
     }
 
     /**
@@ -347,12 +356,13 @@ class ClutchAdminClient {
     /**
      * Lists active lock holders within a tenant.
      * @param {string} tenantId - The tenant identifier.
-     * @param {object} [filters] - { name?, mode? }.
-     * @returns {Promise<object[]>} The list of holders.
+     * @param {object} [filters] - { name?, mode?, maxResults?, skip?, ordering? }.
+     * @returns {Promise<object[]>} The holders on the page.
      */
     async listLocks(tenantId, filters = {}) {
-        const q = this._query({ name: filters.name, mode: filters.mode });
-        return this._request('GET', `/v1.0/api/tenants/${encodeURIComponent(tenantId)}/locks${q}`);
+        const q = this._query({ name: filters.name, mode: filters.mode, maxResults: filters.maxResults, skip: filters.skip, ordering: filters.ordering });
+        const res = await this._request('GET', `/v1.0/api/tenants/${encodeURIComponent(tenantId)}/locks${q}`);
+        return (res && res.objects) || [];
     }
 
     /**
@@ -380,8 +390,8 @@ class ClutchAdminClient {
     /**
      * Retrieves a page of lock audit entries.
      * @param {string} tenantId - The tenant identifier.
-     * @param {object} [filters] - { name?, mode?, fromUtc?, toUtc?, pageNumber?, pageSize? }.
-     * @returns {Promise<object>} A page { items, pageNumber, pageSize, totalCount }.
+     * @param {object} [filters] - { name?, mode?, fromUtc?, toUtc?, maxResults?, skip?, ordering? }.
+     * @returns {Promise<object>} An EnumerationResult { objects, totalRecords, recordsRemaining, endOfResults, maxResults, skip }.
      */
     async getLockAudit(tenantId, filters = {}) {
         const q = this._query(filters);
@@ -403,8 +413,8 @@ class ClutchAdminClient {
 
     /**
      * Retrieves a page of request history.
-     * @param {object} [filters] - { method?, statusCode?, pathContains?, fromUtc?, toUtc?, pageNumber?, pageSize?, tenantId? }.
-     * @returns {Promise<object>} A page { items, pageNumber, pageSize, totalCount }.
+     * @param {object} [filters] - { method?, statusCode?, pathContains?, fromUtc?, toUtc?, maxResults?, skip?, ordering?, tenantId? }.
+     * @returns {Promise<object>} An EnumerationResult { objects, totalRecords, recordsRemaining, endOfResults, maxResults, skip }.
      */
     async getRequestHistory(filters = {}) {
         const q = this._query(filters);

@@ -6,6 +6,8 @@ Lock acquisition happens over a WebSocket. A client application opens one connec
 
 The WebSocket is hosted on the **same port** as the REST API. There is no separate port.
 
+The WebSocket protocol is purpose-built for lock acquisition and holds only the `acquire`, `release`, `heartbeat`, and `ping` operations — it deliberately has **no bulk "list" frames**. Enumerating tenants, users, credentials, active locks, or audit/request history is done over the REST API, where every collection endpoint is paginated with the uniform `EnumerationQuery`/`EnumerationResult` contract (`maxResults`, `skip`, `ordering`). See `REST_API.md` → Pagination.
+
 ## Endpoint
 
 ```

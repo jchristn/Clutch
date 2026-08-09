@@ -69,9 +69,8 @@ namespace Clutch.Server.Routes
             filter.PathContains = RouteHelpers.Query(context, "pathContains");
             filter.FromUtc = ParseDate(RouteHelpers.Query(context, "fromUtc"));
             filter.ToUtc = ParseDate(RouteHelpers.Query(context, "toUtc"));
-            filter.PageNumber = RouteHelpers.QueryInt(context, "pageNumber") ?? 1;
-            filter.PageSize = RouteHelpers.QueryInt(context, "pageSize") ?? 25;
             filter.BucketMinutes = RouteHelpers.QueryInt(context, "bucketMinutes") ?? 15;
+            RouteHelpers.ApplyEnumeration(context, filter);
             return filter;
         }
 
@@ -79,8 +78,8 @@ namespace Clutch.Server.Routes
         {
             RequestContext ctx = RouteHelpers.Context(context);
             RequestHistoryFilter filter = BuildFilter(context, ctx);
-            RequestHistoryPage page = await _Database.RequestHistory.EnumerateAsync(filter, context.Token).ConfigureAwait(false);
-            await RouteHelpers.JsonAsync(context, 200, page).ConfigureAwait(false);
+            var result = await _Database.RequestHistory.EnumerateAsync(filter, context.Token).ConfigureAwait(false);
+            await RouteHelpers.JsonAsync(context, 200, result).ConfigureAwait(false);
         }
 
         private async Task SummaryAsync(HttpContextBase context)

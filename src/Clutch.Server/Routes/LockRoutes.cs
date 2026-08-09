@@ -94,7 +94,7 @@ namespace Clutch.Server.Routes
 
             string? name = RouteHelpers.Query(context, "name");
             LockModeEnum? mode = ParseMode(RouteHelpers.Query(context, "mode"));
-            List<LockHolder> holders = await _Database.LockHolders.EnumerateByTenantAsync(tid, name, mode, context.Token).ConfigureAwait(false);
+            var holders = await _Database.LockHolders.EnumerateByTenantAsync(tid, name, mode, RouteHelpers.Enumeration(context), context.Token).ConfigureAwait(false);
             await RouteHelpers.JsonAsync(context, 200, holders).ConfigureAwait(false);
         }
 
@@ -254,7 +254,11 @@ namespace Clutch.Server.Routes
             foreach (LockHolder holder in holders)
             {
                 LockHolder? revoked = await _Database.LockHolders.RevokeAsync(tid, holder.Id, "Force-released by administrator.", context.Token).ConfigureAwait(false);
-                if (revoked != null) released++;
+                if (revoked != null)
+                {
+                    released++;
+                    _Telemetry.RecordRelease(revoked.Mode.ToString());
+                }
             }
             await RouteHelpers.JsonAsync(context, 200, new { key = key, released = released }).ConfigureAwait(false);
         }

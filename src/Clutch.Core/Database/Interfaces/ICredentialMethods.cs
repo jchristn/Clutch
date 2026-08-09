@@ -3,6 +3,7 @@ namespace Clutch.Core.Database.Interfaces
     using System.Collections.Generic;
     using System.Threading;
     using System.Threading.Tasks;
+    using Clutch.Core.Enumeration;
     using Clutch.Core.Models;
 
     /// <summary>
@@ -43,6 +44,15 @@ namespace Clutch.Core.Database.Interfaces
         /// <param name="token">Cancellation token.</param>
         /// <returns>The credentials in the tenant.</returns>
         Task<List<Credential>> EnumerateAsync(string tenantId, CancellationToken token = default);
+
+        /// <summary>
+        /// Enumerate a paginated page of credentials within a tenant.
+        /// </summary>
+        /// <param name="tenantId">Tenant identifier.</param>
+        /// <param name="query">Pagination query.</param>
+        /// <param name="token">Cancellation token.</param>
+        /// <returns>A page of credentials.</returns>
+        Task<EnumerationResult<Credential>> EnumerateAsync(string tenantId, EnumerationQuery query, CancellationToken token = default);
 
         /// <summary>
         /// Update a credential.

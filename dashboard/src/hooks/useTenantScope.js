@@ -19,10 +19,10 @@ export default function useTenantScope() {
     let active = true;
     setLoading(true);
     apiClient
-      .listTenants()
-      .then((list) => {
+      .listTenants({ pageSize: 1000 })
+      .then((res) => {
         if (!active) return;
-        const arr = Array.isArray(list) ? list : [];
+        const arr = res?.items || [];
         setTenants(arr);
         setTenantId((prev) => prev || arr[0]?.id || '');
       })

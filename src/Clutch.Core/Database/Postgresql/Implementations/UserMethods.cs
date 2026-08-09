@@ -5,6 +5,7 @@ namespace Clutch.Core.Database.Postgresql.Implementations
     using System.Threading;
     using System.Threading.Tasks;
     using Clutch.Core.Database.Interfaces;
+    using Clutch.Core.Enumeration;
     using Clutch.Core.Models;
     using Npgsql;
 
@@ -110,6 +111,27 @@ VALUES (@id, @tid, @first, @last, @email, @pw, @sysadmin, @tenantadmin, @active,
                 parameters => parameters.AddWithValue("tid", tenantId),
                 Converters.ToUser,
                 token).ConfigureAwait(false);
+        }
+
+        /// <inheritdoc />
+        public async Task<EnumerationResult<User>> EnumerateAsync(string tenantId, EnumerationQuery query, CancellationToken token = default)
+        {
+            if (String.IsNullOrEmpty(tenantId)) throw new ArgumentNullException(nameof(tenantId));
+            query ??= new EnumerationQuery();
+
+            object? countResult = await _Driver.ScalarAsync("SELECT COUNT(*) FROM users WHERE tenantid = @tid;",
+                parameters => parameters.AddWithValue("tid", tenantId), token).ConfigureAwait(false);
+            long total = countResult == null ? 0 : (long)countResult;
+
+            string sql = "SELECT * FROM users WHERE tenantid = @tid" + EnumerationSql.OrderClause(query, "createdutc", "email") + " OFFSET @skip LIMIT @max;";
+            List<User> objects = await _Driver.QueryAsync(sql, parameters =>
+            {
+                parameters.AddWithValue("tid", tenantId);
+                parameters.AddWithValue("skip", query.Skip);
+                parameters.AddWithValue("max", query.MaxResults);
+            }, Converters.ToUser, token).ConfigureAwait(false);
+
+            return EnumerationResult<User>.Build(query, total, objects);
         }
 
         /// <inheritdoc />

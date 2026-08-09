@@ -5,6 +5,7 @@ namespace Clutch.Core.Database.Postgresql.Implementations
     using System.Threading;
     using System.Threading.Tasks;
     using Clutch.Core.Database.Interfaces;
+    using Clutch.Core.Enumeration;
     using Clutch.Core.Models;
     using Npgsql;
 
@@ -98,6 +99,24 @@ VALUES (@id, @name, @retention, @defaultlease, @maxlease, @active, @protected, @
         }
 
         /// <inheritdoc />
+        public async Task<EnumerationResult<Tenant>> EnumerateAsync(EnumerationQuery query, CancellationToken token = default)
+        {
+            query ??= new EnumerationQuery();
+
+            object? countResult = await _Driver.ScalarAsync("SELECT COUNT(*) FROM tenants;", null, token).ConfigureAwait(false);
+            long total = countResult == null ? 0 : (long)countResult;
+
+            string sql = "SELECT * FROM tenants" + EnumerationSql.OrderClause(query, "createdutc", "name") + " OFFSET @skip LIMIT @max;";
+            List<Tenant> objects = await _Driver.QueryAsync(sql, parameters =>
+            {
+                parameters.AddWithValue("skip", query.Skip);
+                parameters.AddWithValue("max", query.MaxResults);
+            }, Converters.ToTenant, token).ConfigureAwait(false);
+
+            return EnumerationResult<Tenant>.Build(query, total, objects);
+        }
+
+        /// <inheritdoc />
         public async Task<Tenant> UpdateAsync(Tenant tenant, CancellationToken token = default)
         {
             if (tenant == null) throw new ArgumentNullException(nameof(tenant));
@@ -141,7 +160,7 @@ WHERE id = @id;";
                 {
                     string[] childTables =
                     {
-                        "lock_holders", "lock_definitions", "lock_audit", "auth_sessions", "credentials", "users"
+                        "lock_holders", "lock_definitions", "lock_audit", "auth_sessions", "credentials", "users", "request_history"
                     };
 
                     foreach (string table in childTables)
@@ -164,6 +183,54 @@ WHERE id = @id;";
                     return affected > 0;
                 }
             }
+        }
+
+        /// <inheritdoc />
+        public async Task<Dictionary<string, long>> NukeAsync(string id, bool includeAuditRecords, bool includeRequestHistory, CancellationToken token = default)
+        {
+            if (String.IsNullOrEmpty(id)) throw new ArgumentNullException(nameof(id));
+
+            // Ordered leaf-first cascade. Each entry maps a physical table to the friendly count key
+            // surfaced to the dashboard. Audit and request history are gated by the caller's toggles.
+            List<KeyValuePair<string, string>> targets = new List<KeyValuePair<string, string>>
+            {
+                new KeyValuePair<string, string>("lock_holders", "lockHolders"),
+                new KeyValuePair<string, string>("lock_definitions", "lockDefinitions"),
+                new KeyValuePair<string, string>("auth_sessions", "authSessions"),
+                new KeyValuePair<string, string>("credentials", "credentials"),
+                new KeyValuePair<string, string>("users", "users")
+            };
+            if (includeAuditRecords) targets.Insert(2, new KeyValuePair<string, string>("lock_audit", "lockAudit"));
+            if (includeRequestHistory) targets.Add(new KeyValuePair<string, string>("request_history", "requestHistory"));
+
+            Dictionary<string, long> counts = new Dictionary<string, long>();
+
+            await using (NpgsqlConnection connection = await _Driver.OpenConnectionAsync(token).ConfigureAwait(false))
+            {
+                await using (NpgsqlTransaction transaction = await connection.BeginTransactionAsync(token).ConfigureAwait(false))
+                {
+                    foreach (KeyValuePair<string, string> target in targets)
+                    {
+                        await using (NpgsqlCommand command = new NpgsqlCommand("DELETE FROM " + target.Key + " WHERE tenantid = @tid;", connection, transaction))
+                        {
+                            command.Parameters.AddWithValue("tid", id);
+                            int removed = await command.ExecuteNonQueryAsync(token).ConfigureAwait(false);
+                            counts[target.Value] = removed;
+                        }
+                    }
+
+                    await using (NpgsqlCommand command = new NpgsqlCommand("DELETE FROM tenants WHERE id = @id;", connection, transaction))
+                    {
+                        command.Parameters.AddWithValue("id", id);
+                        int removed = await command.ExecuteNonQueryAsync(token).ConfigureAwait(false);
+                        counts["tenant"] = removed;
+                    }
+
+                    await transaction.CommitAsync(token).ConfigureAwait(false);
+                }
+            }
+
+            return counts;
         }
 
         /// <inheritdoc />

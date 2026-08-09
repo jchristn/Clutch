@@ -10,8 +10,9 @@ FROM mcr.microsoft.com/dotnet/runtime:8.0 AS runtime
 WORKDIR /app
 COPY --from=build /app ./
 
-# REST + WebSocket port and Prometheus scrape port.
+# REST + WebSocket port, Prometheus scrape port, and native MCP server port.
 EXPOSE 8080
 EXPOSE 9464
+EXPOSE 8100
 
 ENTRYPOINT ["dotnet", "Clutch.Server.dll"]

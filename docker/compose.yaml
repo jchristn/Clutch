@@ -11,6 +11,7 @@
 #
 # API load balancer:  http://localhost:8080
 # Dashboard:          http://localhost:3000
+# MCP server:         http://localhost:8100/mcp   (streamable HTTP + SSE, from node1)
 # Prometheus:         http://localhost:9090
 # Grafana:            http://localhost:3001   (anonymous admin)
 
@@ -45,6 +46,9 @@ services:
       CLUTCH_DB_USERNAME: postgres
       CLUTCH_DB_PASSWORD: postgres
       CLUTCH_AUTH_SIGNING_KEY: change-me-in-production
+    ports:
+      # Native MCP server (streamable HTTP + SSE) exposed from node1.
+      - "8100:8100"
     volumes:
       - ./server/clutch.node1.json:/app/clutch.json
     restart: unless-stopped

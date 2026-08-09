@@ -53,5 +53,12 @@
     "OtlpEndpoint": "http://otel-collector:4317",
     "MetricsIncludeRuntime": true,
     "MetricsIncludeProcess": true
+  },
+  "Mcp": {
+    "Enable": true,
+    "Hostname": "*",
+    "Port": 8100,
+    "McpPath": "/mcp",
+    "ServerName": "Clutch MCP"
   }
 }

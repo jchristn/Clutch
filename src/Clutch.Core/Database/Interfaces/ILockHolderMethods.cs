@@ -4,6 +4,7 @@ namespace Clutch.Core.Database.Interfaces
     using System.Collections.Generic;
     using System.Threading;
     using System.Threading.Tasks;
+    using Clutch.Core.Enumeration;
     using Clutch.Core.Enums;
     using Clutch.Core.Models;
     using Clutch.Core.Requests;
@@ -91,6 +92,18 @@ namespace Clutch.Core.Database.Interfaces
         /// <param name="token">Cancellation token.</param>
         /// <returns>The active holders.</returns>
         Task<List<LockHolder>> EnumerateByTenantAsync(string tenantId, string? lockKeyContains, LockModeEnum? mode, CancellationToken token = default);
+
+        /// <summary>
+        /// Enumerate a paginated page of active holders within a tenant, optionally filtered by key
+        /// substring and mode.
+        /// </summary>
+        /// <param name="tenantId">Tenant identifier.</param>
+        /// <param name="lockKeyContains">Optional case-insensitive key substring.</param>
+        /// <param name="mode">Optional mode filter.</param>
+        /// <param name="query">Pagination query.</param>
+        /// <param name="token">Cancellation token.</param>
+        /// <returns>A page of active holders.</returns>
+        Task<EnumerationResult<LockHolder>> EnumerateByTenantAsync(string tenantId, string? lockKeyContains, LockModeEnum? mode, EnumerationQuery query, CancellationToken token = default);
 
         /// <summary>
         /// Enumerate active holders on a specific key.

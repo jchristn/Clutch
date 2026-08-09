@@ -5,7 +5,9 @@ namespace Clutch.Core.Database.Postgresql.Implementations
     using System.Threading;
     using System.Threading.Tasks;
     using Clutch.Core.Database.Interfaces;
+    using Clutch.Core.Enumeration;
     using Clutch.Core.Models;
+    using Npgsql;
 
     /// <summary>
     /// PostgreSQL implementation of credential (application key) data access.
@@ -104,6 +106,27 @@ VALUES (@id, @tid, @uid, @name, @access, @mode, @lastused, @expires, @active, @p
                 parameters => parameters.AddWithValue("tid", tenantId),
                 Converters.ToCredential,
                 token).ConfigureAwait(false);
+        }
+
+        /// <inheritdoc />
+        public async Task<EnumerationResult<Credential>> EnumerateAsync(string tenantId, EnumerationQuery query, CancellationToken token = default)
+        {
+            if (String.IsNullOrEmpty(tenantId)) throw new ArgumentNullException(nameof(tenantId));
+            query ??= new EnumerationQuery();
+
+            object? countResult = await _Driver.ScalarAsync("SELECT COUNT(*) FROM credentials WHERE tenantid = @tid;",
+                parameters => parameters.AddWithValue("tid", tenantId), token).ConfigureAwait(false);
+            long total = countResult == null ? 0 : (long)countResult;
+
+            string sql = "SELECT * FROM credentials WHERE tenantid = @tid" + EnumerationSql.OrderClause(query, "createdutc", "name") + " OFFSET @skip LIMIT @max;";
+            List<Credential> objects = await _Driver.QueryAsync(sql, parameters =>
+            {
+                parameters.AddWithValue("tid", tenantId);
+                parameters.AddWithValue("skip", query.Skip);
+                parameters.AddWithValue("max", query.MaxResults);
+            }, Converters.ToCredential, token).ConfigureAwait(false);
+
+            return EnumerationResult<Credential>.Build(query, total, objects);
         }
 
         /// <inheritdoc />

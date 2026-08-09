@@ -49,7 +49,11 @@ export default function LockChart({
   onRangeChange,
   onRefresh,
   loading = false,
-  title
+  title,
+  tenants = null,
+  tenantId = '',
+  onTenantChange = null,
+  tenantAllowAll = false
 }) {
   const { t, i18n } = useTranslation();
   const [mode, setMode] = useState('line'); // 'line' | 'bar'
@@ -89,6 +93,22 @@ export default function LockChart({
       <div className="chart-header">
         <div className="chart-title">{title || t('views.home.lockActivity')}</div>
         <div className="chart-controls">
+          {tenants && tenants.length > 0 && onTenantChange && (
+            <select
+              className="chart-tenant-select"
+              value={tenantId}
+              onChange={(e) => onTenantChange(e.target.value)}
+              aria-label={t('components.filters.tenant')}
+              title={t('components.filters.tenant')}
+            >
+              {tenantAllowAll && <option value="">{t('components.filters.allTenants')}</option>}
+              {tenants.map((tn) => (
+                <option key={tn.id} value={tn.id}>
+                  {tn.name}
+                </option>
+              ))}
+            </select>
+          )}
           <div className="range-group" role="tablist" aria-label="chart mode">
             <button
               type="button"

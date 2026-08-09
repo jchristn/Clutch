@@ -88,7 +88,7 @@ namespace Clutch.Sdk.Test
 
             await CheckAsync("List tenants includes at least one tenant", async () =>
             {
-                List<Tenant> tenants = await admin.ListTenantsAsync().ConfigureAwait(false);
+                List<Tenant> tenants = (await admin.ListTenantsAsync().ConfigureAwait(false)).Objects;
                 Assert(tenants.Count >= 1, "expected at least one tenant");
             }).ConfigureAwait(false);
 
@@ -114,7 +114,7 @@ namespace Clutch.Sdk.Test
                 Assert(!string.IsNullOrEmpty(created.Id), "created credential should have an id");
                 Assert(!string.IsNullOrEmpty(created.AccessKey), "created credential should return an access key");
 
-                List<Credential> credentials = await admin.ListCredentialsAsync(tenantId).ConfigureAwait(false);
+                List<Credential> credentials = (await admin.ListCredentialsAsync(tenantId).ConfigureAwait(false)).Objects;
                 Assert(credentials.Exists(c => c.Id == created.Id), "created credential should appear in the list");
 
                 await admin.DeleteCredentialAsync(tenantId, created.Id!).ConfigureAwait(false);
@@ -122,13 +122,13 @@ namespace Clutch.Sdk.Test
 
             await CheckAsync("List active locks (REST observability)", async () =>
             {
-                List<LockHolder> holders = await admin.ListLocksAsync(tenantId).ConfigureAwait(false);
+                List<LockHolder> holders = (await admin.ListLocksAsync(tenantId).ConfigureAwait(false)).Objects;
                 Assert(holders != null, "locks listing should not be null");
             }).ConfigureAwait(false);
 
             await CheckAsync("Read lock audit page", async () =>
             {
-                PagedResult<LockAuditEntry> audit = await admin.GetLockAuditAsync(tenantId, pageSize: 5).ConfigureAwait(false);
+                EnumerationResult<LockAuditEntry> audit = await admin.GetLockAuditAsync(tenantId, maxResults: 5).ConfigureAwait(false);
                 Assert(audit != null, "audit page should not be null");
             }).ConfigureAwait(false);
 

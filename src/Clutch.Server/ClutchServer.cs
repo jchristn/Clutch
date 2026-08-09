@@ -50,6 +50,7 @@ namespace Clutch.Server
         private readonly PostgresNotificationListener? _Listener;
         private readonly RequestHistoryCaptureService _Capture;
         private readonly ClutchTelemetry _Telemetry;
+        private readonly ClutchMcpServer _Mcp;
 
         private readonly string _Header = "[ClutchServer] ";
         private bool _Disposed = false;
@@ -120,6 +121,8 @@ namespace Clutch.Server
             webserverSettings.WebSockets.Enable = true;
 
             _Server = new Webserver(webserverSettings, DefaultRouteAsync);
+
+            _Mcp = new ClutchMcpServer(settings.Mcp, database, logging, settings.NodeId, "Clutch", "v1.0");
         }
 
         #endregion
@@ -143,6 +146,7 @@ namespace Clutch.Server
                 _Listener.StartAsync().GetAwaiter().GetResult();
                 _Logging.Debug(_Header + "notification listener started");
             }
+            _Mcp.Start();
         }
 
         /// <summary>
@@ -150,6 +154,7 @@ namespace Clutch.Server
         /// </summary>
         public void Stop()
         {
+            _Mcp.Stop();
             _Server.Stop();
             _Sweeper.StopAsync().GetAwaiter().GetResult();
             _Retention.StopAsync().GetAwaiter().GetResult();
@@ -188,6 +193,7 @@ namespace Clutch.Server
             new HealthRoutes(_Database, Settings.NodeId).Register(_Server);
             new AuthRoutes(_AuthenticationService).Register(_Server);
             new TenantRoutes(_Database, _AuthorizationService).Register(_Server);
+            new AdminRoutes(_Database, _AuthorizationService).Register(_Server);
             new UserRoutes(_Database, _AuthorizationService).Register(_Server);
             new CredentialRoutes(_Database, _AuthorizationService).Register(_Server);
             new LockRoutes(_Database, _AuthorizationService, _Engine, _Telemetry, Settings.NodeId).Register(_Server);
@@ -243,6 +249,7 @@ namespace Clutch.Server
             if (_Disposed) return;
             if (disposing)
             {
+                _Mcp.Dispose();
                 if (_Server is IDisposable disposableServer) disposableServer.Dispose();
             }
             _Disposed = true;

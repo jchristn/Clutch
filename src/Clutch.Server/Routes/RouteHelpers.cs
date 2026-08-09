@@ -1,6 +1,8 @@
 namespace Clutch.Server.Routes
 {
+    using System;
     using System.Threading.Tasks;
+    using Clutch.Core.Enumeration;
     using Clutch.Core.Responses;
     using Clutch.Core.Security;
     using Clutch.Server.Serialization;
@@ -86,6 +88,38 @@ namespace Clutch.Server.Routes
             string? value = Query(context, key);
             if (!string.IsNullOrEmpty(value) && int.TryParse(value, out int parsed)) return parsed;
             return null;
+        }
+
+        /// <summary>
+        /// Populate the base pagination fields of an enumeration query from the query string
+        /// (maxResults, skip, ordering). Unspecified fields keep their current values.
+        /// </summary>
+        /// <param name="context">HTTP context.</param>
+        /// <param name="query">Query object to populate.</param>
+        public static void ApplyEnumeration(HttpContextBase context, EnumerationQuery query)
+        {
+            if (query == null) return;
+            int? maxResults = QueryInt(context, "maxResults");
+            if (maxResults.HasValue) query.MaxResults = maxResults.Value;
+            int? skip = QueryInt(context, "skip");
+            if (skip.HasValue) query.Skip = skip.Value;
+            string? ordering = Query(context, "ordering");
+            if (!string.IsNullOrEmpty(ordering) && Enum.TryParse<EnumerationOrderEnum>(ordering, true, out EnumerationOrderEnum parsed))
+            {
+                query.Ordering = parsed;
+            }
+        }
+
+        /// <summary>
+        /// Build a new enumeration query from the query string (maxResults, skip, ordering).
+        /// </summary>
+        /// <param name="context">HTTP context.</param>
+        /// <returns>A populated enumeration query.</returns>
+        public static EnumerationQuery Enumeration(HttpContextBase context)
+        {
+            EnumerationQuery query = new EnumerationQuery();
+            ApplyEnumeration(context, query);
+            return query;
         }
 
         /// <summary>

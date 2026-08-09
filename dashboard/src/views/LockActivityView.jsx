@@ -107,18 +107,6 @@ export default function LockActivityView({ apiClient }) {
 
       <div className="panel" style={{ marginBottom: 'var(--spacing-md)' }}>
         <div className="filter-bar">
-          {isSystemAdmin && (
-            <div className="field">
-              <label>{t('components.filters.tenant')}</label>
-              <select value={tenantId} onChange={(e) => setTenantId(e.target.value)}>
-                {tenants.map((tn) => (
-                  <option key={tn.id} value={tn.id}>
-                    {tn.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
           <div className="field">
             <label>{t('components.filters.name')}</label>
             <input value={name} onChange={(e) => setName(e.target.value)} placeholder={t('components.filters.namePlaceholder')} />
@@ -154,7 +142,16 @@ export default function LockActivityView({ apiClient }) {
       </div>
 
       <div className="section">
-        <LockChart summary={summary} rangeId={rangeId} onRangeChange={setRangeId} onRefresh={loadChart} loading={chartLoading} />
+        <LockChart
+          summary={summary}
+          rangeId={rangeId}
+          onRangeChange={setRangeId}
+          onRefresh={loadChart}
+          loading={chartLoading}
+          tenants={isSystemAdmin ? tenants : null}
+          tenantId={tenantId}
+          onTenantChange={setTenantId}
+        />
       </div>
 
       {error && <ErrorBanner message={error} onRetry={() => loadTable(page.pageNumber, page.pageSize)} />}
@@ -169,6 +166,7 @@ export default function LockActivityView({ apiClient }) {
           items={items}
           loading={loading}
           rowId={(r) => r.id}
+          onRowClick={(r) => setJsonValue(r)}
           totalRecords={page.totalCount}
           pageNumber={page.pageNumber}
           pageSize={page.pageSize}

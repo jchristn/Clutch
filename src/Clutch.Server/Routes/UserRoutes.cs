@@ -68,9 +68,8 @@ namespace Clutch.Server.Routes
                 await RouteHelpers.ErrorAsync(context, 403, "Forbidden", "Not permitted to read this tenant.").ConfigureAwait(false);
                 return;
             }
-            List<User> users = await _Database.Users.EnumerateAsync(tid, context.Token).ConfigureAwait(false);
-            foreach (User user in users) user.PasswordSha256 = string.Empty;
-            await RouteHelpers.JsonAsync(context, 200, users).ConfigureAwait(false);
+            var result = await _Database.Users.EnumerateAsync(tid, RouteHelpers.Enumeration(context), context.Token).ConfigureAwait(false);
+            await RouteHelpers.JsonAsync(context, 200, result).ConfigureAwait(false);
         }
 
         private async Task CreateAsync(HttpContextBase context)
@@ -100,7 +99,6 @@ namespace Clutch.Server.Routes
             user.Active = request.Active;
 
             User created = await _Database.Users.CreateAsync(user, context.Token).ConfigureAwait(false);
-            created.PasswordSha256 = string.Empty;
             await RouteHelpers.JsonAsync(context, 201, created).ConfigureAwait(false);
         }
 
@@ -120,7 +118,6 @@ namespace Clutch.Server.Routes
                 await RouteHelpers.ErrorAsync(context, 404, "NotFound", "User not found.").ConfigureAwait(false);
                 return;
             }
-            user.PasswordSha256 = string.Empty;
             await RouteHelpers.JsonAsync(context, 200, user).ConfigureAwait(false);
         }
 
@@ -155,7 +152,6 @@ namespace Clutch.Server.Routes
             if (!string.IsNullOrEmpty(request.Password)) existing.PasswordSha256 = PasswordHasher.Hash(request.Password!);
 
             User saved = await _Database.Users.UpdateAsync(existing, context.Token).ConfigureAwait(false);
-            saved.PasswordSha256 = string.Empty;
             await RouteHelpers.JsonAsync(context, 200, saved).ConfigureAwait(false);
         }
 

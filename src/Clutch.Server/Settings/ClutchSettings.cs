@@ -146,6 +146,21 @@ namespace Clutch.Server.Settings
             }
         }
 
+        /// <summary>
+        /// Model Context Protocol (MCP) server settings.
+        /// </summary>
+        public McpSettings Mcp
+        {
+            get
+            {
+                return _Mcp;
+            }
+            set
+            {
+                _Mcp = value ?? new McpSettings();
+            }
+        }
+
         #endregion
 
         #region Private-Members
@@ -158,6 +173,7 @@ namespace Clutch.Server.Settings
         private LockSettings _Lock = new LockSettings();
         private RequestHistorySettings _RequestHistory = new RequestHistorySettings();
         private TelemetrySettings _Telemetry = new TelemetrySettings();
+        private McpSettings _Mcp = new McpSettings();
 
         #endregion
 
