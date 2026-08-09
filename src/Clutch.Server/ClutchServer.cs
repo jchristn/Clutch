@@ -190,7 +190,7 @@ namespace Clutch.Server
             new TenantRoutes(_Database, _AuthorizationService).Register(_Server);
             new UserRoutes(_Database, _AuthorizationService).Register(_Server);
             new CredentialRoutes(_Database, _AuthorizationService).Register(_Server);
-            new LockRoutes(_Database, _AuthorizationService).Register(_Server);
+            new LockRoutes(_Database, _AuthorizationService, _Engine, _Telemetry, Settings.NodeId).Register(_Server);
             new LockAuditRoutes(_Database, _AuthorizationService).Register(_Server);
             new RequestHistoryRoutes(_Database, _AuthorizationService).Register(_Server);
             new ServerInfoRoutes(Settings, _WsManager).Register(_Server);

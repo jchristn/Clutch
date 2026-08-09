@@ -13,7 +13,10 @@
     { "key": "tenantId", "value": "" },
     { "key": "userId", "value": "" },
     { "key": "credentialId", "value": "" },
-    { "key": "lockKey", "value": "orders/42" }
+    { "key": "lockKey", "value": "orders-42" },
+    { "key": "sessionId", "value": "" },
+    { "key": "holderId", "value": "" },
+    { "key": "fencingToken", "value": "" }
   ],
   "item": [
     {
@@ -112,11 +115,58 @@
     },
     {
       "name": "Locks",
-      "description": "Observe live lock state and force-release a key. Acquisition is over the WebSocket API.",
+      "description": "Acquire, heartbeat, and release locks over REST — the same operations a client performs over the WebSocket API — plus observe live state and force-release a key. Run 'Acquire lock' first; it captures sessionId, holderId, and fencingToken for the release/heartbeat requests.",
       "item": [
         { "name": "List active locks", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/v1.0/api/tenants/{{tenantId}}/locks?name=&mode=", "host": [ "{{baseUrl}}" ], "path": [ "v1.0", "api", "tenants", "{{tenantId}}", "locks" ], "query": [ { "key": "name", "value": "" }, { "key": "mode", "value": "" } ] }, "description": "Active holders. Optional filters: name (key substring), mode (Read|Write|Delete)." } },
         { "name": "Holders on a key", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/v1.0/api/tenants/{{tenantId}}/locks/{{lockKey}}", "host": [ "{{baseUrl}}" ], "path": [ "v1.0", "api", "tenants", "{{tenantId}}", "locks", "{{lockKey}}" ] }, "description": "Definition + holders for one key." } },
-        { "name": "Force-release a key", "request": { "method": "POST", "url": { "raw": "{{baseUrl}}/v1.0/api/tenants/{{tenantId}}/locks/{{lockKey}}/release", "host": [ "{{baseUrl}}" ], "path": [ "v1.0", "api", "tenants", "{{tenantId}}", "locks", "{{lockKey}}", "release" ] }, "description": "Tenant admin. Revokes every holder on the key." } }
+        {
+          "name": "Acquire lock",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "url": { "raw": "{{baseUrl}}/v1.0/api/tenants/{{tenantId}}/locks/{{lockKey}}/acquire", "host": [ "{{baseUrl}}" ], "path": [ "v1.0", "api", "tenants", "{{tenantId}}", "locks", "{{lockKey}}", "acquire" ] },
+            "body": { "mode": "raw", "raw": "{\n  \"mode\": \"Write\",\n  \"behavior\": \"FailFast\",\n  \"leaseMs\": 30000\n}" },
+            "description": "Acquire a lock exactly as a WebSocket client would. mode: Read|Write|Delete. behavior: FailFast (default) or Wait (with timeoutMs). Omit sessionId to have the server assign one; policy applies only when this caller creates the key. Granted returns 201 with holderId, sessionId, and fencingToken (all captured); not grantable returns 409 with a reason."
+          },
+          "event": [
+            { "listen": "test", "script": { "type": "text/javascript", "exec": [
+              "const b = pm.response.json();",
+              "if (b.sessionId) pm.collectionVariables.set('sessionId', b.sessionId);",
+              "if (b.holderId) pm.collectionVariables.set('holderId', b.holderId);",
+              "if (b.fencingToken !== undefined && b.fencingToken !== null) pm.collectionVariables.set('fencingToken', String(b.fencingToken));",
+              "pm.test('granted (201) or denied (409)', () => pm.expect([201, 409]).to.include(pm.response.code));"
+            ] } }
+          ]
+        },
+        {
+          "name": "Heartbeat session",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "url": { "raw": "{{baseUrl}}/v1.0/api/tenants/{{tenantId}}/lock-sessions/{{sessionId}}/heartbeat", "host": [ "{{baseUrl}}" ], "path": [ "v1.0", "api", "tenants", "{{tenantId}}", "lock-sessions", "{{sessionId}}", "heartbeat" ] },
+            "body": { "mode": "raw", "raw": "{\n  \"holderIds\": [ \"{{holderId}}\" ]\n}" },
+            "description": "Renew the leases of holders owned by the session. Send before leaseExpiresUtc. Returns the renewed holders and their new lease expiries; a holder past its key's maxHoldMs is omitted."
+          }
+        },
+        {
+          "name": "Release lock",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "url": { "raw": "{{baseUrl}}/v1.0/api/tenants/{{tenantId}}/locks/{{lockKey}}/release", "host": [ "{{baseUrl}}" ], "path": [ "v1.0", "api", "tenants", "{{tenantId}}", "locks", "{{lockKey}}", "release" ] },
+            "body": { "mode": "raw", "raw": "{\n  \"holderId\": \"{{holderId}}\",\n  \"sessionId\": \"{{sessionId}}\"\n}" },
+            "description": "Release one held lock owned by the session. Idempotent; released is false if the holder was already gone."
+          }
+        },
+        {
+          "name": "Release session (all)",
+          "request": {
+            "method": "POST",
+            "url": { "raw": "{{baseUrl}}/v1.0/api/tenants/{{tenantId}}/lock-sessions/{{sessionId}}/release", "host": [ "{{baseUrl}}" ], "path": [ "v1.0", "api", "tenants", "{{tenantId}}", "lock-sessions", "{{sessionId}}", "release" ] },
+            "description": "Release every holder owned by the session — the REST equivalent of a WebSocket disconnect. Returns the released holder ids and count."
+          }
+        },
+        { "name": "Force-release a key", "request": { "method": "POST", "url": { "raw": "{{baseUrl}}/v1.0/api/tenants/{{tenantId}}/locks/{{lockKey}}/force-release", "host": [ "{{baseUrl}}" ], "path": [ "v1.0", "api", "tenants", "{{tenantId}}", "locks", "{{lockKey}}", "force-release" ] }, "description": "Tenant admin. Revokes every holder on the key regardless of session." } }
       ]
     },
     {
