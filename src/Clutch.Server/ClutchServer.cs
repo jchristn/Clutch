@@ -3,6 +3,7 @@ namespace Clutch.Server
     using System;
     using System.Threading.Tasks;
     using Clutch.Core.Database;
+    using Clutch.Server.Services;
     using Clutch.Server.Settings;
     using SyslogLogging;
     using WatsonWebserver;
@@ -27,6 +28,8 @@ namespace Clutch.Server
 
         private readonly LoggingModule _Logging;
         private readonly DatabaseDriverBase _Database;
+        private readonly AuthenticationService _AuthenticationService;
+        private readonly AuthorizationService _AuthorizationService;
         private readonly Webserver _Server;
         private readonly string _Header = "[ClutchServer] ";
         private bool _Disposed = false;
@@ -41,16 +44,27 @@ namespace Clutch.Server
         /// <param name="settings">Server settings.</param>
         /// <param name="logging">Logging module.</param>
         /// <param name="database">Initialized database driver.</param>
+        /// <param name="authenticationService">Authentication service.</param>
+        /// <param name="authorizationService">Authorization service.</param>
         /// <exception cref="ArgumentNullException">Thrown when a required argument is null.</exception>
-        public ClutchServer(ClutchSettings settings, LoggingModule logging, DatabaseDriverBase database)
+        public ClutchServer(
+            ClutchSettings settings,
+            LoggingModule logging,
+            DatabaseDriverBase database,
+            AuthenticationService authenticationService,
+            AuthorizationService authorizationService)
         {
             if (settings == null) throw new ArgumentNullException(nameof(settings));
             if (logging == null) throw new ArgumentNullException(nameof(logging));
             if (database == null) throw new ArgumentNullException(nameof(database));
+            if (authenticationService == null) throw new ArgumentNullException(nameof(authenticationService));
+            if (authorizationService == null) throw new ArgumentNullException(nameof(authorizationService));
 
             Settings = settings;
             _Logging = logging;
             _Database = database;
+            _AuthenticationService = authenticationService;
+            _AuthorizationService = authorizationService;
 
             WebserverSettings webserverSettings = new WebserverSettings();
             webserverSettings.Hostname = Settings.Rest.Hostname;
@@ -98,6 +112,7 @@ namespace Clutch.Server
 
         private void ConfigureServer()
         {
+            _Server.Routes.AuthenticateRequest = _AuthenticationService.AuthenticateRequestAsync;
             _Server.Routes.Preflight = PreflightRouteAsync;
             _Server.Routes.PostRouting = PostRoutingRouteAsync;
 

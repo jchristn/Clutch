@@ -3,6 +3,9 @@ namespace Clutch.Server
     using System;
     using System.Threading;
     using Clutch.Core.Database;
+    using Clutch.Core.Security;
+    using Clutch.Core.Services;
+    using Clutch.Server.Services;
     using Clutch.Server.Settings;
     using SyslogLogging;
 
@@ -37,6 +40,7 @@ namespace Clutch.Server
             {
                 database.InitializeAsync().GetAwaiter().GetResult();
                 logging.Info("[Clutch] database initialized (" + settings.Database.Type + " at " + settings.Database.Host + ":" + settings.Database.Port + "/" + settings.Database.DatabaseName + ")");
+                DefaultSeeder.SeedAsync(database, message => logging.Info("[Clutch] " + message)).GetAwaiter().GetResult();
             }
             catch (Exception e)
             {
@@ -45,7 +49,11 @@ namespace Clutch.Server
                 return;
             }
 
-            ClutchServer server = new ClutchServer(settings, logging, database);
+            TokenService tokenService = new TokenService(settings.Auth.SigningKey, settings.Auth.Issuer, settings.Auth.TokenLifetimeMinutes);
+            AuthenticationService authenticationService = new AuthenticationService(database, tokenService, settings.Auth);
+            AuthorizationService authorizationService = new AuthorizationService();
+
+            ClutchServer server = new ClutchServer(settings, logging, database, authenticationService, authorizationService);
             server.Start();
             logging.Info("[Clutch] node '" + settings.NodeId + "' listening on " + settings.Rest.Hostname + ":" + settings.Rest.Port);
 
