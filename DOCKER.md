@@ -28,20 +28,17 @@ Both nodes are stateless and share one Postgres, which is the sole authority for
 
 ## First run
 
-`compose.yaml` references published image tags (`jchristn77/clutch-server:v0.1.0`, `jchristn77/clutch-ui:v0.1.0`). Since this is an unpublished alpha, build them locally first — either with the build script or the build override.
+`compose.yaml` references published image tags (`jchristn77/clutch-server:v0.1.0`, `jchristn77/clutch-ui:v0.1.0`) only — it never builds from a local context. Build and push the images first with the root build scripts, which build multi-platform on Docker Build Cloud and push both the given tag and `latest`:
 
-Build and run in one step (local build):
-
-```bash
-cd docker
-docker compose -f compose.yaml -f compose.build.yaml up --build -d
+```bat
+REM from the repository root
+build-all.bat v0.1.0
 ```
 
-Or build/tag/push explicitly, then run against the tags:
+`build-all.bat` runs `build-server.bat` (`jchristn77/clutch-server`) and `build-dashboard.bat` (`jchristn77/clutch-ui`); each also accepts a tag on its own. Once the tags exist in the registry, start the stack:
 
 ```bash
 cd docker
-./build.sh           # or: build.bat   (add --push to push to the registry)
 docker compose up -d
 ```
 

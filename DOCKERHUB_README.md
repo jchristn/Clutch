@@ -30,8 +30,10 @@ The full stack (Postgres, two nodes, nginx, dashboard, Prometheus, Grafana) is d
 ```bash
 git clone https://github.com/jchristn/Clutch
 cd Clutch/docker
-docker compose -f compose.yaml -f compose.build.yaml up --build -d
+docker compose up -d
 ```
+
+`compose.yaml` pulls the published `jchristn77/clutch-server:v0.1.0` and `jchristn77/clutch-ui:v0.1.0` tags directly — no local build step.
 
 Then open the dashboard at `http://localhost:3000` and connect to `http://localhost:8080` with the seeded default access key (`clutch-default-access-key`). The access key is the sole credential — there is no secret key.
 

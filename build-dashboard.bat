@@ -20,6 +20,8 @@ set IMAGE_TAG=%~1
 set DOCKERFILE_PATH=dashboard/Dockerfile
 set BUILD_CONTEXT=dashboard
 set PLATFORMS=linux/amd64,linux/arm64/v8
+set BUILDER=cloud-jchristn77-jchristn77
+set CLOUD_ENDPOINT=jchristn77/jchristn77
 
 echo Image: %IMAGE_NAME%:%IMAGE_TAG%
 echo Platforms: %PLATFORMS%
@@ -40,18 +42,19 @@ if errorlevel 1 (
     exit /b 1
 )
 
-REM Create or use existing buildx builder
-echo Creating/using buildx builder...
-docker buildx create --name clutch-builder --use 2>nul || docker buildx use clutch-builder
+REM Select the Docker Build Cloud builder (create the reference if missing)
+echo Using Docker Build Cloud builder %BUILDER%...
+docker buildx use %BUILDER% 2>nul || docker buildx create --driver cloud %CLOUD_ENDPOINT% --use
 
 REM Ensure builder is running
 docker buildx inspect --bootstrap
 
 echo.
-echo Building and pushing multi-platform image...
+echo Building and pushing multi-platform image on the cloud builder...
 echo.
 
 docker buildx build ^
+    --builder %BUILDER% ^
     --platform %PLATFORMS% ^
     --tag %IMAGE_NAME%:%IMAGE_TAG% ^
     --tag %IMAGE_NAME%:latest ^
