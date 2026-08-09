@@ -1,17 +1,25 @@
 namespace Clutch.Server
 {
     using System;
+    using System.Threading;
     using System.Threading.Tasks;
+    using Clutch.Core;
     using Clutch.Core.Database;
+    using Clutch.Core.Database.Postgresql;
+    using Clutch.Core.Database.Postgresql.Notifications;
+    using Clutch.Core.Services;
+    using Clutch.Server.Routes;
     using Clutch.Server.Services;
     using Clutch.Server.Settings;
+    using Clutch.Server.WebSocket;
     using SyslogLogging;
     using WatsonWebserver;
     using WatsonWebserver.Core;
     using WatsonWebserver.Core.OpenApi;
 
     /// <summary>
-    /// Clutch server host. Owns the Watson webserver and wires the request pipeline and routes.
+    /// Clutch server host. Owns the Watson webserver, the lock engine and its background services, and the
+    /// WebSocket lock endpoint.
     /// </summary>
     public class ClutchServer : IDisposable
     {
@@ -31,6 +39,16 @@ namespace Clutch.Server
         private readonly AuthenticationService _AuthenticationService;
         private readonly AuthorizationService _AuthorizationService;
         private readonly Webserver _Server;
+
+        private readonly LockCoordinator _Coordinator;
+        private readonly LockEngine _Engine;
+        private readonly LeaseSweeper _Sweeper;
+        private readonly RetentionService _Retention;
+        private readonly WebSocketConnectionManager _WsManager;
+        private readonly LockWebSocketHandler _WsHandler;
+        private readonly PostgresNotificationListener? _Listener;
+        private readonly RequestHistoryCaptureService _Capture;
+
         private readonly string _Header = "[ClutchServer] ";
         private bool _Disposed = false;
 
@@ -66,6 +84,29 @@ namespace Clutch.Server
             _AuthenticationService = authenticationService;
             _AuthorizationService = authorizationService;
 
+            _Coordinator = new LockCoordinator();
+
+            LockEngineOptions options = new LockEngineOptions();
+            options.NodeId = settings.NodeId;
+            options.DefaultLeaseMs = settings.Lock.DefaultLeaseMs;
+            options.MaxWaitMs = settings.Lock.MaxWaitMs;
+            options.WaiterPollMs = settings.Lock.WaiterPollMs;
+            _Engine = new LockEngine(database.LockHolders, database.LockAudit, _Coordinator, options);
+
+            _Sweeper = new LeaseSweeper(database.LockHolders, _Coordinator, settings.NodeId, settings.Lock.SweepIntervalMs);
+            _Retention = new RetentionService(database, settings.RequestHistory.RetentionDays, 3600000);
+            _WsManager = new WebSocketConnectionManager();
+
+            int heartbeatInterval = Math.Max(1000, settings.Lock.DefaultLeaseMs / 3);
+            _WsHandler = new LockWebSocketHandler(authenticationService, _Engine, _WsManager, logging, settings.NodeId, settings.Lock.DefaultLeaseMs, heartbeatInterval);
+            _Capture = new RequestHistoryCaptureService(database, settings.RequestHistory, logging);
+
+            if (database is PostgresqlDatabaseDriver postgres)
+            {
+                _Listener = new PostgresNotificationListener(postgres, Constants.LockReleaseChannel);
+                _Listener.KeyReleased += (tenantId, lockKey) => _Coordinator.SignalKey(tenantId, lockKey);
+            }
+
             WebserverSettings webserverSettings = new WebserverSettings();
             webserverSettings.Hostname = Settings.Rest.Hostname;
             webserverSettings.Port = Settings.Rest.Port;
@@ -80,21 +121,32 @@ namespace Clutch.Server
         #region Public-Methods
 
         /// <summary>
-        /// Configure the pipeline and routes, then start listening.
+        /// Configure the pipeline and routes, then start listening and the background services.
         /// </summary>
         public void Start()
         {
             ConfigureServer();
             ConfigureRoutes();
             _Server.Start();
+
+            _Sweeper.Start();
+            _Retention.Start();
+            if (_Listener != null)
+            {
+                _Listener.StartAsync().GetAwaiter().GetResult();
+                _Logging.Debug(_Header + "notification listener started");
+            }
         }
 
         /// <summary>
-        /// Stop listening.
+        /// Stop listening and the background services.
         /// </summary>
         public void Stop()
         {
             _Server.Stop();
+            _Sweeper.StopAsync().GetAwaiter().GetResult();
+            _Retention.StopAsync().GetAwaiter().GetResult();
+            if (_Listener != null) _Listener.DisposeAsync().GetAwaiter().GetResult();
         }
 
         /// <summary>
@@ -126,34 +178,17 @@ namespace Clutch.Server
 
         private void ConfigureRoutes()
         {
-            _Server.Routes.PreAuthentication.Static.Add(
-                HttpMethod.GET,
-                "/v1.0/api/health",
-                HealthRouteAsync,
-                null,
-                openApiMetadata: OpenApiRouteMetadata.Create("Server health check", "System"));
-        }
+            new HealthRoutes(_Database, Settings.NodeId).Register(_Server);
+            new AuthRoutes(_AuthenticationService).Register(_Server);
+            new TenantRoutes(_Database, _AuthorizationService).Register(_Server);
+            new UserRoutes(_Database, _AuthorizationService).Register(_Server);
+            new CredentialRoutes(_Database, _AuthorizationService).Register(_Server);
+            new LockRoutes(_Database, _AuthorizationService).Register(_Server);
+            new LockAuditRoutes(_Database, _AuthorizationService).Register(_Server);
+            new RequestHistoryRoutes(_Database, _AuthorizationService).Register(_Server);
+            new ServerInfoRoutes(Settings, _WsManager).Register(_Server);
 
-        private async Task HealthRouteAsync(HttpContextBase context)
-        {
-            bool databaseHealthy;
-            try
-            {
-                databaseHealthy = await _Database.PingAsync(context.Token).ConfigureAwait(false);
-            }
-            catch
-            {
-                databaseHealthy = false;
-            }
-
-            context.Response.StatusCode = databaseHealthy ? 200 : 503;
-            context.Response.ContentType = "application/json";
-            string body =
-                "{\"status\":\"" + (databaseHealthy ? "healthy" : "degraded") + "\"," +
-                "\"node\":\"" + Settings.NodeId + "\"," +
-                "\"database\":" + (databaseHealthy ? "true" : "false") + "," +
-                "\"utc\":\"" + DateTime.UtcNow.ToString("o") + "\"}";
-            await context.Response.Send(body).ConfigureAwait(false);
+            _Server.WebSocket("/v1.0/lock/connect", _WsHandler.HandleAsync);
         }
 
         private static async Task DefaultRouteAsync(HttpContextBase context)
@@ -168,7 +203,7 @@ namespace Clutch.Server
             context.Response.StatusCode = 200;
             context.Response.Headers.Add("Access-Control-Allow-Origin", "*");
             context.Response.Headers.Add("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS, HEAD");
-            context.Response.Headers.Add("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Api-Key");
+            context.Response.Headers.Add("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Api-Key, x-token, x-access-key, x-secret-key");
             context.Response.Headers.Add("Access-Control-Max-Age", "86400");
             await context.Response.Send().ConfigureAwait(false);
         }
@@ -177,11 +212,17 @@ namespace Clutch.Server
         {
             context.Timestamp.End = DateTime.UtcNow;
 
+            context.Response.Headers.Add("Access-Control-Allow-Origin", "*");
+            context.Response.Headers.Add("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS, HEAD");
+            context.Response.Headers.Add("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Api-Key, x-token, x-access-key, x-secret-key");
+
             _Logging.Debug(
                 _Header +
                 context.Request.Method + " " +
                 context.Request.Url.RawWithQuery + " " +
                 context.Response.StatusCode);
+
+            if (Settings.RequestHistory.Enabled) _Capture.Capture(context);
 
             await Task.CompletedTask.ConfigureAwait(false);
         }

@@ -114,6 +114,7 @@ namespace Clutch.Server.Services
         {
             string? accessKey = context.Request.Headers["x-clutch-access-key"];
             if (string.IsNullOrEmpty(accessKey)) accessKey = context.Request.Headers["x-access-key"];
+            if (string.IsNullOrEmpty(accessKey)) accessKey = QueryValue(context, "accessKey");
             if (string.IsNullOrEmpty(accessKey)) return null;
 
             Credential? credential = await _Database.Credentials.ReadByAccessKeyAsync(accessKey, token).ConfigureAwait(false);
@@ -122,6 +123,7 @@ namespace Clutch.Server.Services
 
             string? secretKey = context.Request.Headers["x-clutch-secret-key"];
             if (string.IsNullOrEmpty(secretKey)) secretKey = context.Request.Headers["x-secret-key"];
+            if (string.IsNullOrEmpty(secretKey)) secretKey = QueryValue(context, "secretKey");
             if (!string.IsNullOrEmpty(secretKey))
             {
                 if (!PasswordHasher.FixedTimeEquals(CredentialKeyGenerator.ComputeVerifier(secretKey), credential.SecretKeyEncrypted))
@@ -318,6 +320,12 @@ namespace Clutch.Server.Services
             }
 
             return context;
+        }
+
+        private static string? QueryValue(HttpContextBase context, string key)
+        {
+            if (context.Request.Query == null || context.Request.Query.Elements == null) return null;
+            return context.Request.Query.Elements[key];
         }
 
         private static string? ExtractBearer(HttpContextBase context)
