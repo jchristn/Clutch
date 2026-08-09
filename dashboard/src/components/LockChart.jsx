@@ -1,8 +1,10 @@
 import { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { LOCK_RANGES } from '../utils/constants';
+import { LOCK_RANGES, DEFAULT_AUTO_REFRESH } from '../utils/constants';
 import { formatAxisTime, formatDateTime, formatNumber } from '../i18n/formatters';
+import useAutoRefresh from '../hooks/useAutoRefresh';
 import RangeTabs from './RangeTabs';
+import AutoRefreshSelect from './AutoRefreshSelect';
 import ChartTooltip from './ChartTooltip';
 
 const W = 1000;
@@ -52,6 +54,8 @@ export default function LockChart({
   const { t, i18n } = useTranslation();
   const [mode, setMode] = useState('line'); // 'line' | 'bar'
   const [hover, setHover] = useState(null); // { index, x, y }
+  const [autoSecs, setAutoSecs] = useState(DEFAULT_AUTO_REFRESH);
+  useAutoRefresh(onRefresh, autoSecs);
 
   const starts = summary?.bucketStartsUtc || [];
   const series = useMemo(() => summary?.series || [], [summary]);
@@ -102,6 +106,7 @@ export default function LockChart({
             </button>
           </div>
           <RangeTabs ranges={ranges} value={rangeId} onChange={onRangeChange} onRefresh={onRefresh} loading={loading} />
+          <AutoRefreshSelect value={autoSecs} onChange={setAutoSecs} />
         </div>
       </div>
 

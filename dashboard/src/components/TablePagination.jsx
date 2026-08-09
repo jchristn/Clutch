@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { formatNumber } from '../i18n/formatters';
 import { PAGE_SIZE_OPTIONS } from '../utils/constants';
+import AutoRefreshSelect from './AutoRefreshSelect';
 import {
   ChevronLeftIcon,
   ChevronRightIcon,
@@ -23,7 +24,9 @@ export default function TablePagination({
   onRefresh,
   disabled = false,
   leftSlot = null,
-  rightSlot = null
+  rightSlot = null,
+  autoRefreshSeconds = null,
+  onAutoRefreshChange = null
 }) {
   const { t } = useTranslation();
   const totalPages = Math.max(1, Math.ceil(totalRecords / pageSize));
@@ -59,6 +62,9 @@ export default function TablePagination({
 
       <div className="table-pagination-controls">
         {rightSlot}
+        {onAutoRefreshChange && (
+          <AutoRefreshSelect value={autoRefreshSeconds ?? 0} onChange={onAutoRefreshChange} />
+        )}
         {onPageSizeChange && (
           <label className="table-pagination-size">
             <span>{t('components.table.pageSize')}</span>

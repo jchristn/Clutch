@@ -9,7 +9,8 @@ import { EmptyState, ErrorBanner } from '../components/States';
 import ActionMenu from '../components/ActionMenu';
 import JsonViewerModal from '../components/JsonViewerModal';
 import useTenantScope from '../hooks/useTenantScope';
-import { LOCK_MODES, DEFAULT_PAGE_SIZE, lockRangeToParams } from '../utils/constants';
+import useAutoRefresh from '../hooks/useAutoRefresh';
+import { LOCK_MODES, DEFAULT_PAGE_SIZE, DEFAULT_AUTO_REFRESH, lockRangeToParams } from '../utils/constants';
 import { formatDateTime, formatRelativeTime } from '../i18n/formatters';
 
 const EVENT_TONE = {
@@ -37,6 +38,7 @@ export default function LockActivityView({ apiClient }) {
   const [chartLoading, setChartLoading] = useState(false);
   const [error, setError] = useState(null);
   const [jsonValue, setJsonValue] = useState(null);
+  const [autoRefreshSeconds, setAutoRefreshSeconds] = useState(DEFAULT_AUTO_REFRESH);
 
   const loadChart = useCallback(() => {
     if (!tenantId) return;
@@ -74,6 +76,8 @@ export default function LockActivityView({ apiClient }) {
     loadTable(1, page.pageSize);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tenantId]);
+
+  useAutoRefresh(() => loadTable(page.pageNumber, page.pageSize), autoRefreshSeconds);
 
   const applyFilters = () => {
     loadChart();
@@ -171,6 +175,8 @@ export default function LockActivityView({ apiClient }) {
           onPageChange={(p) => loadTable(p, page.pageSize)}
           onPageSizeChange={(s) => loadTable(1, s)}
           onRefresh={() => loadTable(page.pageNumber, page.pageSize)}
+          autoRefreshSeconds={autoRefreshSeconds}
+          onAutoRefreshChange={setAutoRefreshSeconds}
         />
       )}
 

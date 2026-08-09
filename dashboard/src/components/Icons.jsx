@@ -82,6 +82,16 @@ export function ServerIcon({ size = 18 }) {
     </svg>
   );
 }
+export function SettingsIcon({ size = 18 }) {
+  return (
+    <svg {...base(size)}>
+      <path d="M4 6h10M18 6h2M4 12h2M10 12h10M4 18h6M14 18h6" />
+      <circle cx="16" cy="6" r="2" />
+      <circle cx="8" cy="12" r="2" />
+      <circle cx="12" cy="18" r="2" />
+    </svg>
+  );
+}
 export function CopyIcon({ size = 14 }) {
   return (
     <svg {...base(size)}>

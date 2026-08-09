@@ -1,8 +1,10 @@
 import { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { REQUEST_RANGES } from '../utils/constants';
+import { REQUEST_RANGES, DEFAULT_AUTO_REFRESH } from '../utils/constants';
 import { formatAxisTime, formatDateTime, formatNumber, formatDuration } from '../i18n/formatters';
+import useAutoRefresh from '../hooks/useAutoRefresh';
 import RangeTabs from './RangeTabs';
+import AutoRefreshSelect from './AutoRefreshSelect';
 import ChartTooltip from './ChartTooltip';
 
 const W = 1000;
@@ -45,6 +47,8 @@ export default function ActivityChart({
 }) {
   const { t, i18n } = useTranslation();
   const [hover, setHover] = useState(null); // { index, x, y }
+  const [autoSecs, setAutoSecs] = useState(DEFAULT_AUTO_REFRESH);
+  useAutoRefresh(onRefresh, autoSecs);
 
   const buckets = useMemo(() => {
     const raw = summary?.buckets || [];
@@ -84,7 +88,10 @@ export default function ActivityChart({
             </span>
           </div>
         </div>
-        <RangeTabs ranges={ranges} value={rangeId} onChange={onRangeChange} onRefresh={onRefresh} loading={loading} />
+        <div className="chart-controls">
+          <RangeTabs ranges={ranges} value={rangeId} onChange={onRangeChange} onRefresh={onRefresh} loading={loading} />
+          <AutoRefreshSelect value={autoSecs} onChange={setAutoSecs} />
+        </div>
       </div>
 
       {buckets.length === 0 ? (

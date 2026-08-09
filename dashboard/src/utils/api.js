@@ -95,6 +95,25 @@ class ApiClient {
   }
 
   // ------------------------------------------------------------------
+  // Server settings (system-admin only; secrets redacted as "***")
+  // ------------------------------------------------------------------
+
+  /** Full on-disk settings object (camelCase, secrets redacted). */
+  async getSettings() {
+    return this._request('GET', '/v1.0/api/settings');
+  }
+
+  /** Persist edited settings. Returns { saved, restartRequired, message, settings }. */
+  async updateSettings(body) {
+    return this._request('PUT', '/v1.0/api/settings', { body });
+  }
+
+  /** Request a node restart. Returns 202 { restarting, node }. */
+  async restartServer() {
+    return this._request('POST', '/v1.0/api/settings/restart');
+  }
+
+  // ------------------------------------------------------------------
   // Tenants
   // ------------------------------------------------------------------
 

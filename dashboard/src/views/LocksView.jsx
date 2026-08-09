@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import PageHeader from '../components/PageHeader';
 import DataTable from '../components/DataTable';
+import TableAutoRefreshBar from '../components/TableAutoRefreshBar';
 import { MethodPill } from '../components/StatusBadge';
 import ActionMenu from '../components/ActionMenu';
 import ConfirmModal from '../components/ConfirmModal';
@@ -10,8 +11,9 @@ import CopyableId from '../components/CopyableId';
 import { EmptyState, ErrorBanner } from '../components/States';
 import { RefreshIcon } from '../components/Icons';
 import useTenantScope from '../hooks/useTenantScope';
+import useAutoRefresh from '../hooks/useAutoRefresh';
 import { useToast } from '../context/ToastContext';
-import { LOCK_MODES } from '../utils/constants';
+import { LOCK_MODES, DEFAULT_AUTO_REFRESH } from '../utils/constants';
 import { formatDateTime, formatRelativeTime } from '../i18n/formatters';
 
 export default function LocksView({ apiClient }) {
@@ -26,6 +28,7 @@ export default function LocksView({ apiClient }) {
   const [error, setError] = useState(null);
   const [releaseTarget, setReleaseTarget] = useState(null);
   const [jsonValue, setJsonValue] = useState(null);
+  const [autoRefreshSeconds, setAutoRefreshSeconds] = useState(DEFAULT_AUTO_REFRESH);
 
   const load = useCallback(() => {
     if (!tenantId) return;
@@ -41,6 +44,8 @@ export default function LocksView({ apiClient }) {
   useEffect(() => {
     load();
   }, [load]);
+
+  useAutoRefresh(load, autoRefreshSeconds);
 
   const doRelease = async () => {
     try {
@@ -129,6 +134,13 @@ export default function LocksView({ apiClient }) {
       {error && <ErrorBanner message={error} onRetry={load} />}
 
       <div className="table-frame">
+        <TableAutoRefreshBar
+          totalRecords={items.length}
+          autoRefreshSeconds={autoRefreshSeconds}
+          onAutoRefreshChange={setAutoRefreshSeconds}
+          onRefresh={load}
+          disabled={loading}
+        />
         {items.length === 0 && !loading ? (
           <EmptyState title={t('views.locks.emptyTitle')} body={t('views.locks.emptyBody')} />
         ) : (

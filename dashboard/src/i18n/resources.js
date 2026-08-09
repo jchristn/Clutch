@@ -81,7 +81,8 @@ const en = {
       credentials: { label: 'Credentials', tip: 'Application keys' },
       requests: { label: 'Request History', tip: 'Inspect API traffic' },
       explorer: { label: 'API Explorer', tip: 'Execute API calls' },
-      settings: { label: 'Server Info', tip: 'Endpoint and configuration' }
+      settings: { label: 'Server Info', tip: 'Endpoint and configuration' },
+      settingsAdmin: { label: 'Server Settings', tip: 'Edit server configuration' }
     },
     version: 'Version {{version}}',
     collapseSidebar: 'Collapse sidebar',
@@ -145,6 +146,12 @@ const en = {
     confirm: {
       title: 'Please confirm',
       message: 'Are you sure you want to continue?'
+    },
+    autoRefresh: {
+      label: 'Auto-refresh',
+      none: 'Off',
+      seconds_one: 'Every {{count}} second',
+      seconds_other: 'Every {{count}} seconds'
     },
     chart: {
       success: 'Success',
@@ -408,6 +415,7 @@ const en = {
       noSpecTitle: 'OpenAPI document unavailable',
       noSpecBody: 'This server did not return a usable /openapi.json document, so the explorer cannot render operations.',
       selectOperation: 'Select an operation to build a request.',
+      selectOperationOption: 'Choose an operation…',
       addHeader: 'Add header',
       headerName: 'Header',
       headerValue: 'Value',
@@ -442,6 +450,92 @@ const en = {
       },
       emptyTitle: 'Server info unavailable',
       emptyBody: 'Could not load server information from this endpoint.'
+    },
+    serverSettings: {
+      title: 'Server Settings',
+      subtitle: 'Edit the on-disk server configuration for this node.',
+      restartBanner: 'Changes to these settings require a node restart to take effect.',
+      readOnlyNotice: 'You are viewing server settings in read-only mode. Only system administrators can edit them.',
+      save: 'Save settings',
+      saved: 'Settings saved.',
+      restartRequiredToast: 'Settings saved. Restart the node to apply the changes.',
+      restart: 'Restart node',
+      restartConfirmTitle: 'Restart node',
+      restartConfirmMessage: 'Restart this node now? Active connections will be interrupted and the console will disconnect briefly.',
+      restarting: 'The node is restarting. Reconnect shortly.',
+      restartToast: 'Restart requested. The node is restarting.',
+      secretHint: 'Leave as *** to keep the current value.',
+      emptyTitle: 'Settings unavailable',
+      emptyBody: 'Could not load server settings from this endpoint.',
+      sections: {
+        node: 'Node',
+        rest: 'REST',
+        database: 'Database',
+        logging: 'Logging',
+        auth: 'Authentication',
+        lock: 'Lock',
+        requestHistory: 'Request History',
+        telemetry: 'Telemetry'
+      },
+      fields: {
+        node: {
+          nodeId: 'Node ID',
+          createdUtc: 'Created'
+        },
+        rest: {
+          hostname: 'Hostname',
+          port: 'Port',
+          ssl: 'SSL enabled'
+        },
+        database: {
+          type: 'Type',
+          host: 'Host',
+          port: 'Port',
+          databaseName: 'Database name',
+          username: 'Username',
+          password: 'Password',
+          maxPoolSize: 'Max pool size'
+        },
+        logging: {
+          consoleLogging: 'Console logging',
+          fileLogging: 'File logging',
+          logDirectory: 'Log directory',
+          logFilename: 'Log filename',
+          minimumSeverity: 'Minimum severity'
+        },
+        auth: {
+          issuer: 'Issuer',
+          signingKey: 'Signing key',
+          tokenLifetimeMinutes: 'Token lifetime (minutes)',
+          adminApiKey: 'Admin API key'
+        },
+        lock: {
+          defaultLeaseMs: 'Default lease (ms)',
+          maxLeaseMs: 'Max lease (ms)',
+          maxHoldMs: 'Max hold (ms)',
+          maxWaitMs: 'Max wait (ms)',
+          waiterPollMs: 'Waiter poll (ms)',
+          sweepIntervalMs: 'Sweep interval (ms)'
+        },
+        requestHistory: {
+          enabled: 'Enabled',
+          maxRequestBodyBytes: 'Max request body (bytes)',
+          maxResponseBodyBytes: 'Max response body (bytes)',
+          retentionDays: 'Retention (days)'
+        },
+        telemetry: {
+          enabled: 'Enabled',
+          serviceName: 'Service name',
+          prometheusEnable: 'Prometheus enabled',
+          prometheusHostname: 'Prometheus hostname',
+          prometheusPort: 'Prometheus port',
+          prometheusPath: 'Prometheus path',
+          otlpEnable: 'OTLP enabled',
+          otlpEndpoint: 'OTLP endpoint',
+          metricsIncludeRuntime: 'Include runtime metrics',
+          metricsIncludeProcess: 'Include process metrics'
+        }
+      }
     }
   }
 };
@@ -556,6 +650,12 @@ const de = {
       empty: 'Keine Einträge vorhanden.',
       selected: '{{count}} ausgewählt',
       bulkDelete: 'Auswahl löschen'
+    },
+    autoRefresh: {
+      label: 'Auto-Aktualisierung',
+      none: 'Aus',
+      seconds_one: 'Alle {{count}} Sekunde',
+      seconds_other: 'Alle {{count}} Sekunden'
     },
     chart: {
       success: 'Erfolg',
@@ -690,6 +790,12 @@ const ja = {
       empty: '表示するレコードがありません。',
       selected: '{{count}} 件選択中',
       bulkDelete: '選択を削除'
+    },
+    autoRefresh: {
+      label: '自動更新',
+      none: 'オフ',
+      seconds_one: '{{count}} 秒ごと',
+      seconds_other: '{{count}} 秒ごと'
     },
     chart: {
       success: '成功',

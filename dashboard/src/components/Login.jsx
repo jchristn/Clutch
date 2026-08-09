@@ -3,11 +3,11 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import { DEV_DEFAULTS } from '../utils/constants';
 import LanguageSelector from './LanguageSelector';
-import { EyeIcon, EyeOffIcon } from './Icons';
+import { EyeIcon, EyeOffIcon, SunIcon, MoonIcon } from './Icons';
 
 export default function Login() {
   const { t } = useTranslation();
-  const { login } = useAuth();
+  const { login, theme, toggleTheme } = useAuth();
 
   const [tab, setTab] = useState('key'); // 'key' | 'password'
   const [serverUrl, setServerUrl] = useState(DEV_DEFAULTS.serverUrl);
@@ -184,6 +184,15 @@ export default function Login() {
 
         <div className="login-lang">
           <LanguageSelector />
+          <button
+            type="button"
+            className="icon-button"
+            onClick={toggleTheme}
+            aria-label={theme === 'dark' ? t('common.theme.switchToLight') : t('common.theme.switchToDark')}
+            title={theme === 'dark' ? t('common.theme.switchToLight') : t('common.theme.switchToDark')}
+          >
+            {theme === 'dark' ? <SunIcon /> : <MoonIcon />}
+          </button>
         </div>
         <div className="login-footer">{t('login.footerHint')}</div>
       </div>

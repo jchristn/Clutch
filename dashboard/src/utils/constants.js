@@ -13,13 +13,17 @@ export const GITHUB_URL = 'https://github.com/jchristn/Clutch';
 
 // Dev defaults pre-filled into the login form for local development.
 export const DEV_DEFAULTS = {
-  serverUrl: 'http://localhost:8090',
+  serverUrl: 'http://localhost:8080',
   accessKey: 'clutch-default-access-key',
   secretKey: 'clutch-default-secret-key'
 };
 
 export const PAGE_SIZE_OPTIONS = [10, 25, 50, 100, 250];
 export const DEFAULT_PAGE_SIZE = 25;
+
+// Auto-refresh interval options, in seconds. 0 = None (disabled).
+export const AUTO_REFRESH_OPTIONS = [0, 15, 30, 60, 120, 180, 300];
+export const DEFAULT_AUTO_REFRESH = 15;
 
 // Lock modes (match backend LockModeEnum string values).
 export const LOCK_MODES = ['Read', 'Write', 'Delete'];

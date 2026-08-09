@@ -13,7 +13,8 @@ import { TrashIcon } from '../components/Icons';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { principalCaps } from '../utils/principal';
-import { HTTP_METHODS, DEFAULT_PAGE_SIZE, requestRangeToParams } from '../utils/constants';
+import useAutoRefresh from '../hooks/useAutoRefresh';
+import { HTTP_METHODS, DEFAULT_PAGE_SIZE, DEFAULT_AUTO_REFRESH, requestRangeToParams } from '../utils/constants';
 import { formatDateTime, formatRelativeTime, formatNumber, formatDuration, truncate } from '../i18n/formatters';
 
 const EMPTY_FILTERS = { method: '', statusCode: '', pathContains: '', fromUtc: '', toUtc: '', tenantId: '' };
@@ -49,6 +50,7 @@ export default function RequestHistoryView({ apiClient }) {
   const [detailId, setDetailId] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [bulkOpen, setBulkOpen] = useState(false);
+  const [autoRefreshSeconds, setAutoRefreshSeconds] = useState(DEFAULT_AUTO_REFRESH);
 
   const buildListQuery = useCallback(
     (f, pageNumber, pageSize) => ({
@@ -111,6 +113,8 @@ export default function RequestHistoryView({ apiClient }) {
     load(filters, 1, page.pageSize);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useAutoRefresh(() => load(filters, page.pageNumber, page.pageSize), autoRefreshSeconds);
 
   const applyFilters = () => load(filters, 1, page.pageSize);
   const clearFilters = () => {
@@ -244,6 +248,8 @@ export default function RequestHistoryView({ apiClient }) {
           onPageChange={(p) => load(filters, p, page.pageSize)}
           onPageSizeChange={(s) => load(filters, 1, s)}
           onRefresh={() => load(filters, page.pageNumber, page.pageSize)}
+          autoRefreshSeconds={autoRefreshSeconds}
+          onAutoRefreshChange={setAutoRefreshSeconds}
           rightSlot={
             hasFilters && page.totalCount > 0 ? (
               <button type="button" className="button-danger button-sm" onClick={() => setBulkOpen(true)}>

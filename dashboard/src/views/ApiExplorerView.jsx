@@ -35,21 +35,8 @@ function ParamInputs({ params, location, values, onChange, requiredLabel }) {
 export default function ApiExplorerView({ apiClient }) {
   const { t, i18n } = useTranslation();
   const ex = useApiExplorer(apiClient);
-  const [search, setSearch] = useState('');
   const [snippetTab, setSnippetTab] = useState('curl');
   const [confirmOpen, setConfirmOpen] = useState(false);
-
-  const filteredGroups = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    const out = {};
-    for (const [tag, ops] of Object.entries(ex.grouped)) {
-      const matched = q
-        ? ops.filter((o) => `${o.method} ${o.path} ${o.summary} ${o.id}`.toLowerCase().includes(q))
-        : ops;
-      if (matched.length) out[tag] = matched;
-    }
-    return out;
-  }, [ex.grouped, search]);
 
   const snippets = useMemo(() => {
     if (!ex.operation) return { curl: '', fetch: '', csharp: '' };
@@ -80,28 +67,30 @@ export default function ApiExplorerView({ apiClient }) {
           <EmptyState title={t('views.explorer.noSpecTitle')} body={t('views.explorer.noSpecBody')} />
         </div>
       ) : (
-        <div className="explorer-layout">
-          {/* Operation list */}
-          <div className="explorer-list">
-            <div className="explorer-search">
-              <input placeholder={t('views.explorer.searchOperations')} value={search} onChange={(e) => setSearch(e.target.value)} />
-            </div>
-            {Object.entries(filteredGroups).map(([tag, ops]) => (
-              <div key={tag}>
-                <div className="explorer-tag-label">{tag}</div>
-                {ops.map((op) => (
-                  <div
-                    key={op.id}
-                    className={`explorer-op ${ex.operationId === op.id ? 'active' : ''}`}
-                    onClick={() => ex.setOperationId(op.id)}
-                    title={op.summary}
-                  >
-                    <MethodPill method={op.method} />
-                    <code>{op.path}</code>
-                  </div>
+        <div className="explorer-stack">
+          {/* Full-width operation picker, grouped by OpenAPI tag */}
+          <div className="explorer-panel explorer-op-picker">
+            <label className="field">
+              <span className="explorer-op-picker-label">{t('views.explorer.operations')}</span>
+              <select
+                className="explorer-op-select"
+                value={ex.operationId || ''}
+                onChange={(e) => ex.setOperationId(e.target.value || null)}
+                aria-label={t('views.explorer.operations')}
+              >
+                <option value="">{t('views.explorer.selectOperationOption')}</option>
+                {Object.entries(ex.grouped).map(([tag, ops]) => (
+                  <optgroup key={tag} label={tag}>
+                    {ops.map((op) => (
+                      <option key={op.id} value={op.id}>
+                        {op.method} {op.path}
+                        {op.summary ? ` — ${op.summary}` : ''}
+                      </option>
+                    ))}
+                  </optgroup>
                 ))}
-              </div>
-            ))}
+              </select>
+            </label>
           </div>
 
           {/* Request builder + response */}

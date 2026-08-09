@@ -23,7 +23,9 @@ export default function TableFrame({
   onPageSizeChange,
   onRefresh,
   leftSlot,
-  rightSlot
+  rightSlot,
+  autoRefreshSeconds,
+  onAutoRefreshChange
 }) {
   return (
     <div className="table-frame">
@@ -38,6 +40,8 @@ export default function TableFrame({
           disabled={loading}
           leftSlot={leftSlot}
           rightSlot={rightSlot}
+          autoRefreshSeconds={autoRefreshSeconds}
+          onAutoRefreshChange={onAutoRefreshChange}
         />
       </div>
       <DataTable

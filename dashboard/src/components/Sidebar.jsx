@@ -11,7 +11,8 @@ import {
   KeyIcon,
   ListIcon,
   PlayIcon,
-  ServerIcon
+  ServerIcon,
+  SettingsIcon
 } from './Icons';
 
 const APP_VERSION = '0.1.0';
@@ -25,7 +26,8 @@ const ICONS = {
   credentials: KeyIcon,
   requests: ListIcon,
   explorer: PlayIcon,
-  settings: ServerIcon
+  settings: ServerIcon,
+  settingsAdmin: SettingsIcon
 };
 
 // Grouped navigation. `requires` gates visibility (UX only).
@@ -41,7 +43,7 @@ const GROUPS = [
     ]
   },
   { id: 'observability', items: [{ id: 'requests' }, { id: 'explorer' }] },
-  { id: 'system', items: [{ id: 'settings' }] }
+  { id: 'system', items: [{ id: 'settings' }, { id: 'settingsAdmin' }] }
 ];
 
 function allowed(requires, caps) {

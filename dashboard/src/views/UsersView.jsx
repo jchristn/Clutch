@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import PageHeader from '../components/PageHeader';
 import DataTable from '../components/DataTable';
+import TableAutoRefreshBar from '../components/TableAutoRefreshBar';
 import Modal from '../components/Modal';
 import ConfirmModal from '../components/ConfirmModal';
 import JsonViewerModal from '../components/JsonViewerModal';
@@ -11,7 +12,9 @@ import { ActiveBadge, Badge } from '../components/StatusBadge';
 import { EmptyState, ErrorBanner } from '../components/States';
 import { PlusIcon } from '../components/Icons';
 import useTenantScope from '../hooks/useTenantScope';
+import useAutoRefresh from '../hooks/useAutoRefresh';
 import { useToast } from '../context/ToastContext';
+import { DEFAULT_AUTO_REFRESH } from '../utils/constants';
 import { formatDateTime } from '../i18n/formatters';
 
 const BLANK = { email: '', password: '', firstName: '', lastName: '', isSystemAdmin: false, isTenantAdmin: false, active: true };
@@ -28,6 +31,7 @@ export default function UsersView({ apiClient }) {
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [jsonValue, setJsonValue] = useState(null);
   const [busy, setBusy] = useState(false);
+  const [autoRefreshSeconds, setAutoRefreshSeconds] = useState(DEFAULT_AUTO_REFRESH);
 
   const load = useCallback(() => {
     if (!tenantId) return;
@@ -43,6 +47,8 @@ export default function UsersView({ apiClient }) {
   useEffect(() => {
     load();
   }, [load]);
+
+  useAutoRefresh(load, autoRefreshSeconds);
 
   const save = async () => {
     setBusy(true);
@@ -142,6 +148,13 @@ export default function UsersView({ apiClient }) {
       {error && <ErrorBanner message={error} onRetry={load} />}
 
       <div className="table-frame">
+        <TableAutoRefreshBar
+          totalRecords={items.length}
+          autoRefreshSeconds={autoRefreshSeconds}
+          onAutoRefreshChange={setAutoRefreshSeconds}
+          onRefresh={load}
+          disabled={loading || !tenantId}
+        />
         {!tenantId ? (
           <EmptyState title={t('views.users.title')} body={t('views.users.selectTenant')} />
         ) : items.length === 0 && !loading ? (

@@ -12,6 +12,7 @@ import CredentialsView from '../views/CredentialsView';
 import RequestHistoryView from '../views/RequestHistoryView';
 import ApiExplorerView from '../views/ApiExplorerView';
 import SettingsView from '../views/SettingsView';
+import ServerSettingsView from '../views/ServerSettingsView';
 
 const VIEWS = {
   home: HomeView,
@@ -22,7 +23,8 @@ const VIEWS = {
   credentials: CredentialsView,
   requests: RequestHistoryView,
   explorer: ApiExplorerView,
-  settings: SettingsView
+  settings: SettingsView,
+  settingsAdmin: ServerSettingsView
 };
 
 export default function Dashboard() {
