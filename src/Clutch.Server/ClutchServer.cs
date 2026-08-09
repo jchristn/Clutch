@@ -2,6 +2,7 @@ namespace Clutch.Server
 {
     using System;
     using System.Threading.Tasks;
+    using Clutch.Core.Database;
     using Clutch.Server.Settings;
     using SyslogLogging;
     using WatsonWebserver;
@@ -25,6 +26,7 @@ namespace Clutch.Server
         #region Private-Members
 
         private readonly LoggingModule _Logging;
+        private readonly DatabaseDriverBase _Database;
         private readonly Webserver _Server;
         private readonly string _Header = "[ClutchServer] ";
         private bool _Disposed = false;
@@ -38,14 +40,17 @@ namespace Clutch.Server
         /// </summary>
         /// <param name="settings">Server settings.</param>
         /// <param name="logging">Logging module.</param>
+        /// <param name="database">Initialized database driver.</param>
         /// <exception cref="ArgumentNullException">Thrown when a required argument is null.</exception>
-        public ClutchServer(ClutchSettings settings, LoggingModule logging)
+        public ClutchServer(ClutchSettings settings, LoggingModule logging, DatabaseDriverBase database)
         {
             if (settings == null) throw new ArgumentNullException(nameof(settings));
             if (logging == null) throw new ArgumentNullException(nameof(logging));
+            if (database == null) throw new ArgumentNullException(nameof(database));
 
             Settings = settings;
             _Logging = logging;
+            _Database = database;
 
             WebserverSettings webserverSettings = new WebserverSettings();
             webserverSettings.Hostname = Settings.Rest.Hostname;
@@ -116,11 +121,23 @@ namespace Clutch.Server
 
         private async Task HealthRouteAsync(HttpContextBase context)
         {
-            context.Response.StatusCode = 200;
+            bool databaseHealthy;
+            try
+            {
+                databaseHealthy = await _Database.PingAsync(context.Token).ConfigureAwait(false);
+            }
+            catch
+            {
+                databaseHealthy = false;
+            }
+
+            context.Response.StatusCode = databaseHealthy ? 200 : 503;
             context.Response.ContentType = "application/json";
             string body =
-                "{\"status\":\"healthy\",\"node\":\"" + Settings.NodeId + "\",\"utc\":\"" +
-                DateTime.UtcNow.ToString("o") + "\"}";
+                "{\"status\":\"" + (databaseHealthy ? "healthy" : "degraded") + "\"," +
+                "\"node\":\"" + Settings.NodeId + "\"," +
+                "\"database\":" + (databaseHealthy ? "true" : "false") + "," +
+                "\"utc\":\"" + DateTime.UtcNow.ToString("o") + "\"}";
             await context.Response.Send(body).ConfigureAwait(false);
         }
 

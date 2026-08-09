@@ -1,8 +1,8 @@
 namespace Clutch.Server
 {
     using System;
-    using System.Collections.Generic;
     using System.Threading;
+    using Clutch.Core.Database;
     using Clutch.Server.Settings;
     using SyslogLogging;
 
@@ -22,15 +22,30 @@ namespace Clutch.Server
         {
             string settingsFile = ResolveSettingsFile(args);
             ClutchSettings settings = ClutchSettings.FromFile(settingsFile);
-            ApplyEnvironmentOverrides(settings);
 
             // Persist settings back so any properties added since the last build are written with defaults.
+            // This happens before environment overrides so runtime/container values are not written to disk.
             settings.ToFile(settingsFile);
+
+            ApplyEnvironmentOverrides(settings);
 
             LoggingModule logging = BuildLogging(settings);
             logging.Info("[Clutch] starting node '" + settings.NodeId + "' using settings file '" + settingsFile + "'");
 
-            ClutchServer server = new ClutchServer(settings, logging);
+            DatabaseDriverBase database = DatabaseDriverFactory.Create(settings.Database);
+            try
+            {
+                database.InitializeAsync().GetAwaiter().GetResult();
+                logging.Info("[Clutch] database initialized (" + settings.Database.Type + " at " + settings.Database.Host + ":" + settings.Database.Port + "/" + settings.Database.DatabaseName + ")");
+            }
+            catch (Exception e)
+            {
+                logging.Alert("[Clutch] database initialization failed: " + e.Message);
+                database.Dispose();
+                return;
+            }
+
+            ClutchServer server = new ClutchServer(settings, logging, database);
             server.Start();
             logging.Info("[Clutch] node '" + settings.NodeId + "' listening on " + settings.Rest.Hostname + ":" + settings.Rest.Port);
 
@@ -47,6 +62,7 @@ namespace Clutch.Server
             logging.Info("[Clutch] node '" + settings.NodeId + "' stopping");
             server.Stop();
             server.Dispose();
+            database.Dispose();
         }
 
         #endregion
