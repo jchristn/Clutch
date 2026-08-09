@@ -2,12 +2,12 @@
   "info": {
     "name": "Clutch",
     "_postman_id": "clutch-0-1-0",
-    "description": "Clutch distributed lock platform REST API (v0.1.0 alpha).\n\n## Getting started\n1. Import this collection and `Clutch.postman_environment.json`.\n2. Set `baseUrl` (default http://localhost:8090) and `accessKey`/`secretKey` (defaults are the seeded dev key).\n3. Run **Auth > Login** first: it captures a bearer `token` into a collection variable that every other request uses automatically.\n4. Run **Tenants > List tenants** to capture `tenantId`, then explore the tenant-scoped folders.\n\nEverything is driven by variables — no hard-coded URLs, ids, or tokens. Lock acquisition itself is over the WebSocket API (see WEBSOCKETS_API.md), not REST.",
+    "description": "Clutch distributed lock platform REST API (v0.1.0 alpha).\n\n## Getting started\nThis collection is self-contained — all variables (including `baseUrl` and the seeded dev key) are stored on the collection itself, so there is no separate environment to import.\n\n1. Import this collection.\n2. Adjust the collection variables if needed: `baseUrl` (default http://localhost:8080, the Docker load balancer) and `accessKey`/`secretKey` (defaults are the seeded dev key).\n3. Run **Auth > Login** first: it captures a bearer `token` into a collection variable that every other request uses automatically.\n4. Run **Tenants > List tenants** to capture `tenantId`, then explore the tenant-scoped folders.\n\nEverything is driven by variables — no hard-coded URLs, ids, or tokens. Lock acquisition itself is over the WebSocket API (see WEBSOCKETS_API.md), not REST.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": { "type": "bearer", "bearer": [ { "key": "token", "value": "{{token}}", "type": "string" } ] },
   "variable": [
-    { "key": "baseUrl", "value": "http://localhost:8090" },
+    { "key": "baseUrl", "value": "http://localhost:8080" },
     { "key": "accessKey", "value": "clutch-default-access-key" },
     { "key": "secretKey", "value": "clutch-default-secret-key" },
     { "key": "token", "value": "" },
