@@ -1,0 +1,48 @@
+# Build output
+bin/
+obj/
+[Dd]ebug/
+[Rr]elease/
+artifacts/
+*.user
+*.suo
+
+# .NET
+project.lock.json
+*.nupkg
+*.snupkg
+.vs/
+
+# Node / dashboard
+node_modules/
+dashboard/dist/
+sdk/js/node_modules/
+sdk/js/dist/
+*.log
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Local runtime state
+logs/
+data/
+db/
+docker/server/logs/
+docker/server/data/
+*.db
+*.db-wal
+*.db-shm
+*.db-journal
+
+# OS / editor
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+
+# Secrets / local settings overrides
+*.local.json
+.env
