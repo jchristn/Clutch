@@ -14,7 +14,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\Clutch.Core\Clutch.Core.csproj" />
+    <ProjectReference Include="..\Clutch.Core\Clutch.Core.csproj" />
   </ItemGroup>
 
 </Project>
