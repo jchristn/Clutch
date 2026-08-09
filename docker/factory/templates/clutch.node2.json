@@ -1,0 +1,11 @@
+{
+  "CreatedUtc": "2026-08-08T00:00:00Z",
+  "NodeId": "clutch-node2",
+  "Rest": { "Hostname": "*", "Port": 8080, "Ssl": false },
+  "Database": { "Type": "Postgresql", "Host": "postgres", "Port": 5432, "DatabaseName": "clutch", "Username": "postgres", "Password": "postgres", "MaxPoolSize": 100 },
+  "Logging": { "ConsoleLogging": true, "FileLogging": false, "LogDirectory": "./logs/", "LogFilename": "clutch.log", "MinimumSeverity": 1 },
+  "Auth": { "Issuer": "clutch", "SigningKey": "change-me-in-production", "TokenLifetimeMinutes": 60, "AdminApiKey": "clutchadmin" },
+  "Lock": { "DefaultLeaseMs": 30000, "MaxLeaseMs": 300000, "MaxHoldMs": 3600000, "MaxWaitMs": 60000, "WaiterPollMs": 1000, "SweepIntervalMs": 1000 },
+  "RequestHistory": { "Enabled": true, "MaxRequestBodyBytes": 65536, "MaxResponseBodyBytes": 65536, "RetentionDays": 30 },
+  "Telemetry": { "Enabled": true, "ServiceName": "clutch", "PrometheusEnable": true, "PrometheusHostname": "*", "PrometheusPort": 9464, "PrometheusPath": "/metrics", "OtlpEnable": false, "OtlpEndpoint": null, "MetricsIncludeRuntime": true, "MetricsIncludeProcess": true }
+}

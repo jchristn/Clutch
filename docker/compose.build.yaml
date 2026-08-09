@@ -1,0 +1,24 @@
+# Build override for local iteration. Builds the server and dashboard images from
+# source instead of pulling the published tags. The build context is the repo root
+# (one directory up from this file).
+#
+#   docker compose -f compose.yaml -f compose.build.yaml up --build
+
+services:
+  clutch-node1:
+    build:
+      context: ..
+      dockerfile: src/Clutch.Server/Dockerfile
+    image: jchristn77/clutch-server:v0.1.0
+
+  clutch-node2:
+    build:
+      context: ..
+      dockerfile: src/Clutch.Server/Dockerfile
+    image: jchristn77/clutch-server:v0.1.0
+
+  clutch-dashboard:
+    build:
+      context: ../dashboard
+      dockerfile: Dockerfile
+    image: jchristn77/clutch-ui:v0.1.0

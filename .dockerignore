@@ -1,0 +1,32 @@
+# Build output
+**/bin/
+**/obj/
+artifacts/
+
+# Node / dashboard
+**/node_modules/
+dashboard/dist/
+sdk/js/node_modules/
+
+# Python
+**/__pycache__/
+**/.venv/
+
+# Local runtime state
+**/logs/
+**/data/
+*.db
+*.db-wal
+*.db-shm
+
+# Git / editor / OS
+.git/
+.vs/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Docs and non-build assets not needed in images
+*.md
+docker/
+test/

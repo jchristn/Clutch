@@ -1,0 +1,84 @@
+{
+  "uid": "clutch-overview",
+  "title": "Clutch Overview",
+  "tags": ["clutch"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "10s",
+  "time": { "from": "now-1h", "to": "now" },
+  "templating": { "list": [] },
+  "annotations": { "list": [] },
+  "panels": [
+    {
+      "id": 1,
+      "title": "Lock acquires/sec by outcome",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "targets": [
+        { "refId": "A", "expr": "sum by (outcome) (rate(clutch_lock_acquire_total[1m]))", "legendFormat": "{{outcome}}" }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "Lock releases/sec",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "targets": [
+        { "refId": "A", "expr": "sum (rate(clutch_lock_release_total[1m]))", "legendFormat": "releases" }
+      ]
+    },
+    {
+      "id": 3,
+      "title": "Acquire duration p95 (seconds)",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "targets": [
+        { "refId": "A", "expr": "histogram_quantile(0.95, sum by (le) (rate(clutch_lock_acquire_duration_bucket[5m])))", "legendFormat": "p95" }
+      ]
+    },
+    {
+      "id": 4,
+      "title": "HTTP requests/sec by status",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "targets": [
+        { "refId": "A", "expr": "sum by (status) (rate(clutch_http_request_total[1m]))", "legendFormat": "{{status}}" }
+      ]
+    },
+    {
+      "id": 5,
+      "title": "Active WebSocket connections",
+      "type": "stat",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 6, "w": 8, "x": 0, "y": 16 },
+      "targets": [
+        { "refId": "A", "expr": "sum (clutch_ws_connections)", "legendFormat": "connections" }
+      ]
+    },
+    {
+      "id": 6,
+      "title": "Blocked waiters",
+      "type": "stat",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 6, "w": 8, "x": 8, "y": 16 },
+      "targets": [
+        { "refId": "A", "expr": "sum (clutch_lock_waiters)", "legendFormat": "waiters" }
+      ]
+    },
+    {
+      "id": 7,
+      "title": "Process memory (bytes)",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 6, "w": 8, "x": 16, "y": 16 },
+      "targets": [
+        { "refId": "A", "expr": "sum by (service_instance_id) (process_memory_usage_bytes)", "legendFormat": "{{service_instance_id}}" }
+      ]
+    }
+  ]
+}

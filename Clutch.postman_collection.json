@@ -1,0 +1,141 @@
+{
+  "info": {
+    "name": "Clutch",
+    "_postman_id": "clutch-0-1-0",
+    "description": "Clutch distributed lock platform REST API (v0.1.0 alpha).\n\n## Getting started\n1. Import this collection and `Clutch.postman_environment.json`.\n2. Set `baseUrl` (default http://localhost:8090) and `accessKey`/`secretKey` (defaults are the seeded dev key).\n3. Run **Auth > Login** first: it captures a bearer `token` into a collection variable that every other request uses automatically.\n4. Run **Tenants > List tenants** to capture `tenantId`, then explore the tenant-scoped folders.\n\nEverything is driven by variables — no hard-coded URLs, ids, or tokens. Lock acquisition itself is over the WebSocket API (see WEBSOCKETS_API.md), not REST.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": { "type": "bearer", "bearer": [ { "key": "token", "value": "{{token}}", "type": "string" } ] },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8090" },
+    { "key": "accessKey", "value": "clutch-default-access-key" },
+    { "key": "secretKey", "value": "clutch-default-secret-key" },
+    { "key": "token", "value": "" },
+    { "key": "tenantId", "value": "" },
+    { "key": "userId", "value": "" },
+    { "key": "credentialId", "value": "" },
+    { "key": "lockKey", "value": "orders/42" }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "description": "Session token lifecycle. Login captures the bearer token used by every other request.",
+      "item": [
+        {
+          "name": "Login (application key)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "url": { "raw": "{{baseUrl}}/v1.0/token", "host": [ "{{baseUrl}}" ], "path": [ "v1.0", "token" ] },
+            "body": { "mode": "raw", "raw": "{\n  \"accessKey\": \"{{accessKey}}\",\n  \"secretKey\": \"{{secretKey}}\"\n}" },
+            "description": "Exchange an application access/secret key for a session token. Captures `token` and `tenantId`. To log in as a user instead, send { tenantId, email, password }."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": { "exec": [
+                "if (pm.response.code === 200) {",
+                "  const b = pm.response.json();",
+                "  pm.collectionVariables.set('token', b.token);",
+                "  if (b.tenantId) pm.collectionVariables.set('tenantId', b.tenantId);",
+                "  pm.test('token captured', () => pm.expect(b.token).to.be.a('string'));",
+                "} else { pm.test('login ok', () => pm.expect(pm.response.code).to.eql(200)); }"
+              ], "type": "text/javascript" }
+            }
+          ]
+        },
+        {
+          "name": "Validate token",
+          "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/v1.0/token", "host": [ "{{baseUrl}}" ], "path": [ "v1.0", "token" ] }, "description": "Return the resolved principal context for the current bearer token." }
+        },
+        {
+          "name": "Token details",
+          "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/v1.0/token/details", "host": [ "{{baseUrl}}" ], "path": [ "v1.0", "token", "details" ] }, "description": "Decoded principal details for the current token." }
+        },
+        {
+          "name": "Logout",
+          "request": { "method": "DELETE", "url": { "raw": "{{baseUrl}}/v1.0/token", "host": [ "{{baseUrl}}" ], "path": [ "v1.0", "token" ] }, "description": "Revoke the current session (204)." }
+        }
+      ]
+    },
+    {
+      "name": "System",
+      "description": "Health and server info.",
+      "item": [
+        { "name": "Health", "request": { "auth": { "type": "noauth" }, "method": "GET", "url": { "raw": "{{baseUrl}}/v1.0/api/health", "host": [ "{{baseUrl}}" ], "path": [ "v1.0", "api", "health" ] }, "description": "Anonymous liveness + database connectivity." } },
+        { "name": "Server info", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/v1.0/api/server-info", "host": [ "{{baseUrl}}" ], "path": [ "v1.0", "api", "server-info" ] }, "description": "Node, version, telemetry config, and the resolved principal." } },
+        { "name": "OpenAPI document", "request": { "auth": { "type": "noauth" }, "method": "GET", "url": { "raw": "{{baseUrl}}/openapi.json", "host": [ "{{baseUrl}}" ], "path": [ "openapi.json" ] }, "description": "OpenAPI spec used by the dashboard API Explorer." } }
+      ]
+    },
+    {
+      "name": "Tenants",
+      "description": "Tenant administration. System admin manages all tenants; others see only their own.",
+      "item": [
+        {
+          "name": "List tenants",
+          "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/v1.0/api/tenants", "host": [ "{{baseUrl}}" ], "path": [ "v1.0", "api", "tenants" ] }, "description": "Captures the first tenant id into `tenantId`." },
+          "event": [ { "listen": "test", "script": { "exec": [ "if (pm.response.code===200){ const a=pm.response.json(); if(Array.isArray(a)&&a.length){ pm.collectionVariables.set('tenantId', a[0].id);} }" ], "type": "text/javascript" } } ]
+        },
+        { "name": "Create tenant", "request": { "method": "POST", "header": [ { "key": "Content-Type", "value": "application/json" } ], "url": { "raw": "{{baseUrl}}/v1.0/api/tenants", "host": [ "{{baseUrl}}" ], "path": [ "v1.0", "api", "tenants" ] }, "body": { "mode": "raw", "raw": "{\n  \"name\": \"acme\",\n  \"lockHistoryRetentionDays\": 7\n}" }, "description": "System admin only. Creates a tenant." } },
+        { "name": "Read tenant", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/v1.0/api/tenants/{{tenantId}}", "host": [ "{{baseUrl}}" ], "path": [ "v1.0", "api", "tenants", "{{tenantId}}" ] }, "description": "Read a tenant by id." } },
+        { "name": "Update tenant", "request": { "method": "PUT", "header": [ { "key": "Content-Type", "value": "application/json" } ], "url": { "raw": "{{baseUrl}}/v1.0/api/tenants/{{tenantId}}", "host": [ "{{baseUrl}}" ], "path": [ "v1.0", "api", "tenants", "{{tenantId}}" ] }, "body": { "mode": "raw", "raw": "{\n  \"name\": \"acme\",\n  \"lockHistoryRetentionDays\": 14\n}" }, "description": "System admin or the tenant's admin." } },
+        { "name": "Delete tenant", "request": { "method": "DELETE", "url": { "raw": "{{baseUrl}}/v1.0/api/tenants/{{tenantId}}", "host": [ "{{baseUrl}}" ], "path": [ "v1.0", "api", "tenants", "{{tenantId}}" ] }, "description": "System admin. Cascades to users, credentials, locks, audit." } }
+      ]
+    },
+    {
+      "name": "Users",
+      "description": "User administration, scoped to {{tenantId}}.",
+      "item": [
+        { "name": "List users", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/v1.0/api/tenants/{{tenantId}}/users", "host": [ "{{baseUrl}}" ], "path": [ "v1.0", "api", "tenants", "{{tenantId}}", "users" ] }, "description": "List users in the tenant." } },
+        {
+          "name": "Create user",
+          "request": { "method": "POST", "header": [ { "key": "Content-Type", "value": "application/json" } ], "url": { "raw": "{{baseUrl}}/v1.0/api/tenants/{{tenantId}}/users", "host": [ "{{baseUrl}}" ], "path": [ "v1.0", "api", "tenants", "{{tenantId}}", "users" ] }, "body": { "mode": "raw", "raw": "{\n  \"email\": \"ops@acme.com\",\n  \"password\": \"change-me\",\n  \"firstName\": \"Ops\",\n  \"lastName\": \"User\",\n  \"isTenantAdmin\": true\n}" }, "description": "Tenant admin. Captures `userId`." },
+          "event": [ { "listen": "test", "script": { "exec": [ "if(pm.response.code===201){ pm.collectionVariables.set('userId', pm.response.json().id);}" ], "type": "text/javascript" } } ]
+        },
+        { "name": "Read user", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/v1.0/api/tenants/{{tenantId}}/users/{{userId}}", "host": [ "{{baseUrl}}" ], "path": [ "v1.0", "api", "tenants", "{{tenantId}}", "users", "{{userId}}" ] }, "description": "Read a user." } },
+        { "name": "Delete user", "request": { "method": "DELETE", "url": { "raw": "{{baseUrl}}/v1.0/api/tenants/{{tenantId}}/users/{{userId}}", "host": [ "{{baseUrl}}" ], "path": [ "v1.0", "api", "tenants", "{{tenantId}}", "users", "{{userId}}" ] }, "description": "Delete a user (and its credentials)." } }
+      ]
+    },
+    {
+      "name": "Credentials",
+      "description": "Application keys, scoped to {{tenantId}}. The raw secret is returned only on create.",
+      "item": [
+        { "name": "List credentials", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/v1.0/api/tenants/{{tenantId}}/credentials", "host": [ "{{baseUrl}}" ], "path": [ "v1.0", "api", "tenants", "{{tenantId}}", "credentials" ] }, "description": "List application keys (secrets redacted)." } },
+        {
+          "name": "Create credential",
+          "request": { "method": "POST", "header": [ { "key": "Content-Type", "value": "application/json" } ], "url": { "raw": "{{baseUrl}}/v1.0/api/tenants/{{tenantId}}/credentials", "host": [ "{{baseUrl}}" ], "path": [ "v1.0", "api", "tenants", "{{tenantId}}", "credentials" ] }, "body": { "mode": "raw", "raw": "{\n  \"name\": \"ci-runner\"\n}" }, "description": "Tenant admin. Returns accessKey + secretKey ONCE. Captures `credentialId`, `accessKey`, `secretKey`." },
+          "event": [ { "listen": "test", "script": { "exec": [ "if(pm.response.code===201){ const b=pm.response.json(); pm.collectionVariables.set('credentialId', b.id); if(b.accessKey) pm.collectionVariables.set('accessKey', b.accessKey); if(b.secretKey) pm.collectionVariables.set('secretKey', b.secretKey);} " ], "type": "text/javascript" } } ]
+        },
+        { "name": "Read credential", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/v1.0/api/tenants/{{tenantId}}/credentials/{{credentialId}}", "host": [ "{{baseUrl}}" ], "path": [ "v1.0", "api", "tenants", "{{tenantId}}", "credentials", "{{credentialId}}" ] }, "description": "Read an application key." } },
+        { "name": "Delete credential", "request": { "method": "DELETE", "url": { "raw": "{{baseUrl}}/v1.0/api/tenants/{{tenantId}}/credentials/{{credentialId}}", "host": [ "{{baseUrl}}" ], "path": [ "v1.0", "api", "tenants", "{{tenantId}}", "credentials", "{{credentialId}}" ] }, "description": "Delete an application key." } }
+      ]
+    },
+    {
+      "name": "Locks",
+      "description": "Observe live lock state and force-release a key. Acquisition is over the WebSocket API.",
+      "item": [
+        { "name": "List active locks", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/v1.0/api/tenants/{{tenantId}}/locks?name=&mode=", "host": [ "{{baseUrl}}" ], "path": [ "v1.0", "api", "tenants", "{{tenantId}}", "locks" ], "query": [ { "key": "name", "value": "" }, { "key": "mode", "value": "" } ] }, "description": "Active holders. Optional filters: name (key substring), mode (Read|Write|Delete)." } },
+        { "name": "Holders on a key", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/v1.0/api/tenants/{{tenantId}}/locks/{{lockKey}}", "host": [ "{{baseUrl}}" ], "path": [ "v1.0", "api", "tenants", "{{tenantId}}", "locks", "{{lockKey}}" ] }, "description": "Definition + holders for one key." } },
+        { "name": "Force-release a key", "request": { "method": "POST", "url": { "raw": "{{baseUrl}}/v1.0/api/tenants/{{tenantId}}/locks/{{lockKey}}/release", "host": [ "{{baseUrl}}" ], "path": [ "v1.0", "api", "tenants", "{{tenantId}}", "locks", "{{lockKey}}", "release" ] }, "description": "Tenant admin. Revokes every holder on the key." } }
+      ]
+    },
+    {
+      "name": "Lock Audit",
+      "description": "Audit history and the lock-activity chart summary.",
+      "item": [
+        { "name": "List audit entries", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/v1.0/api/tenants/{{tenantId}}/lock-audit?pageNumber=1&pageSize=25", "host": [ "{{baseUrl}}" ], "path": [ "v1.0", "api", "tenants", "{{tenantId}}", "lock-audit" ], "query": [ { "key": "pageNumber", "value": "1" }, { "key": "pageSize", "value": "25" }, { "key": "name", "value": "", "disabled": true }, { "key": "mode", "value": "", "disabled": true }, { "key": "fromUtc", "value": "", "disabled": true }, { "key": "toUtc", "value": "", "disabled": true } ] }, "description": "Paginated audit entries with optional filters." } },
+        { "name": "Activity chart summary", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/v1.0/api/tenants/{{tenantId}}/lock-audit/summary?bucketCount=96", "host": [ "{{baseUrl}}" ], "path": [ "v1.0", "api", "tenants", "{{tenantId}}", "lock-audit", "summary" ], "query": [ { "key": "bucketCount", "value": "96" }, { "key": "name", "value": "", "disabled": true }, { "key": "mode", "value": "", "disabled": true }, { "key": "fromUtc", "value": "", "disabled": true }, { "key": "toUtc", "value": "", "disabled": true } ] }, "description": "Time-bucketed acquire counts per lock key/mode for the chart." } }
+      ]
+    },
+    {
+      "name": "Request History",
+      "description": "Captured request history for observability. Tenant-scoped; admins may pass tenantId.",
+      "item": [
+        { "name": "List requests", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/v1.0/api/request-history?pageNumber=1&pageSize=25", "host": [ "{{baseUrl}}" ], "path": [ "v1.0", "api", "request-history" ], "query": [ { "key": "pageNumber", "value": "1" }, { "key": "pageSize", "value": "25" }, { "key": "method", "value": "", "disabled": true }, { "key": "statusCode", "value": "", "disabled": true }, { "key": "pathContains", "value": "", "disabled": true } ] }, "description": "Paginated request list (bodies omitted)." } },
+        { "name": "Summary", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/v1.0/api/request-history/summary?bucketMinutes=15", "host": [ "{{baseUrl}}" ], "path": [ "v1.0", "api", "request-history", "summary" ], "query": [ { "key": "bucketMinutes", "value": "15" } ] }, "description": "Time-bucketed success/failure counts for the activity chart." } },
+        { "name": "Bulk delete", "request": { "method": "DELETE", "url": { "raw": "{{baseUrl}}/v1.0/api/request-history?statusCode=404", "host": [ "{{baseUrl}}" ], "path": [ "v1.0", "api", "request-history" ], "query": [ { "key": "statusCode", "value": "404" } ] }, "description": "Delete all entries matching the filter; returns deletedCount." } }
+      ]
+    }
+  ]
+}
