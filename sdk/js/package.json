@@ -1,0 +1,24 @@
+{
+  "name": "clutch-sdk",
+  "version": "0.1.0",
+  "description": "SDK for Clutch, a distributed lock platform: REST admin client and WebSocket lock client.",
+  "main": "clutch-admin-sdk.js",
+  "scripts": {
+    "test": "node test-harness.js",
+    "console": "node console.js"
+  },
+  "keywords": [
+    "distributed-lock",
+    "locking",
+    "clutch",
+    "websocket"
+  ],
+  "author": "Joel Christner",
+  "license": "MIT",
+  "dependencies": {
+    "ws": "^8.18.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

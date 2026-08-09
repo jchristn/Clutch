@@ -1,0 +1,45 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>net8.0</TargetFramework>
+		<ImplicitUsings>disable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+		<LangVersion>latest</LangVersion>
+		<RootNamespace>Clutch.Sdk</RootNamespace>
+		<AssemblyName>Clutch.Sdk</AssemblyName>
+		<PackageId>Clutch.Sdk</PackageId>
+		<Version>0.1.0</Version>
+		<Authors>Joel Christner</Authors>
+		<Copyright>(c)2026 Joel Christner</Copyright>
+		<Description>SDK for Clutch, a distributed lock platform. Includes a REST administration and observability client and a WebSocket lock client with automatic heartbeat management.</Description>
+		<Title>Clutch SDK for .NET</Title>
+		<PackageTags>distributed-lock;locking;clutch;websocket</PackageTags>
+		<PackageProjectUrl>https://github.com/jchristn/Clutch</PackageProjectUrl>
+		<RepositoryUrl>https://github.com/jchristn/Clutch</RepositoryUrl>
+		<RepositoryType>git</RepositoryType>
+		<PackageReadmeFile>README.md</PackageReadmeFile>
+		<PackageLicenseFile>LICENSE.md</PackageLicenseFile>
+		<PackageIcon>logo.png</PackageIcon>
+		<PackageReleaseNotes>Initial alpha release.</PackageReleaseNotes>
+		<GenerateDocumentationFile>true</GenerateDocumentationFile>
+		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+		<IncludeSymbols>true</IncludeSymbols>
+		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<None Include="..\..\..\assets\logo.png">
+			<Pack>true</Pack>
+			<PackagePath>\</PackagePath>
+		</None>
+		<None Include="..\..\..\LICENSE.md">
+			<Pack>true</Pack>
+			<PackagePath>\</PackagePath>
+		</None>
+		<None Include="..\README.md">
+			<Pack>true</Pack>
+			<PackagePath>\</PackagePath>
+		</None>
+	</ItemGroup>
+
+</Project>
