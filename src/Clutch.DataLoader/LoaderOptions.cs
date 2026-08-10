@@ -38,6 +38,7 @@ namespace Clutch.DataLoader
         // Structure
         public LoadLevel Load { get; set; } = LoadLevel.Heavy;
         public int TenantCount { get; set; } = 3;
+        public List<string> TenantNames { get; set; } = new List<string>();
         public int UsersPerTenant { get; set; } = 6;
         public int CredentialsPerTenant { get; set; } = 4;
         public int LockKeysPerTenant { get; set; } = 30;
@@ -149,6 +150,7 @@ namespace Clutch.DataLoader
 
                     case "load": o.Load = ParseLoad(v); break;
                     case "tenants": o.TenantCount = ParseInt(v, k); break;
+                    case "tenant-names": o.TenantNames = SplitCsv(v); break;
                     case "users-per-tenant": o.UsersPerTenant = ParseInt(v, k); break;
                     case "credentials-per-tenant": o.CredentialsPerTenant = ParseInt(v, k); break;
                     case "lock-keys": o.LockKeysPerTenant = ParseInt(v, k); break;
@@ -177,6 +179,17 @@ namespace Clutch.DataLoader
             }
 
             return o;
+        }
+
+        private static List<string> SplitCsv(string csv)
+        {
+            List<string> list = new List<string>();
+            foreach (string raw in csv.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries))
+            {
+                string trimmed = raw.Trim();
+                if (trimmed.Length > 0) list.Add(trimmed);
+            }
+            return list;
         }
 
         private static void ApplyOnly(LoaderOptions o, string csv)
@@ -267,6 +280,8 @@ TIME WINDOW
 
 STRUCTURE
   --tenants <n>                Number of tenants to populate (default: 3; reuses/creates by company name)
+  --tenant-names <a,b,...>     Populate these exact tenant names (created if absent, reused if present).
+                               Overrides --tenants. Use to also fill an existing tenant, e.g. ""Default"".
   --users-per-tenant <n>       Users per tenant (default: 6)
   --credentials-per-tenant <n> Application keys per tenant (default: 4)
   --lock-keys <n>              Distinct lock keys per tenant (default: 30)

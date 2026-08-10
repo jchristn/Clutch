@@ -145,10 +145,22 @@ namespace Clutch.DataLoader
 
         private async Task<List<TenantScope>> EnsureTenantsAsync(DatabaseDriverBase driver, CancellationToken token)
         {
-            List<TenantScope> scopes = new List<TenantScope>();
-            for (int i = 0; i < _Options.TenantCount; i++)
+            List<string> names = new List<string>();
+            if (_Options.TenantNames.Count > 0)
             {
-                string name = i < Catalogs.Companies.Count ? Catalogs.Companies[i] : Catalogs.Companies[i % Catalogs.Companies.Count] + " " + (i / Catalogs.Companies.Count + 1);
+                names.AddRange(_Options.TenantNames);
+            }
+            else
+            {
+                for (int i = 0; i < _Options.TenantCount; i++)
+                {
+                    names.Add(i < Catalogs.Companies.Count ? Catalogs.Companies[i] : Catalogs.Companies[i % Catalogs.Companies.Count] + " " + (i / Catalogs.Companies.Count + 1));
+                }
+            }
+
+            List<TenantScope> scopes = new List<TenantScope>();
+            foreach (string name in names)
+            {
                 Tenant? tenant = await driver.Tenants.ReadByNameAsync(name, token).ConfigureAwait(false);
                 if (tenant == null && _Options.IncludeTenants)
                 {

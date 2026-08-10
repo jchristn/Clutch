@@ -17,6 +17,24 @@ The design goal is safety over cleverness. Postgres is the single source of trut
 - **Safe ownership.** A lock is owned by the WebSocket session that holds it; closing the socket releases it. Every hold also carries a TTL lease renewed by heartbeat, so a crashed or half-open client's locks expire on their own. Each grant returns a monotonic fencing token so a downstream resource can reject a stale holder.
 - **Multi-tenant administration.** Tenants isolate lock namespaces, users, and application keys. Users are system administrators, tenant administrators, or regular members. A React dashboard shows live locks, audit history, and a lock-activity chart; a REST API and Postman collection cover the same surface.
 
+<details>
+<summary><strong>Screenshots</strong></summary>
+
+<p align="center">
+  <img src="assets/ss1.png" alt="Clutch dashboard" width="900" />
+</p>
+<p align="center">
+  <img src="assets/ss2.png" alt="Clutch dashboard" width="900" />
+</p>
+<p align="center">
+  <img src="assets/ss3.png" alt="Clutch dashboard" width="900" />
+</p>
+<p align="center">
+  <img src="assets/ss4.png" alt="Clutch dashboard" width="900" />
+</p>
+
+</details>
+
 ## Architecture
 
 Clients connect over WebSockets with a tenant application key and drive locks through a persistent connection. Administration and observability run over a versioned REST API with OpenAPI metadata. Multiple stateless server nodes sit behind an nginx load balancer and share one Postgres database; scaling out is a matter of adding nodes. Telemetry follows the [Radiant](https://github.com/jchristn) OpenTelemetry model, exposing metrics for both the web transport and the lock data path, scraped by Prometheus and rendered in preconfigured Grafana dashboards.
