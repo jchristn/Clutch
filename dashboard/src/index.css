@@ -606,7 +606,7 @@ button:disabled { opacity: 0.55; cursor: not-allowed; }
 .chart-tenant-select { width: auto; max-width: 200px; font-size: var(--font-size-xs); padding: 0.25rem 0.4rem; }
 .chart-canvas { position: relative; width: 100%; }
 .chart-canvas svg { width: 100%; height: auto; display: block; }
-.chart-svg-text { fill: var(--color-text-muted); font-size: 11px; }
+.chart-svg-text { fill: var(--color-text-muted); font-size: 9px; }
 .chart-grid-line { stroke: var(--color-border); }
 .chart-legend { display: flex; gap: var(--spacing-md); flex-wrap: wrap; margin-top: var(--spacing-sm); font-size: var(--font-size-xs); color: var(--color-text-secondary); }
 .chart-legend-item { display: inline-flex; align-items: center; gap: 0.35rem; }
