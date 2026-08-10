@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { LOCK_RANGES, DEFAULT_AUTO_REFRESH } from '../utils/constants';
-import { formatAxisTime, formatDateTime, formatNumber } from '../i18n/formatters';
+import { formatAxisTick, formatDateTime, formatNumber } from '../i18n/formatters';
 import useAutoRefresh from '../hooks/useAutoRefresh';
 import RangeTabs from './RangeTabs';
 import AutoRefreshSelect from './AutoRefreshSelect';
@@ -30,7 +30,7 @@ function computeTicks(max) {
 }
 
 function axisLabelIndices(count, rangeId) {
-  const maxLabels = AXIS_LABELS[rangeId] || 12;
+  const maxLabels = Math.min(8, AXIS_LABELS[rangeId] || 8);
   if (count <= maxLabels) return new Set(Array.from({ length: count }, (_, i) => i));
   const last = count - 1;
   const set = new Set();
@@ -223,7 +223,7 @@ export default function LockChart({
                     y={H - 44}
                     textAnchor="middle"
                   >
-                    {formatAxisTime(st, i18n.language)}
+                    {formatAxisTick(st, rangeId, i18n.language)}
                   </text>
                 ) : null
               )}

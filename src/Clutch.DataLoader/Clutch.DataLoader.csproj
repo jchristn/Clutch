@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <NoWarn>1701;1702</NoWarn>
+    <RootNamespace>Clutch.DataLoader</RootNamespace>
+    <AssemblyName>Clutch.DataLoader</AssemblyName>
+    <Description>Synthetic data loader that fills a Clutch deployment with realistic, backdated lock and request activity for dashboard screenshots and testing.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Clutch.Core\Clutch.Core.csproj" />
+  </ItemGroup>
+
+</Project>

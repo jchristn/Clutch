@@ -58,6 +58,19 @@ export function formatAxisTime(utcString, locale) {
   return new Intl.DateTimeFormat(resolveLocale(locale), { hour: '2-digit', minute: '2-digit' }).format(d);
 }
 
+/**
+ * Format a chart X-axis tick, varying detail by range:
+ * 'hour' -> "hh:mm AM/PM"; 'day' / 'week' / 'month' -> "MM-DD hh:mm AM/PM".
+ */
+export function formatAxisTick(utcString, rangeId, locale) {
+  const d = toDate(utcString);
+  if (!d) return '';
+  const time = new Intl.DateTimeFormat(resolveLocale(locale), { hour: '2-digit', minute: '2-digit', hour12: true }).format(d);
+  if (rangeId === 'hour') return time;
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${time}`;
+}
+
 /** Format relative time such as "5 minutes ago". */
 export function formatRelativeTime(utcString, locale) {
   const d = toDate(utcString);

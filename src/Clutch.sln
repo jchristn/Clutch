@@ -17,6 +17,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Test.Nunit", "Test.Nunit\Te
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Test.Throughput", "Test.Throughput\Test.Throughput.csproj", "{FFF36C6F-7241-416E-8B14-0C704D3C670E}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Clutch.DataLoader", "Clutch.DataLoader\Clutch.DataLoader.csproj", "{27CE3E56-F174-4FE1-BF80-E71F34C44D28}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -111,6 +113,18 @@ Global
 		{FFF36C6F-7241-416E-8B14-0C704D3C670E}.Release|x64.Build.0 = Release|Any CPU
 		{FFF36C6F-7241-416E-8B14-0C704D3C670E}.Release|x86.ActiveCfg = Release|Any CPU
 		{FFF36C6F-7241-416E-8B14-0C704D3C670E}.Release|x86.Build.0 = Release|Any CPU
+		{27CE3E56-F174-4FE1-BF80-E71F34C44D28}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{27CE3E56-F174-4FE1-BF80-E71F34C44D28}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{27CE3E56-F174-4FE1-BF80-E71F34C44D28}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{27CE3E56-F174-4FE1-BF80-E71F34C44D28}.Debug|x64.Build.0 = Debug|Any CPU
+		{27CE3E56-F174-4FE1-BF80-E71F34C44D28}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{27CE3E56-F174-4FE1-BF80-E71F34C44D28}.Debug|x86.Build.0 = Debug|Any CPU
+		{27CE3E56-F174-4FE1-BF80-E71F34C44D28}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{27CE3E56-F174-4FE1-BF80-E71F34C44D28}.Release|Any CPU.Build.0 = Release|Any CPU
+		{27CE3E56-F174-4FE1-BF80-E71F34C44D28}.Release|x64.ActiveCfg = Release|Any CPU
+		{27CE3E56-F174-4FE1-BF80-E71F34C44D28}.Release|x64.Build.0 = Release|Any CPU
+		{27CE3E56-F174-4FE1-BF80-E71F34C44D28}.Release|x86.ActiveCfg = Release|Any CPU
+		{27CE3E56-F174-4FE1-BF80-E71F34C44D28}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
