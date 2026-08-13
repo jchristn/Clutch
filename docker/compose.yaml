@@ -1,10 +1,10 @@
 # Clutch supported deployment: Postgres, two stateless server nodes, an nginx load
 # balancer, the dashboard, and Prometheus + Grafana for observability.
 #
-# This file references published, tagged images only (jchristn77/clutch-server:v0.1.0
-# and jchristn77/clutch-ui:v0.1.0) — it never builds from a local context. Build and
+# This file references published, tagged images only (jchristn77/clutch-server:v0.2.0
+# and jchristn77/clutch-ui:v0.2.0) — it never builds from a local context. Build and
 # push the images first with the root build scripts (Docker Build Cloud):
-#   build-all.bat v0.1.0
+#   build-all.bat v0.2.0
 #
 # Then start the stack:
 #   docker compose up -d
@@ -34,7 +34,7 @@ services:
     restart: unless-stopped
 
   clutch-node1:
-    image: jchristn77/clutch-server:v0.1.0
+    image: jchristn77/clutch-server:v0.2.0
     depends_on:
       postgres:
         condition: service_healthy
@@ -54,7 +54,7 @@ services:
     restart: unless-stopped
 
   clutch-node2:
-    image: jchristn77/clutch-server:v0.1.0
+    image: jchristn77/clutch-server:v0.2.0
     depends_on:
       postgres:
         condition: service_healthy
@@ -82,7 +82,7 @@ services:
     restart: unless-stopped
 
   clutch-dashboard:
-    image: jchristn77/clutch-ui:v0.1.0
+    image: jchristn77/clutch-ui:v0.2.0
     depends_on:
       - clutch-nginx
     ports:

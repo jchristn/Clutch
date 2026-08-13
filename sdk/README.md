@@ -7,7 +7,9 @@ Client SDKs for [Clutch](https://github.com/jchristn/Clutch), a distributed lock
 
 Every SDK ships a **non-interactive test application** (assertions, exit code `0`/`1`) and an **interactive console application** you can drive by hand.
 
-> Alpha (v0.1.0). Endpoints and shapes are subject to change. Loopback examples use `127.0.0.1` rather than `localhost` to avoid the Windows IPv6 (`::1`) resolution stall.
+Which database backs the server — PostgreSQL, MySQL, SQL Server, or SQLite — is a server-side configuration choice and is transparent to clients. The SDKs never send or manage database settings; the active backend is surfaced only as a display string on `GET /v1.0/api/server-info`.
+
+> Alpha (v0.2.0). Endpoints and shapes are subject to change. Loopback examples use `127.0.0.1` rather than `localhost` to avoid the Windows IPv6 (`::1`) resolution stall.
 
 ## Language matrix
 

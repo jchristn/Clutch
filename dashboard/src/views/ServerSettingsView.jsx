@@ -10,8 +10,28 @@ import { principalCaps } from '../utils/principal';
 
 // Fallback option sets for select fields. The current value is always merged in
 // so a server-supplied value that is not in this list still renders correctly.
-const DB_TYPES = ['Sqlite', 'SqlServer', 'Mysql', 'Postgresql'];
+const DB_TYPES = ['Postgresql', 'Sqlite', 'Mysql', 'SqlServer'];
 const SEVERITIES = ['Debug', 'Info', 'Warn', 'Error', 'Critical', 'Alert', 'Emergency'];
+
+// Per-purpose table-name overrides. An empty field means the clutch_{purpose}
+// default (shown as the placeholder) is used by the server.
+const DB_TABLE_KEYS = [
+  { key: 'prefix', placeholder: 'clutch_' },
+  { key: 'schemaMigrations', placeholder: 'clutch_schema_migrations' },
+  { key: 'tenants', placeholder: 'clutch_tenants' },
+  { key: 'users', placeholder: 'clutch_users' },
+  { key: 'credentials', placeholder: 'clutch_credentials' },
+  { key: 'authSessions', placeholder: 'clutch_auth_sessions' },
+  { key: 'lockDefinitions', placeholder: 'clutch_lock_definitions' },
+  { key: 'lockHolders', placeholder: 'clutch_lock_holders' },
+  { key: 'lockAudit', placeholder: 'clutch_lock_audit' },
+  { key: 'requestHistory', placeholder: 'clutch_request_history' }
+];
+
+// Per-provider field visibility. SQLite is file-backed (no host/port/creds);
+// schema is only meaningful for Postgresql and SqlServer.
+const isSqlite = (form) => form?.database?.type === 'Sqlite';
+const hasSchema = (form) => form?.database?.type === 'Postgresql' || form?.database?.type === 'SqlServer';
 
 // Declarative section/field layout. `group` matches the settings sub-object key
 // (except `node`, whose fields live at the settings root). `secret` fields render
@@ -37,12 +57,16 @@ const SECTIONS = [
     group: 'database',
     fields: [
       { name: 'type', type: 'select', options: DB_TYPES },
-      { name: 'host', type: 'text' },
-      { name: 'port', type: 'number' },
-      { name: 'databaseName', type: 'text' },
-      { name: 'username', type: 'text' },
-      { name: 'password', type: 'text', secret: true },
-      { name: 'maxPoolSize', type: 'number' }
+      { name: 'filePath', type: 'text', showIf: isSqlite },
+      { name: 'host', type: 'text', showIf: (f) => !isSqlite(f) },
+      { name: 'port', type: 'number', showIf: (f) => !isSqlite(f) },
+      { name: 'databaseName', type: 'text', showIf: (f) => !isSqlite(f) },
+      { name: 'username', type: 'text', showIf: (f) => !isSqlite(f) },
+      { name: 'password', type: 'text', secret: true, showIf: (f) => !isSqlite(f) },
+      { name: 'schema', type: 'text', showIf: hasSchema },
+      { name: 'maxPoolSize', type: 'number' },
+      { name: 'manageSchema', type: 'checkbox' },
+      { name: 'additionalOptions', type: 'text' }
     ]
   },
   {
@@ -130,6 +154,7 @@ export default function ServerSettingsView({ apiClient }) {
   const [busy, setBusy] = useState(false);
   const [restartOpen, setRestartOpen] = useState(false);
   const [restarting, setRestarting] = useState(false);
+  const [testing, setTesting] = useState(false);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -158,6 +183,18 @@ export default function ServerSettingsView({ apiClient }) {
     });
   };
 
+  // Read/write the nested two-level path form.database.tables[key]. Only the
+  // value is edited; the surrounding object (and its server casing) is preserved.
+  const getTableValue = (key) => form?.database?.tables?.[key] ?? '';
+
+  const setTableValue = (key, value) => {
+    setForm((prev) => {
+      if (!prev) return prev;
+      const database = prev.database || {};
+      return { ...prev, database: { ...database, tables: { ...(database.tables || {}), [key]: value } } };
+    });
+  };
+
   const save = async () => {
     setBusy(true);
     try {
@@ -183,6 +220,21 @@ export default function ServerSettingsView({ apiClient }) {
     } catch (e) {
       addToast({ type: 'error', message: e.message });
       setRestartOpen(false);
+    }
+  };
+
+  const testConnection = async () => {
+    setTesting(true);
+    try {
+      const res = await apiClient.testDatabaseConnection(form?.database || {});
+      addToast({
+        type: res?.ok ? 'success' : 'error',
+        message: res?.message || t(res?.ok ? 'views.serverSettings.testConnectionSuccess' : 'views.serverSettings.testConnectionFailure')
+      });
+    } catch (e) {
+      addToast({ type: 'error', message: e.message });
+    } finally {
+      setTesting(false);
     }
   };
 
@@ -282,8 +334,40 @@ export default function ServerSettingsView({ apiClient }) {
               <div className="panel" key={section.group}>
                 <div className="section-title">{t(`views.serverSettings.sections.${section.group}`)}</div>
                 <div className="modal-form">
-                  {section.fields.map((field) => renderField(section.group, field, section.root))}
+                  {section.fields
+                    .filter((field) => !field.showIf || field.showIf(form))
+                    .map((field) => renderField(section.group, field, section.root))}
                 </div>
+
+                {section.group === 'database' && (
+                  <>
+                    <div className="section-title settings-subsection">{t('views.serverSettings.sections.databaseTables')}</div>
+                    <div className="modal-form">
+                      {DB_TABLE_KEYS.map(({ key, placeholder }) => {
+                        const id = `set-database-tables-${key}`;
+                        return (
+                          <div className="field" key={key}>
+                            <label htmlFor={id}>{t(`views.serverSettings.fields.database.tables.${key}`)}</label>
+                            <input
+                              id={id}
+                              type="text"
+                              value={getTableValue(key)}
+                              placeholder={placeholder}
+                              disabled={!canEdit || restarting}
+                              onChange={(e) => setTableValue(key, e.target.value)}
+                            />
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    <div className="settings-panel-actions">
+                      <button type="button" className="button-secondary" onClick={testConnection} disabled={testing || restarting}>
+                        {testing ? t('views.serverSettings.testingConnection') : t('views.serverSettings.testConnection')}
+                      </button>
+                    </div>
+                  </>
+                )}
               </div>
             ))}
           </div>

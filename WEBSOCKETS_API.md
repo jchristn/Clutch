@@ -1,6 +1,6 @@
 # Clutch WebSocket API
 
-> Alpha (v0.1.0). The protocol is subject to change.
+> Alpha (v0.2.0). The protocol is subject to change.
 
 Lock acquisition happens over a WebSocket. A client application opens one connection per tenant using an application key, then sends and receives JSON text frames. All locks a connection holds are released automatically when the connection closes, so the socket itself is the lease of last resort.
 

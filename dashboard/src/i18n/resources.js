@@ -487,10 +487,15 @@ const en = {
       secretHint: 'Leave as *** to keep the current value.',
       emptyTitle: 'Settings unavailable',
       emptyBody: 'Could not load server settings from this endpoint.',
+      testConnection: 'Test connection',
+      testingConnection: 'Testing…',
+      testConnectionSuccess: 'Database connection succeeded.',
+      testConnectionFailure: 'Database connection failed.',
       sections: {
         node: 'Node',
         rest: 'REST',
         database: 'Database',
+        databaseTables: 'Table names',
         logging: 'Logging',
         auth: 'Authentication',
         lock: 'Lock',
@@ -515,7 +520,23 @@ const en = {
           databaseName: 'Database name',
           username: 'Username',
           password: 'Password',
-          maxPoolSize: 'Max pool size'
+          maxPoolSize: 'Max pool size',
+          filePath: 'File path',
+          schema: 'Schema',
+          manageSchema: 'Manage schema',
+          additionalOptions: 'Additional options',
+          tables: {
+            prefix: 'Table prefix',
+            schemaMigrations: 'Schema migrations',
+            tenants: 'Tenants',
+            users: 'Users',
+            credentials: 'Credentials',
+            authSessions: 'Auth sessions',
+            lockDefinitions: 'Lock definitions',
+            lockHolders: 'Lock holders',
+            lockAudit: 'Lock audit',
+            requestHistory: 'Request history'
+          }
         },
         logging: {
           consoleLogging: 'Console logging',

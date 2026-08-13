@@ -6,6 +6,18 @@ Clutch today is Postgres-only. The database abstraction (`DatabaseDriverBase`, t
 
 **Repository:** https://github.com/jchristn/Clutch (branch `main`).
 
+## Implementation status — v0.2.0 (branch `feature/v0.2.0`)
+
+Implemented and verified. The milestone checkboxes below record the original plan; this section is the honest as-built summary.
+
+- **Backend (M0–M5): done.** A shared `System.Data.Common` seam replaces the four-copy approach the plan sketched — one `SqlDialect` per provider, a resolved `TableCatalog` with `clutch_{purpose}` defaults + schema/prefix/overrides, a `SchemaBuilder` that emits per-provider DDL, and one set of `Ado*Methods` written against `DbConnection`. Four drivers: PostgreSQL, SQLite, MySQL, SQL Server. `LISTEN/NOTIFY` and `pg_notify` removed; coordination is polling everywhere with in-process same-node signaling. Acquire serialization is per-engine (`FOR UPDATE`, `UPDLOCK/HOLDLOCK`, `BEGIN IMMEDIATE`) with automatic retry on transient deadlock/serialization conflicts (the one addition the plan did not foresee — MySQL and SQL Server raise these under soak).
+- **Server (M5): done.** `ManageSchema` opt-out with table verification, `CLUTCH_DB_TYPE/FILEPATH/SCHEMA/MANAGE_SCHEMA` env overrides, SQLite single-node startup warning, and `POST /v1.0/api/settings/database/test`. Verified by a live SQLite server boot (migrations tracked, defaults seeded).
+- **Tests (M6): done and green.** `Test.Shared` is a provider matrix; `notify-fires` replaced by a provider-neutral `waiter-poll-wakeup`. **70/70 pass across all four providers** — SQLite in-process, and PostgreSQL/MySQL/SQL Server against containers (`docker/compose.test.yaml`) — including the randomized concurrency soak on each engine.
+- **Dashboard (M7): done.** Provider-conditional fields, per-purpose table-name mapping, `ManageSchema` toggle, and a Test-connection action in the existing Server Settings panel; `vite build` clean. English i18n added; `de`/`ja` fall back to English (partial, as noted).
+- **SDKs (M7): done.** No code change needed (DB config is server-side); READMEs note it.
+- **Docs / Docker / version (M8): done.** README fully revised, `CHANGELOG` `[0.2.0]`, `REST_API` settings section, `DOCKER.md` provider guidance, Postman test request, `sql/{provider}/schema.sql` for all four, and every `0.1.0` stamp bumped to `0.2.0`.
+- **Deferred / not done:** running the container matrix in CI (the suite supports it; wiring a CI job is left to ops); provider-specific example compose files beyond the documented override recipe; `de`/`ja` translations for the new dashboard strings.
+
 ## How to use this document
 
 Every task below is a checkbox a developer annotates as work proceeds. Work top-to-bottom within a milestone; milestones are ordered so each builds on the one before it. Update status inline:

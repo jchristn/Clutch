@@ -56,9 +56,9 @@ namespace Clutch.DataLoader
         /// <summary>User agents for request-history rows.</summary>
         public static readonly IReadOnlyList<(string Item, double Weight)> UserAgents = new List<(string, double)>
         {
-            ("clutch-sdk-csharp/0.1.0", 5),
-            ("clutch-sdk-python/0.1.0", 3),
-            ("clutch-sdk-js/0.1.0", 3),
+            ("clutch-sdk-csharp/0.2.0", 5),
+            ("clutch-sdk-python/0.2.0", 3),
+            ("clutch-sdk-js/0.2.0", 3),
             ("PostmanRuntime/7.39.0", 1),
             ("curl/8.6.0", 1)
         };

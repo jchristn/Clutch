@@ -56,7 +56,7 @@ namespace Clutch.Server.Routes
         private async Task InfoAsync(HttpContextBase context)
         {
             RequestContext ctx = RouteHelpers.Context(context);
-            string version = Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "0.1.0";
+            string version = Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "0.2.0";
 
             await RouteHelpers.JsonAsync(context, 200, new
             {

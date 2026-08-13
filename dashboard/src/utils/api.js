@@ -149,6 +149,11 @@ class ApiClient {
     return this._request('POST', '/v1.0/api/settings/restart');
   }
 
+  /** Test a database configuration without saving it. Returns { ok, message, provider }. */
+  async testDatabaseConnection(body) {
+    return this._request('POST', '/v1.0/api/settings/database/test', { body });
+  }
+
   // ------------------------------------------------------------------
   // Tenants
   // ------------------------------------------------------------------

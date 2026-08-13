@@ -4,14 +4,14 @@
 
 # Clutch
 
-> ⚠️ **Alpha (v0.1.0).** Everything — APIs, WebSocket protocol, schema, settings, SDKs, and behavior — is subject to change. Not yet recommended for production.
+> ⚠️ **Alpha (v0.2.0).** Everything — APIs, WebSocket protocol, schema, settings, SDKs, and behavior — is subject to change. Not yet recommended for production.
 
 Clutch is a distributed lock management platform. Client applications connect over WebSockets with a tenant application key and acquire **read**, **write**, or **delete** locks on named keys. Clutch decides — safely and consistently across every node in the fleet — whether a caller may proceed. Postgres is the single source of truth for every lock decision, so two nodes can never hand out conflicting locks.
 
 ## Images
 
-- `jchristn77/clutch-server:v0.1.0` — the server node (REST + WebSocket on 8080, Prometheus metrics on 9464).
-- `jchristn77/clutch-ui:v0.1.0` — the React operator dashboard.
+- `jchristn77/clutch-server:v0.2.0` — the server node (REST + WebSocket on 8080, Prometheus metrics on 9464).
+- `jchristn77/clutch-ui:v0.2.0` — the React operator dashboard.
 
 ## Use cases
 
@@ -33,7 +33,7 @@ cd Clutch/docker
 docker compose up -d
 ```
 
-`compose.yaml` pulls the published `jchristn77/clutch-server:v0.1.0` and `jchristn77/clutch-ui:v0.1.0` tags directly — no local build step.
+`compose.yaml` pulls the published `jchristn77/clutch-server:v0.2.0` and `jchristn77/clutch-ui:v0.2.0` tags directly — no local build step.
 
 Then open the dashboard at `http://localhost:3000` and connect to `http://localhost:8080` with the seeded default access key (`clutch-default-access-key`). The access key is the sole credential — there is no secret key.
 

@@ -11,7 +11,7 @@ if "%~1"=="" (
     echo ERROR: Image tag is required
     echo.
     echo Usage: build-server.bat ^<tag^>
-    echo Example: build-server.bat v0.1.0
+    echo Example: build-server.bat v0.2.0
     exit /b 1
 )
 

@@ -5,7 +5,7 @@
 - **`ClutchAdminClient`** — a REST client for administration and observability: tokens, tenants, users, application keys, lock inspection, audit, request history, health, and server info.
 - **`ClutchLockClient`** — a WebSocket client that acquires and releases locks, correlates responses by request identifier, and automatically sends heartbeats to keep held leases alive.
 
-> Alpha (v0.1.0). Endpoints and shapes are subject to change.
+> Alpha (v0.2.0). Endpoints and shapes are subject to change.
 
 ## Installation
 
@@ -93,3 +93,5 @@ Type `help` at the `clutch>` prompt. A typical session: `login key <accessKey>`,
 ## License
 
 MIT. See [LICENSE.md](../../LICENSE.md).
+
+> The backing database (PostgreSQL, MySQL, SQL Server, or SQLite) is a server-side choice and is transparent to clients; the SDK reports it only as a display string via `getServerInfo`.

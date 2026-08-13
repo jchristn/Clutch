@@ -1,6 +1,6 @@
 # Clutch REST API
 
-> Alpha (v0.1.0). Endpoints and shapes are subject to change.
+> Alpha (v0.2.0). Endpoints and shapes are subject to change.
 
 The REST API handles administration and observability: tokens, tenants, users, application keys, lock inspection, audit, request history, and server info. It also exposes **client lock operations** (acquire, release, heartbeat) so a caller can manage locks over REST exactly as a client does over the [WebSocket API](WEBSOCKETS_API.md) — the same lock engine backs both.
 
@@ -152,6 +152,17 @@ System-administrator-only destructive operations.
 - **`POST /v1.0/api/admin/nuke/tenant`** — permanently destroy a tenant and every record scoped to it (users, application keys, locks, lock definitions, lock audit, auth sessions, and — when included — request history). System admin only; protected tenants are rejected with `409`.
   Body: `{ tenantId, confirmTenantId, reason, includeAuditRecords?, includeRequestHistory? }`. `confirmTenantId` must exactly equal `tenantId`, and `reason` must be at least 10 characters.
   Returns `{ operationId, tenantId, tenantName, reason, deleted: { users, credentials, lockHolders, lockDefinitions, lockAudit, authSessions, requestHistory, tenant }, startedUtc, completedUtc }`.
+
+## Server settings
+
+System-administrator-only. Secrets (`Auth.SigningKey`, `Auth.AdminApiKey`, `Database.Password`) are redacted to `***` on read and preserved on update when the client echoes the placeholder or leaves them blank.
+
+- **`GET /v1.0/api/settings`** — read the running settings.
+- **`PUT /v1.0/api/settings`** — update settings and rewrite the on-disk `clutch.json`. Returns `{ saved, restartRequired, message, settings }`. Most changes, including the database configuration, take effect after a restart.
+- **`POST /v1.0/api/settings/restart`** — exit the process so the process manager relaunches it with the saved settings. Returns `202` with `{ restarting, node }`.
+- **`POST /v1.0/api/settings/database/test`** — validate a database configuration without saving it. Body is a `Database` settings object; a blank or redacted `Password` reuses the running one. Returns `{ ok, message, provider }`.
+
+The `Database` settings object selects and configures the backing database: `{ Type, Host, Port, DatabaseName, Username, Password, MaxPoolSize, FilePath, Schema, ManageSchema, AdditionalOptions, Tables }`. `Type` is one of `Postgresql`, `Mysql`, `SqlServer`, or `Sqlite`. `FilePath` applies to SQLite; `Schema` applies to PostgreSQL and SQL Server. `ManageSchema` (default `true`) lets Clutch create and migrate its tables; set it `false` to run against pre-created tables and issue no DDL. `Tables` overrides the per-purpose table name (`Prefix`, `SchemaMigrations`, `Tenants`, `Users`, `Credentials`, `AuthSessions`, `LockDefinitions`, `LockHolders`, `LockAudit`, `RequestHistory`); a blank value keeps the `clutch_{purpose}` default.
 
 ## Telemetry
 

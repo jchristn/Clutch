@@ -8,7 +8,7 @@
 		<RootNamespace>Clutch.Sdk</RootNamespace>
 		<AssemblyName>Clutch.Sdk</AssemblyName>
 		<PackageId>Clutch.Sdk</PackageId>
-		<Version>0.1.0</Version>
+		<Version>0.2.0</Version>
 		<Authors>Joel Christner</Authors>
 		<Copyright>(c)2026 Joel Christner</Copyright>
 		<Description>SDK for Clutch, a distributed lock platform. Includes a REST administration and observability client and a WebSocket lock client with automatic heartbeat management.</Description>

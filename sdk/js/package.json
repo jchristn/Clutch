@@ -1,6 +1,6 @@
 {
   "name": "clutch-sdk",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "SDK for Clutch, a distributed lock platform: REST admin client and WebSocket lock client.",
   "main": "clutch-admin-sdk.js",
   "scripts": {

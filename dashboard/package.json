@@ -1,6 +1,6 @@
 {
   "name": "clutch-dashboard",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Operator console for Clutch, a distributed lock management platform.",
   "type": "module",
   "scripts": {

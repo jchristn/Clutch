@@ -1,0 +1,70 @@
+# Test-only database engines for the Clutch provider matrix.
+#
+# Brings up PostgreSQL, MySQL, and SQL Server on distinct host ports so the shared
+# Touchstone suite can run every database-backed case against each engine. SQLite needs
+# no container (it runs in-process against a temporary file).
+#
+#   docker compose -f compose.test.yaml up -d
+#
+# Then run the matrix (from src/) with the providers and ports below:
+#
+#   CLUTCH_TEST_PROVIDERS=sqlite,postgresql,mysql,sqlserver \
+#   CLUTCH_TEST_PG_PORT=5599 \
+#   CLUTCH_TEST_MYSQL_PORT=3399 CLUTCH_TEST_MYSQL_USERNAME=root CLUTCH_TEST_MYSQL_PASSWORD=root \
+#   CLUTCH_TEST_MSSQL_PORT=1499 \
+#   dotnet run --project Test.Automated -c Debug
+#
+# PostgreSQL and MySQL create the `clutch` database automatically. SQL Server does not, so
+# the `mssql-init` service creates it once the engine is ready.
+
+name: clutch-test
+
+services:
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: clutch
+    ports:
+      - "5599:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d clutch"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  mysql:
+    image: mysql:8
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: clutch
+    ports:
+      - "3399:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-uroot", "-proot"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: "Clutch_Test_123"
+    ports:
+      - "1499:1433"
+
+  mssql-init:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    depends_on:
+      - sqlserver
+    entrypoint:
+      - /bin/bash
+      - -c
+      - >
+        for i in $(seq 1 40); do
+          /opt/mssql-tools18/bin/sqlcmd -S sqlserver -U sa -P "Clutch_Test_123" -C
+          -Q "IF DB_ID(N'clutch') IS NULL CREATE DATABASE clutch;" && break;
+          echo "waiting for sqlserver ($i)"; sleep 3;
+        done
+    restart: "no"

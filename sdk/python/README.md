@@ -5,7 +5,7 @@ The official Python SDK for [Clutch](https://github.com/jchristn/Clutch), a dist
 - **`ClutchAdminClient`** (`clutch_admin_sdk.py`) — a REST client for administration and observability, built on `requests`.
 - **`ClutchLockClient`** (`clutch_lock_sdk.py`) — a WebSocket client for lock acquisition, built on `websocket-client`.
 
-> Alpha (v0.1.0). Endpoints and shapes are subject to change.
+> Alpha (v0.2.0). Endpoints and shapes are subject to change.
 
 ## Installation
 
@@ -80,3 +80,5 @@ Type `help` at the `clutch>` prompt. A typical session: `login key <accessKey>`,
 ## License
 
 MIT. See [LICENSE.md](../../LICENSE.md).
+
+> The backing database (PostgreSQL, MySQL, SQL Server, or SQLite) is a server-side choice and is transparent to clients; the SDK reports it only as a display string via `getServerInfo`.

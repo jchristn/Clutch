@@ -1,6 +1,6 @@
 # Running Clutch with Docker
 
-> Alpha (v0.1.0).
+> Alpha (v0.2.0).
 
 The supported deployment runs Clutch as a small cluster: Postgres, two stateless server nodes behind an nginx load balancer, the dashboard, and Prometheus + Grafana for observability. Everything is in `docker/compose.yaml`.
 
@@ -28,11 +28,11 @@ Both nodes are stateless and share one Postgres, which is the sole authority for
 
 ## First run
 
-`compose.yaml` references published image tags (`jchristn77/clutch-server:v0.1.0`, `jchristn77/clutch-ui:v0.1.0`) only — it never builds from a local context. Build and push the images first with the root build scripts, which build multi-platform on Docker Build Cloud and push both the given tag and `latest`:
+`compose.yaml` references published image tags (`jchristn77/clutch-server:v0.2.0`, `jchristn77/clutch-ui:v0.2.0`) only — it never builds from a local context. Build and push the images first with the root build scripts, which build multi-platform on Docker Build Cloud and push both the given tag and `latest`:
 
 ```bat
 REM from the repository root
-build-all.bat v0.1.0
+build-all.bat v0.2.0
 ```
 
 `build-all.bat` runs `build-server.bat` (`jchristn77/clutch-server`) and `build-dashboard.bat` (`jchristn77/clutch-ui`); each also accepts a tag on its own. Once the tags exist in the registry, start the stack:
@@ -63,6 +63,16 @@ Change the default admin credentials and the `CLUTCH_AUTH_SIGNING_KEY` before ex
 ## Configuration
 
 Each node reads a mounted settings file (`docker/server/clutch.node1.json`, `clutch.node2.json`) and is further overridden by environment variables in the compose file (`CLUTCH_DB_HOST`, `CLUTCH_DB_PASSWORD`, `CLUTCH_NODE_ID`, `CLUTCH_AUTH_SIGNING_KEY`, …). On startup each node rewrites its settings file to pick up any newly added properties.
+
+## Database providers
+
+The reference `compose.yaml` runs the multi-node topology above against **PostgreSQL** — two nodes, one shared database, nginx in front. That shape is the point: several interchangeable nodes coordinating through one database that decides every lock.
+
+To run against **MySQL** or **SQL Server** instead, keep the same two-node-behind-nginx layout and change only the backing service and the nodes' database environment. Set `CLUTCH_DB_TYPE` (`Mysql` or `SqlServer`), point `CLUTCH_DB_HOST`/`CLUTCH_DB_PORT`/`CLUTCH_DB_DATABASE`/`CLUTCH_DB_USERNAME`/`CLUTCH_DB_PASSWORD` at the new engine, and let the nodes create their schema on first boot (or pre-create it from `sql/{provider}/schema.sql` and set `CLUTCH_DB_MANAGE_SCHEMA=false`).
+
+**SQLite** is single-node only. Run exactly one node with `CLUTCH_DB_TYPE=Sqlite` and `CLUTCH_DB_FILEPATH` pointing at a file on a mounted volume, and drop nginx and the second node — a shared SQLite file cannot back multiple nodes safely.
+
+For running the automated provider test matrix, `docker/compose.test.yaml` brings up PostgreSQL, MySQL, and SQL Server on separate host ports; see the comments at the top of that file.
 
 ## Observability
 
