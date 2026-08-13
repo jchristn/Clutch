@@ -100,7 +100,7 @@ docker compose up -d
 
 That stack is the canonical example of Clutch clustered — two interchangeable nodes coordinating through one shared database. To run against MySQL or SQL Server instead, keep the same two-node-behind-nginx shape and change only the backing service and the nodes' `CLUTCH_DB_*` environment. To run against SQLite, run a single node with a file volume.
 
-See [`BYOD.md`](BYOD.md) for the full build-out plan, [`REST_API.md`](REST_API.md) and [`WEBSOCKETS_API.md`](WEBSOCKETS_API.md) for the protocols, [`DOCKER.md`](DOCKER.md) for the deployment details, and the `sdk/` directory for C#, JavaScript, and Python clients.
+See [`BYOD.md`](BYOD.md) for the complete guide to configuring Clutch against your own database, [`REST_API.md`](REST_API.md) and [`WEBSOCKETS_API.md`](WEBSOCKETS_API.md) for the protocols, [`DOCKER.md`](DOCKER.md) for the deployment details, and the `sdk/` directory for C#, JavaScript, and Python clients.
 
 ## Scope notes
 
