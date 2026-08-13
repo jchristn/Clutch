@@ -5,8 +5,6 @@ namespace Clutch.Server
     using System.Threading.Tasks;
     using Clutch.Core;
     using Clutch.Core.Database;
-    using Clutch.Core.Database.Postgresql;
-    using Clutch.Core.Database.Postgresql.Notifications;
     using Clutch.Core.Services;
     using Clutch.Server.Routes;
     using Clutch.Server.Services;
@@ -47,7 +45,6 @@ namespace Clutch.Server
         private readonly RetentionService _Retention;
         private readonly WebSocketConnectionManager _WsManager;
         private readonly LockWebSocketHandler _WsHandler;
-        private readonly PostgresNotificationListener? _Listener;
         private readonly RequestHistoryCaptureService _Capture;
         private readonly ClutchTelemetry _Telemetry;
         private readonly ClutchMcpServer _Mcp;
@@ -108,12 +105,6 @@ namespace Clutch.Server
             _WsHandler = new LockWebSocketHandler(authenticationService, _Engine, _WsManager, logging, telemetry, settings.NodeId, settings.Lock.DefaultLeaseMs, heartbeatInterval);
             _Capture = new RequestHistoryCaptureService(database, settings.RequestHistory, logging);
 
-            if (database is PostgresqlDatabaseDriver postgres)
-            {
-                _Listener = new PostgresNotificationListener(postgres, Constants.LockReleaseChannel);
-                _Listener.KeyReleased += (tenantId, lockKey) => _Coordinator.SignalKey(tenantId, lockKey);
-            }
-
             WebserverSettings webserverSettings = new WebserverSettings();
             webserverSettings.Hostname = Settings.Rest.Hostname;
             webserverSettings.Port = Settings.Rest.Port;
@@ -141,11 +132,6 @@ namespace Clutch.Server
             _Telemetry.RegisterGauges(() => _WsManager.Count, () => _Coordinator.WaiterCount);
             _Sweeper.Start();
             _Retention.Start();
-            if (_Listener != null)
-            {
-                _Listener.StartAsync().GetAwaiter().GetResult();
-                _Logging.Debug(_Header + "notification listener started");
-            }
             _Mcp.Start();
         }
 
@@ -158,7 +144,6 @@ namespace Clutch.Server
             _Server.Stop();
             _Sweeper.StopAsync().GetAwaiter().GetResult();
             _Retention.StopAsync().GetAwaiter().GetResult();
-            if (_Listener != null) _Listener.DisposeAsync().GetAwaiter().GetResult();
         }
 
         /// <summary>

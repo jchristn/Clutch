@@ -3,6 +3,7 @@ namespace Clutch.Server
     using System;
     using System.Threading;
     using Clutch.Core.Database;
+    using Clutch.Core.Enums;
     using Clutch.Core.Security;
     using Clutch.Core.Services;
     using Clutch.Server.Services;
@@ -40,7 +41,15 @@ namespace Clutch.Server
             try
             {
                 database.InitializeAsync().GetAwaiter().GetResult();
-                logging.Info("[Clutch] database initialized (" + settings.Database.Type + " at " + settings.Database.Host + ":" + settings.Database.Port + "/" + settings.Database.DatabaseName + ")");
+                if (settings.Database.Type == DatabaseTypeEnum.Sqlite)
+                {
+                    logging.Info("[Clutch] database initialized (SQLite at " + settings.Database.FilePath + ")");
+                    logging.Warn("[Clutch] SQLite is single-node only. Do not run more than one Clutch node against a shared SQLite database; use PostgreSQL, MySQL, or SQL Server for multi-node clustering.");
+                }
+                else
+                {
+                    logging.Info("[Clutch] database initialized (" + settings.Database.Type + " at " + settings.Database.Host + ":" + settings.Database.Port + "/" + settings.Database.DatabaseName + ")");
+                }
                 DefaultSeeder.SeedAsync(database, message => logging.Info("[Clutch] " + message)).GetAwaiter().GetResult();
             }
             catch (Exception e)
@@ -96,6 +105,18 @@ namespace Clutch.Server
         {
             string? nodeId = Environment.GetEnvironmentVariable("CLUTCH_NODE_ID");
             if (!String.IsNullOrEmpty(nodeId)) settings.NodeId = nodeId;
+
+            string? dbType = Environment.GetEnvironmentVariable("CLUTCH_DB_TYPE");
+            if (!String.IsNullOrEmpty(dbType) && Enum.TryParse<DatabaseTypeEnum>(dbType, true, out DatabaseTypeEnum parsedType)) settings.Database.Type = parsedType;
+
+            string? dbFilePath = Environment.GetEnvironmentVariable("CLUTCH_DB_FILEPATH");
+            if (!String.IsNullOrEmpty(dbFilePath)) settings.Database.FilePath = dbFilePath;
+
+            string? dbSchema = Environment.GetEnvironmentVariable("CLUTCH_DB_SCHEMA");
+            if (!String.IsNullOrEmpty(dbSchema)) settings.Database.Schema = dbSchema;
+
+            string? dbManageSchema = Environment.GetEnvironmentVariable("CLUTCH_DB_MANAGE_SCHEMA");
+            if (!String.IsNullOrEmpty(dbManageSchema) && Boolean.TryParse(dbManageSchema, out bool manageSchema)) settings.Database.ManageSchema = manageSchema;
 
             string? dbHost = Environment.GetEnvironmentVariable("CLUTCH_DB_HOST");
             if (!String.IsNullOrEmpty(dbHost)) settings.Database.Host = dbHost;

@@ -1,17 +1,17 @@
-namespace Clutch.Core.Database.Postgresql
+namespace Clutch.Core.Database.Mysql
 {
     using System;
     using System.Data.Common;
     using Clutch.Core.Database.Ado;
     using Clutch.Core.Database.Sql;
     using Clutch.Core.Enums;
-    using Npgsql;
+    using MySqlConnector;
 
     /// <summary>
-    /// PostgreSQL database driver. Supplies a Npgsql connection and the PostgreSQL dialect; all data-access
-    /// logic is inherited from <see cref="AdoDatabaseDriver"/>.
+    /// MySQL database driver. Supplies a MySqlConnector connection and the MySQL dialect. Concurrent
+    /// acquirers serialize via InnoDB's FOR UPDATE gap lock on the unique (tenantid, lockkey) index.
     /// </summary>
-    public class PostgresqlDatabaseDriver : AdoDatabaseDriver
+    public class MysqlDatabaseDriver : AdoDatabaseDriver
     {
         #region Public-Members
 
@@ -20,7 +20,7 @@ namespace Clutch.Core.Database.Postgresql
         {
             get
             {
-                return DatabaseTypeEnum.Postgresql;
+                return DatabaseTypeEnum.Mysql;
             }
         }
 
@@ -33,8 +33,8 @@ namespace Clutch.Core.Database.Postgresql
         /// </summary>
         /// <param name="settings">Database settings.</param>
         /// <exception cref="ArgumentNullException">Thrown when settings is null.</exception>
-        public PostgresqlDatabaseDriver(DatabaseSettings settings)
-            : base(settings, new PostgresqlDialect())
+        public MysqlDatabaseDriver(DatabaseSettings settings)
+            : base(settings, new MysqlDialect())
         {
         }
 
@@ -45,7 +45,7 @@ namespace Clutch.Core.Database.Postgresql
         /// <inheritdoc />
         public override DbConnection CreateConnection()
         {
-            return new NpgsqlConnection(Settings.ToPostgresConnectionString());
+            return new MySqlConnection(Settings.ToMysqlConnectionString());
         }
 
         #endregion

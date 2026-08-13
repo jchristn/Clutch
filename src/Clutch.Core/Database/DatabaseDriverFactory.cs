@@ -3,12 +3,15 @@ namespace Clutch.Core.Database
     using System;
     using System.Threading;
     using System.Threading.Tasks;
+    using Clutch.Core.Database.Mysql;
     using Clutch.Core.Database.Postgresql;
+    using Clutch.Core.Database.Sqlite;
+    using Clutch.Core.Database.SqlServer;
     using Clutch.Core.Enums;
 
     /// <summary>
     /// Composition root for the data layer. Creates the driver for the configured provider. Clutch
-    /// implements Postgresql only; other providers throw until implemented.
+    /// implements PostgreSQL, SQLite, MySQL, and SQL Server.
     /// </summary>
     public static class DatabaseDriverFactory
     {
@@ -20,7 +23,7 @@ namespace Clutch.Core.Database
         /// <param name="settings">Database settings.</param>
         /// <returns>A database driver.</returns>
         /// <exception cref="ArgumentNullException">Thrown when settings is null.</exception>
-        /// <exception cref="NotSupportedException">Thrown when the provider is not implemented.</exception>
+        /// <exception cref="NotSupportedException">Thrown when the provider is not recognized.</exception>
         public static DatabaseDriverBase Create(DatabaseSettings settings)
         {
             if (settings == null) throw new ArgumentNullException(nameof(settings));
@@ -30,10 +33,11 @@ namespace Clutch.Core.Database
                 case DatabaseTypeEnum.Postgresql:
                     return new PostgresqlDatabaseDriver(settings);
                 case DatabaseTypeEnum.Sqlite:
+                    return new SqliteDatabaseDriver(settings);
                 case DatabaseTypeEnum.Mysql:
+                    return new MysqlDatabaseDriver(settings);
                 case DatabaseTypeEnum.SqlServer:
-                    throw new NotSupportedException(
-                        "Database provider '" + settings.Type + "' is not implemented. Clutch supports Postgresql only.");
+                    return new SqlServerDatabaseDriver(settings);
                 default:
                     throw new NotSupportedException("Unknown database type: " + settings.Type);
             }

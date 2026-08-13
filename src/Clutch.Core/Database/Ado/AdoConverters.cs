@@ -1,16 +1,18 @@
-namespace Clutch.Core.Database.Postgresql
+namespace Clutch.Core.Database.Ado
 {
     using System;
     using System.Collections.Generic;
+    using System.Data.Common;
     using System.Text.Json;
     using Clutch.Core.Enums;
     using Clutch.Core.Models;
-    using Npgsql;
 
     /// <summary>
-    /// Maps PostgreSQL result rows to Clutch domain models, and provides typed column-read helpers.
+    /// Maps <see cref="DbDataReader"/> rows to Clutch domain models across every provider. Column access is
+    /// by name, and value coercion tolerates the small type differences between providers (for example,
+    /// COUNT(*) returning int on SQL Server and long elsewhere).
     /// </summary>
-    public static class Converters
+    public static class AdoConverters
     {
         #region Public-Methods
 
@@ -20,7 +22,7 @@ namespace Clutch.Core.Database.Postgresql
         /// <param name="reader">Reader.</param>
         /// <param name="column">Column name.</param>
         /// <returns>The value, or empty string if null.</returns>
-        public static string Str(NpgsqlDataReader reader, string column)
+        public static string Str(DbDataReader reader, string column)
         {
             int ordinal = reader.GetOrdinal(column);
             return reader.IsDBNull(ordinal) ? string.Empty : reader.GetString(ordinal);
@@ -32,7 +34,7 @@ namespace Clutch.Core.Database.Postgresql
         /// <param name="reader">Reader.</param>
         /// <param name="column">Column name.</param>
         /// <returns>The value, or null.</returns>
-        public static string? NullableStr(NpgsqlDataReader reader, string column)
+        public static string? NullableStr(DbDataReader reader, string column)
         {
             int ordinal = reader.GetOrdinal(column);
             return reader.IsDBNull(ordinal) ? null : reader.GetString(ordinal);
@@ -44,10 +46,10 @@ namespace Clutch.Core.Database.Postgresql
         /// <param name="reader">Reader.</param>
         /// <param name="column">Column name.</param>
         /// <returns>The value, or 0 if null.</returns>
-        public static int Int(NpgsqlDataReader reader, string column)
+        public static int Int(DbDataReader reader, string column)
         {
             int ordinal = reader.GetOrdinal(column);
-            return reader.IsDBNull(ordinal) ? 0 : reader.GetInt32(ordinal);
+            return reader.IsDBNull(ordinal) ? 0 : Convert.ToInt32(reader.GetValue(ordinal));
         }
 
         /// <summary>
@@ -56,10 +58,10 @@ namespace Clutch.Core.Database.Postgresql
         /// <param name="reader">Reader.</param>
         /// <param name="column">Column name.</param>
         /// <returns>The value, or 0 if null.</returns>
-        public static long Long(NpgsqlDataReader reader, string column)
+        public static long Long(DbDataReader reader, string column)
         {
             int ordinal = reader.GetOrdinal(column);
-            return reader.IsDBNull(ordinal) ? 0 : reader.GetInt64(ordinal);
+            return reader.IsDBNull(ordinal) ? 0 : Convert.ToInt64(reader.GetValue(ordinal));
         }
 
         /// <summary>
@@ -68,10 +70,10 @@ namespace Clutch.Core.Database.Postgresql
         /// <param name="reader">Reader.</param>
         /// <param name="column">Column name.</param>
         /// <returns>The value, or null.</returns>
-        public static long? NullableLong(NpgsqlDataReader reader, string column)
+        public static long? NullableLong(DbDataReader reader, string column)
         {
             int ordinal = reader.GetOrdinal(column);
-            return reader.IsDBNull(ordinal) ? null : reader.GetInt64(ordinal);
+            return reader.IsDBNull(ordinal) ? null : Convert.ToInt64(reader.GetValue(ordinal));
         }
 
         /// <summary>
@@ -80,22 +82,25 @@ namespace Clutch.Core.Database.Postgresql
         /// <param name="reader">Reader.</param>
         /// <param name="column">Column name.</param>
         /// <returns>The value, or 0 if null.</returns>
-        public static double Double(NpgsqlDataReader reader, string column)
+        public static double Double(DbDataReader reader, string column)
         {
             int ordinal = reader.GetOrdinal(column);
-            return reader.IsDBNull(ordinal) ? 0 : reader.GetDouble(ordinal);
+            return reader.IsDBNull(ordinal) ? 0 : Convert.ToDouble(reader.GetValue(ordinal));
         }
 
         /// <summary>
-        /// Read a boolean column.
+        /// Read a boolean column, tolerating providers that store booleans as integers.
         /// </summary>
         /// <param name="reader">Reader.</param>
         /// <param name="column">Column name.</param>
         /// <returns>The value, or false if null.</returns>
-        public static bool Bool(NpgsqlDataReader reader, string column)
+        public static bool Bool(DbDataReader reader, string column)
         {
             int ordinal = reader.GetOrdinal(column);
-            return !reader.IsDBNull(ordinal) && reader.GetBoolean(ordinal);
+            if (reader.IsDBNull(ordinal)) return false;
+            object value = reader.GetValue(ordinal);
+            if (value is bool b) return b;
+            return Convert.ToInt64(value) != 0;
         }
 
         /// <summary>
@@ -103,8 +108,8 @@ namespace Clutch.Core.Database.Postgresql
         /// </summary>
         /// <param name="reader">Reader.</param>
         /// <param name="column">Column name.</param>
-        /// <returns>The value, or DateTime.UtcNow if null.</returns>
-        public static DateTime Date(NpgsqlDataReader reader, string column)
+        /// <returns>The value as UTC, or DateTime.UtcNow if null.</returns>
+        public static DateTime Date(DbDataReader reader, string column)
         {
             int ordinal = reader.GetOrdinal(column);
             return reader.IsDBNull(ordinal) ? DateTime.UtcNow : DateTime.SpecifyKind(reader.GetDateTime(ordinal), DateTimeKind.Utc);
@@ -115,8 +120,8 @@ namespace Clutch.Core.Database.Postgresql
         /// </summary>
         /// <param name="reader">Reader.</param>
         /// <param name="column">Column name.</param>
-        /// <returns>The value, or null.</returns>
-        public static DateTime? NullableDate(NpgsqlDataReader reader, string column)
+        /// <returns>The value as UTC, or null.</returns>
+        public static DateTime? NullableDate(DbDataReader reader, string column)
         {
             int ordinal = reader.GetOrdinal(column);
             return reader.IsDBNull(ordinal) ? null : DateTime.SpecifyKind(reader.GetDateTime(ordinal), DateTimeKind.Utc);
@@ -127,7 +132,7 @@ namespace Clutch.Core.Database.Postgresql
         /// </summary>
         /// <param name="reader">Reader positioned on a tenants row.</param>
         /// <returns>The tenant.</returns>
-        public static Tenant ToTenant(NpgsqlDataReader reader)
+        public static Tenant ToTenant(DbDataReader reader)
         {
             Tenant tenant = new Tenant();
             tenant.Id = Str(reader, "id");
@@ -147,7 +152,7 @@ namespace Clutch.Core.Database.Postgresql
         /// </summary>
         /// <param name="reader">Reader positioned on a users row.</param>
         /// <returns>The user.</returns>
-        public static User ToUser(NpgsqlDataReader reader)
+        public static User ToUser(DbDataReader reader)
         {
             User user = new User();
             user.Id = Str(reader, "id");
@@ -170,7 +175,7 @@ namespace Clutch.Core.Database.Postgresql
         /// </summary>
         /// <param name="reader">Reader positioned on a credentials row.</param>
         /// <returns>The credential.</returns>
-        public static Credential ToCredential(NpgsqlDataReader reader)
+        public static Credential ToCredential(DbDataReader reader)
         {
             Credential credential = new Credential();
             credential.Id = Str(reader, "id");
@@ -193,7 +198,7 @@ namespace Clutch.Core.Database.Postgresql
         /// </summary>
         /// <param name="reader">Reader positioned on an auth_sessions row.</param>
         /// <returns>The session.</returns>
-        public static AuthSession ToAuthSession(NpgsqlDataReader reader)
+        public static AuthSession ToAuthSession(DbDataReader reader)
         {
             AuthSession session = new AuthSession();
             session.Id = Str(reader, "id");
@@ -220,7 +225,7 @@ namespace Clutch.Core.Database.Postgresql
         /// </summary>
         /// <param name="reader">Reader positioned on a lock_definitions row.</param>
         /// <returns>The definition.</returns>
-        public static LockDefinition ToLockDefinition(NpgsqlDataReader reader)
+        public static LockDefinition ToLockDefinition(DbDataReader reader)
         {
             LockDefinition definition = new LockDefinition();
             definition.Id = Str(reader, "id");
@@ -246,7 +251,7 @@ namespace Clutch.Core.Database.Postgresql
         /// </summary>
         /// <param name="reader">Reader positioned on a lock_holders row.</param>
         /// <returns>The holder.</returns>
-        public static LockHolder ToLockHolder(NpgsqlDataReader reader)
+        public static LockHolder ToLockHolder(DbDataReader reader)
         {
             LockHolder holder = new LockHolder();
             holder.Id = Str(reader, "id");
@@ -272,7 +277,7 @@ namespace Clutch.Core.Database.Postgresql
         /// </summary>
         /// <param name="reader">Reader positioned on a lock_audit row.</param>
         /// <returns>The entry.</returns>
-        public static LockAuditEntry ToLockAuditEntry(NpgsqlDataReader reader)
+        public static LockAuditEntry ToLockAuditEntry(DbDataReader reader)
         {
             LockAuditEntry entry = new LockAuditEntry();
             entry.Id = Str(reader, "id");
@@ -296,7 +301,7 @@ namespace Clutch.Core.Database.Postgresql
         /// <param name="reader">Reader positioned on a request_history row.</param>
         /// <param name="includeBodies">Whether the projection includes header and body columns.</param>
         /// <returns>The entry.</returns>
-        public static RequestHistoryEntry ToRequestHistoryEntry(NpgsqlDataReader reader, bool includeBodies)
+        public static RequestHistoryEntry ToRequestHistoryEntry(DbDataReader reader, bool includeBodies)
         {
             RequestHistoryEntry entry = new RequestHistoryEntry();
             entry.Id = Str(reader, "id");

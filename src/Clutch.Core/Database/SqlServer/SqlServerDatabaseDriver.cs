@@ -1,17 +1,18 @@
-namespace Clutch.Core.Database.Postgresql
+namespace Clutch.Core.Database.SqlServer
 {
     using System;
     using System.Data.Common;
     using Clutch.Core.Database.Ado;
     using Clutch.Core.Database.Sql;
     using Clutch.Core.Enums;
-    using Npgsql;
+    using Microsoft.Data.SqlClient;
 
     /// <summary>
-    /// PostgreSQL database driver. Supplies a Npgsql connection and the PostgreSQL dialect; all data-access
-    /// logic is inherited from <see cref="AdoDatabaseDriver"/>.
+    /// Microsoft SQL Server database driver. Supplies a Microsoft.Data.SqlClient connection and the SQL
+    /// Server dialect. Concurrent acquirers serialize via UPDLOCK/ROWLOCK/HOLDLOCK range locks on the
+    /// definition row read.
     /// </summary>
-    public class PostgresqlDatabaseDriver : AdoDatabaseDriver
+    public class SqlServerDatabaseDriver : AdoDatabaseDriver
     {
         #region Public-Members
 
@@ -20,7 +21,7 @@ namespace Clutch.Core.Database.Postgresql
         {
             get
             {
-                return DatabaseTypeEnum.Postgresql;
+                return DatabaseTypeEnum.SqlServer;
             }
         }
 
@@ -33,8 +34,8 @@ namespace Clutch.Core.Database.Postgresql
         /// </summary>
         /// <param name="settings">Database settings.</param>
         /// <exception cref="ArgumentNullException">Thrown when settings is null.</exception>
-        public PostgresqlDatabaseDriver(DatabaseSettings settings)
-            : base(settings, new PostgresqlDialect())
+        public SqlServerDatabaseDriver(DatabaseSettings settings)
+            : base(settings, new SqlServerDialect())
         {
         }
 
@@ -45,7 +46,7 @@ namespace Clutch.Core.Database.Postgresql
         /// <inheritdoc />
         public override DbConnection CreateConnection()
         {
-            return new NpgsqlConnection(Settings.ToPostgresConnectionString());
+            return new SqlConnection(Settings.ToSqlServerConnectionString());
         }
 
         #endregion

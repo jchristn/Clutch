@@ -143,7 +143,10 @@ namespace Clutch.Core.Services
         /// <returns>True if a holder was released.</returns>
         public async Task<bool> ReleaseAsync(string tenantId, string holderId, string sessionId, CancellationToken token = default)
         {
-            return await _Holders.ReleaseAsync(tenantId, holderId, sessionId, token).ConfigureAwait(false);
+            LockHolder? holder = await _Holders.ReadAsync(tenantId, holderId, token).ConfigureAwait(false);
+            bool released = await _Holders.ReleaseAsync(tenantId, holderId, sessionId, token).ConfigureAwait(false);
+            if (released && holder != null) _Coordinator.SignalKey(holder.TenantId, holder.LockKey);
+            return released;
         }
 
         /// <summary>

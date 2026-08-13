@@ -3,13 +3,11 @@ namespace Test.Shared
     using System;
     using System.Collections.Concurrent;
     using System.Collections.Generic;
+    using System.IO;
     using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
-    using Clutch.Core;
     using Clutch.Core.Database;
-    using Clutch.Core.Database.Postgresql;
-    using Clutch.Core.Database.Postgresql.Notifications;
     using Clutch.Core.Enums;
     using Clutch.Core.Models;
     using Clutch.Core.Requests;
@@ -18,17 +16,17 @@ namespace Test.Shared
     using Touchstone.Core;
 
     /// <summary>
-    /// Clutch shared test suites: pure compatibility logic, database-backed lock engine correctness,
-    /// LISTEN/NOTIFY, tenant isolation, and a randomized soak with an invariant oracle.
+    /// Clutch shared test suites: pure compatibility logic plus a database-backed matrix that runs the lock
+    /// engine correctness, tenant isolation, polling-wakeup, and randomized soak suites once per available
+    /// provider. SQLite runs in-process and is always available; PostgreSQL, MySQL, and SQL Server run when
+    /// their connection details are supplied and the provider is listed in CLUTCH_TEST_PROVIDERS.
     /// </summary>
     public static class ClutchSuites
     {
         #region Private-Members
 
-        private const string _SuiteId = "clutch";
-        private static DatabaseDriverBase? _Database;
-        private static bool _DbAvailable = false;
-        private static string _DbHint = string.Empty;
+        private static bool _Initialized = false;
+        private static readonly List<ProviderContext> _Providers = new List<ProviderContext>();
 
         #endregion
 
@@ -40,47 +38,57 @@ namespace Test.Shared
         /// <returns>Test suite descriptors.</returns>
         public static IReadOnlyList<TestSuiteDescriptor> GetSuites()
         {
-            InitDatabase();
-            bool skipDb = !_DbAvailable;
-            string dbReason = "PostgreSQL not available (" + _DbHint + ").";
-
-            List<TestCaseDescriptor> cases = new List<TestCaseDescriptor>();
-
-            // Pure compatibility logic (no database).
-            cases.Add(SyncCase("compat-read-shared", "Compat: reads are shared", CompatReadShared));
-            cases.Add(SyncCase("compat-read-max", "Compat: reader maximum enforced", CompatReadMax));
-            cases.Add(SyncCase("compat-write-blocks-reads", "Compat: write blocks reads by policy", CompatWriteBlocksReads));
-            cases.Add(SyncCase("compat-write-exclusive", "Compat: writes are exclusive", CompatWriteExclusive));
-            cases.Add(SyncCase("compat-write-shared", "Compat: shared writers up to max", CompatWriteShared));
-            cases.Add(SyncCase("compat-delete-exclusive", "Compat: delete is fully exclusive", CompatDeleteExclusive));
-
-            // Database-backed lock engine.
-            cases.Add(AsyncCase("engine-read-shared", "Engine: two reads share a key", EngineReadSharedAsync, skipDb, dbReason));
-            cases.Add(AsyncCase("engine-read-max-policy", "Engine: first-acquirer read maximum", EngineReadMaxPolicyAsync, skipDb, dbReason));
-            cases.Add(AsyncCase("engine-write-blocks-read", "Engine: held read blocks write", EngineWriteBlocksReadAsync, skipDb, dbReason));
-            cases.Add(AsyncCase("engine-write-exclusive", "Engine: writes are exclusive", EngineWriteExclusiveAsync, skipDb, dbReason));
-            cases.Add(AsyncCase("engine-delete-exclusive", "Engine: delete requires an empty key", EngineDeleteExclusiveAsync, skipDb, dbReason));
-            cases.Add(AsyncCase("engine-fencing-monotonic", "Engine: fencing tokens are monotonic", EngineFencingMonotonicAsync, skipDb, dbReason));
-            cases.Add(AsyncCase("engine-lease-expiry", "Engine: expired holder is reclaimed", EngineLeaseExpiryAsync, skipDb, dbReason));
-            cases.Add(AsyncCase("engine-release-session", "Engine: release all for a session", EngineReleaseSessionAsync, skipDb, dbReason));
-            cases.Add(AsyncCase("engine-wait-granted", "Engine: waiter is granted on release", EngineWaitGrantedAsync, skipDb, dbReason));
-            cases.Add(AsyncCase("engine-wait-timeout", "Engine: waiter times out", EngineWaitTimeoutAsync, skipDb, dbReason));
-
-            // LISTEN/NOTIFY.
-            cases.Add(AsyncCase("notify-fires", "Notify: release fires LISTEN/NOTIFY", NotifyFiresAsync, skipDb, dbReason));
-
-            // Database and isolation.
-            cases.Add(AsyncCase("db-tenant-crud", "Database: tenant CRUD", DbTenantCrudAsync, skipDb, dbReason));
-            cases.Add(AsyncCase("db-user-isolation", "Database: user tenant isolation", DbUserIsolationAsync, skipDb, dbReason));
-            cases.Add(AsyncCase("db-credential-accesskey", "Database: credential by access key", DbCredentialByAccessKeyAsync, skipDb, dbReason));
-            cases.Add(AsyncCase("db-cascade-delete", "Database: tenant cascade delete", DbCascadeDeleteAsync, skipDb, dbReason));
-
-            // Randomized soak with invariant oracle.
-            cases.Add(AsyncCase("soak-randomized", "Soak: randomized concurrency invariants", SoakRandomizedAsync, skipDb, dbReason));
+            InitProviders();
 
             List<TestSuiteDescriptor> suites = new List<TestSuiteDescriptor>();
-            suites.Add(new TestSuiteDescriptor(_SuiteId, "Clutch Shared Suite", cases));
+
+            // Pure compatibility logic (no database), run once.
+            List<TestCaseDescriptor> compat = new List<TestCaseDescriptor>();
+            compat.Add(SyncCase("compat", "compat-read-shared", "Compat: reads are shared", CompatReadShared));
+            compat.Add(SyncCase("compat", "compat-read-max", "Compat: reader maximum enforced", CompatReadMax));
+            compat.Add(SyncCase("compat", "compat-write-blocks-reads", "Compat: write blocks reads by policy", CompatWriteBlocksReads));
+            compat.Add(SyncCase("compat", "compat-write-exclusive", "Compat: writes are exclusive", CompatWriteExclusive));
+            compat.Add(SyncCase("compat", "compat-write-shared", "Compat: shared writers up to max", CompatWriteShared));
+            compat.Add(SyncCase("compat", "compat-delete-exclusive", "Compat: delete is fully exclusive", CompatDeleteExclusive));
+            suites.Add(new TestSuiteDescriptor("compat", "Clutch Compatibility Suite", compat));
+
+            // Database-backed matrix, one suite per provider.
+            foreach (ProviderContext provider in _Providers)
+            {
+                suites.Add(new TestSuiteDescriptor(provider.SuiteId, "Clutch " + provider.Name + " Suite", BuildDatabaseCases(provider)));
+            }
+
             return suites;
+        }
+
+        #endregion
+
+        #region Case-Builder
+
+        private static List<TestCaseDescriptor> BuildDatabaseCases(ProviderContext provider)
+        {
+            bool skip = !provider.Available;
+            string reason = provider.Name + " not available (" + provider.Hint + ").";
+            string suiteId = provider.SuiteId;
+
+            List<TestCaseDescriptor> cases = new List<TestCaseDescriptor>();
+            cases.Add(DbCase(suiteId, "engine-read-shared", "Engine: two reads share a key", provider, EngineReadSharedAsync, skip, reason));
+            cases.Add(DbCase(suiteId, "engine-read-max-policy", "Engine: first-acquirer read maximum", provider, EngineReadMaxPolicyAsync, skip, reason));
+            cases.Add(DbCase(suiteId, "engine-write-blocks-read", "Engine: held read blocks write", provider, EngineWriteBlocksReadAsync, skip, reason));
+            cases.Add(DbCase(suiteId, "engine-write-exclusive", "Engine: writes are exclusive", provider, EngineWriteExclusiveAsync, skip, reason));
+            cases.Add(DbCase(suiteId, "engine-delete-exclusive", "Engine: delete requires an empty key", provider, EngineDeleteExclusiveAsync, skip, reason));
+            cases.Add(DbCase(suiteId, "engine-fencing-monotonic", "Engine: fencing tokens are monotonic", provider, EngineFencingMonotonicAsync, skip, reason));
+            cases.Add(DbCase(suiteId, "engine-lease-expiry", "Engine: expired holder is reclaimed", provider, EngineLeaseExpiryAsync, skip, reason));
+            cases.Add(DbCase(suiteId, "engine-release-session", "Engine: release all for a session", provider, EngineReleaseSessionAsync, skip, reason));
+            cases.Add(DbCase(suiteId, "engine-wait-granted", "Engine: waiter is granted on release", provider, EngineWaitGrantedAsync, skip, reason));
+            cases.Add(DbCase(suiteId, "engine-wait-timeout", "Engine: waiter times out", provider, EngineWaitTimeoutAsync, skip, reason));
+            cases.Add(DbCase(suiteId, "waiter-poll-wakeup", "Engine: waiter woken by polling after unsignaled release", provider, WaiterPollWakeupAsync, skip, reason));
+            cases.Add(DbCase(suiteId, "db-tenant-crud", "Database: tenant CRUD", provider, DbTenantCrudAsync, skip, reason));
+            cases.Add(DbCase(suiteId, "db-user-isolation", "Database: user tenant isolation", provider, DbUserIsolationAsync, skip, reason));
+            cases.Add(DbCase(suiteId, "db-credential-accesskey", "Database: credential by access key", provider, DbCredentialByAccessKeyAsync, skip, reason));
+            cases.Add(DbCase(suiteId, "db-cascade-delete", "Database: tenant cascade delete", provider, DbCascadeDeleteAsync, skip, reason));
+            cases.Add(DbCase(suiteId, "soak-randomized", "Soak: randomized concurrency invariants", provider, SoakRandomizedAsync, skip, reason));
+            return cases;
         }
 
         #endregion
@@ -155,9 +163,8 @@ namespace Test.Shared
 
         #region Engine-Tests
 
-        private static async Task EngineReadSharedAsync(CancellationToken ct)
+        private static async Task EngineReadSharedAsync(DatabaseDriverBase db, CancellationToken ct)
         {
-            DatabaseDriverBase db = Db();
             LockEngine engine = MakeEngine(db, "n1");
             Tenant tenant = await NewTenantAsync(db, ct).ConfigureAwait(false);
             string key = NewKey();
@@ -169,9 +176,8 @@ namespace Test.Shared
             Assert(holders.Count == 2, "expected two active read holders");
         }
 
-        private static async Task EngineReadMaxPolicyAsync(CancellationToken ct)
+        private static async Task EngineReadMaxPolicyAsync(DatabaseDriverBase db, CancellationToken ct)
         {
-            DatabaseDriverBase db = Db();
             LockEngine engine = MakeEngine(db, "n1");
             Tenant tenant = await NewTenantAsync(db, ct).ConfigureAwait(false);
             string key = NewKey();
@@ -184,9 +190,8 @@ namespace Test.Shared
             Assert(third.Result == LockResultEnum.Denied, "third reader should be denied by first-acquirer policy");
         }
 
-        private static async Task EngineWriteBlocksReadAsync(CancellationToken ct)
+        private static async Task EngineWriteBlocksReadAsync(DatabaseDriverBase db, CancellationToken ct)
         {
-            DatabaseDriverBase db = Db();
             LockEngine engine = MakeEngine(db, "n1");
             Tenant tenant = await NewTenantAsync(db, ct).ConfigureAwait(false);
             string key = NewKey();
@@ -196,9 +201,8 @@ namespace Test.Shared
             Assert(write.Result == LockResultEnum.Denied, "write should be denied while a read is held");
         }
 
-        private static async Task EngineWriteExclusiveAsync(CancellationToken ct)
+        private static async Task EngineWriteExclusiveAsync(DatabaseDriverBase db, CancellationToken ct)
         {
-            DatabaseDriverBase db = Db();
             LockEngine engine = MakeEngine(db, "n1");
             Tenant tenant = await NewTenantAsync(db, ct).ConfigureAwait(false);
             string key = NewKey();
@@ -208,9 +212,8 @@ namespace Test.Shared
             Assert(w1.IsGranted() && w2.Result == LockResultEnum.Denied, "second exclusive write should be denied");
         }
 
-        private static async Task EngineDeleteExclusiveAsync(CancellationToken ct)
+        private static async Task EngineDeleteExclusiveAsync(DatabaseDriverBase db, CancellationToken ct)
         {
-            DatabaseDriverBase db = Db();
             LockEngine engine = MakeEngine(db, "n1");
             Tenant tenant = await NewTenantAsync(db, ct).ConfigureAwait(false);
             string key = NewKey();
@@ -225,9 +228,8 @@ namespace Test.Shared
             Assert(del2.IsGranted() && read2.Result == LockResultEnum.Denied, "held delete should block reads");
         }
 
-        private static async Task EngineFencingMonotonicAsync(CancellationToken ct)
+        private static async Task EngineFencingMonotonicAsync(DatabaseDriverBase db, CancellationToken ct)
         {
-            DatabaseDriverBase db = Db();
             LockEngine engine = MakeEngine(db, "n1");
             Tenant tenant = await NewTenantAsync(db, ct).ConfigureAwait(false);
             string key = NewKey();
@@ -245,9 +247,8 @@ namespace Test.Shared
             Assert(previous == 5, "expected five increments of the fencing counter");
         }
 
-        private static async Task EngineLeaseExpiryAsync(CancellationToken ct)
+        private static async Task EngineLeaseExpiryAsync(DatabaseDriverBase db, CancellationToken ct)
         {
-            DatabaseDriverBase db = Db();
             LockEngine engine = MakeEngine(db, "n1");
             Tenant tenant = await NewTenantAsync(db, ct).ConfigureAwait(false);
             string key = NewKey();
@@ -259,9 +260,8 @@ namespace Test.Shared
             Assert(read.IsGranted(), "read should be granted after the write's lease expired and was reclaimed");
         }
 
-        private static async Task EngineReleaseSessionAsync(CancellationToken ct)
+        private static async Task EngineReleaseSessionAsync(DatabaseDriverBase db, CancellationToken ct)
         {
-            DatabaseDriverBase db = Db();
             LockEngine engine = MakeEngine(db, "n1");
             Tenant tenant = await NewTenantAsync(db, ct).ConfigureAwait(false);
             string key1 = NewKey();
@@ -276,9 +276,8 @@ namespace Test.Shared
             Assert(h1.Count == 0 && h2.Count == 0, "release-all-for-session should free both keys");
         }
 
-        private static async Task EngineWaitGrantedAsync(CancellationToken ct)
+        private static async Task EngineWaitGrantedAsync(DatabaseDriverBase db, CancellationToken ct)
         {
-            DatabaseDriverBase db = Db();
             LockEngine engine = MakeEngine(db, "n1");
             Tenant tenant = await NewTenantAsync(db, ct).ConfigureAwait(false);
             string key = NewKey();
@@ -295,9 +294,8 @@ namespace Test.Shared
             Assert(result.Attempts >= 2, "waiter should have retried at least once");
         }
 
-        private static async Task EngineWaitTimeoutAsync(CancellationToken ct)
+        private static async Task EngineWaitTimeoutAsync(DatabaseDriverBase db, CancellationToken ct)
         {
-            DatabaseDriverBase db = Db();
             LockEngine engine = MakeEngine(db, "n1");
             Tenant tenant = await NewTenantAsync(db, ct).ConfigureAwait(false);
             string key = NewKey();
@@ -307,53 +305,31 @@ namespace Test.Shared
             Assert(result.Result == LockResultEnum.Timeout, "waiter should time out when the lock is never released");
         }
 
-        #endregion
-
-        #region Notify-Test
-
-        private static async Task NotifyFiresAsync(CancellationToken ct)
+        private static async Task WaiterPollWakeupAsync(DatabaseDriverBase db, CancellationToken ct)
         {
-            DatabaseDriverBase db = Db();
-            PostgresqlDatabaseDriver pg = (PostgresqlDatabaseDriver)db;
+            // Prove the polling fallback wakes a waiter even when no in-process signal is delivered: the
+            // holder is removed via the DB revoke path, which does not signal the coordinator.
             LockEngine engine = MakeEngine(db, "n1");
             Tenant tenant = await NewTenantAsync(db, ct).ConfigureAwait(false);
             string key = NewKey();
 
-            bool fired = false;
-            string firedKey = string.Empty;
-            PostgresNotificationListener listener = new PostgresNotificationListener(pg, Constants.LockReleaseChannel);
-            listener.KeyReleased += (t, k) =>
-            {
-                if (t == tenant.Id && k == key)
-                {
-                    fired = true;
-                    firedKey = k;
-                }
-            };
-            await listener.StartAsync(ct).ConfigureAwait(false);
+            LockResult held = await engine.AcquireAsync(Req(tenant.Id, key, LockModeEnum.Write, "holder"), LockBehaviorEnum.FailFast, null, ct).ConfigureAwait(false);
+            Assert(held.IsGranted() && held.Holder != null, "initial write should be granted");
 
-            try
-            {
-                LockResult held = await engine.AcquireAsync(Req(tenant.Id, key, LockModeEnum.Write, "s1"), LockBehaviorEnum.FailFast, null, ct).ConfigureAwait(false);
-                await engine.ReleaseAsync(tenant.Id, held.Holder!.Id, "s1", ct).ConfigureAwait(false);
+            Task<LockResult> waiter = engine.AcquireAsync(Req(tenant.Id, key, LockModeEnum.Write, "waiter"), LockBehaviorEnum.Wait, 5000, ct);
+            await Task.Delay(300, ct).ConfigureAwait(false);
+            await db.LockHolders.RevokeAsync(tenant.Id, held.Holder!.Id, "poll-wakeup-test", ct).ConfigureAwait(false);
 
-                for (int i = 0; i < 50 && !fired; i++) await Task.Delay(100, ct).ConfigureAwait(false);
-            }
-            finally
-            {
-                await listener.DisposeAsync().ConfigureAwait(false);
-            }
-
-            Assert(fired && firedKey == key, "LISTEN/NOTIFY should deliver a release notification for the key");
+            LockResult result = await waiter.ConfigureAwait(false);
+            Assert(result.IsGranted(), "waiter should be granted by polling after an unsignaled release");
         }
 
         #endregion
 
         #region Database-Tests
 
-        private static async Task DbTenantCrudAsync(CancellationToken ct)
+        private static async Task DbTenantCrudAsync(DatabaseDriverBase db, CancellationToken ct)
         {
-            DatabaseDriverBase db = Db();
             Tenant tenant = new Tenant();
             tenant.Name = "crud-" + Guid.NewGuid().ToString("N");
             tenant = await db.Tenants.CreateAsync(tenant, ct).ConfigureAwait(false);
@@ -374,9 +350,8 @@ namespace Test.Shared
             Assert(deleted && afterDelete == null, "tenant delete should remove the tenant");
         }
 
-        private static async Task DbUserIsolationAsync(CancellationToken ct)
+        private static async Task DbUserIsolationAsync(DatabaseDriverBase db, CancellationToken ct)
         {
-            DatabaseDriverBase db = Db();
             Tenant a = await NewTenantAsync(db, ct).ConfigureAwait(false);
             Tenant b = await NewTenantAsync(db, ct).ConfigureAwait(false);
             string email = "user@example.com";
@@ -394,9 +369,8 @@ namespace Test.Shared
             Assert(!enumB.Any(u => u.Id == ua.Id), "tenant B enumeration must not include tenant A's user");
         }
 
-        private static async Task DbCredentialByAccessKeyAsync(CancellationToken ct)
+        private static async Task DbCredentialByAccessKeyAsync(DatabaseDriverBase db, CancellationToken ct)
         {
-            DatabaseDriverBase db = Db();
             Tenant tenant = await NewTenantAsync(db, ct).ConfigureAwait(false);
             string accessKey = "access_" + Guid.NewGuid().ToString("N");
 
@@ -410,9 +384,8 @@ namespace Test.Shared
             Assert(found != null && found!.Id == credential.Id, "credential should be found by access key");
         }
 
-        private static async Task DbCascadeDeleteAsync(CancellationToken ct)
+        private static async Task DbCascadeDeleteAsync(DatabaseDriverBase db, CancellationToken ct)
         {
-            DatabaseDriverBase db = Db();
             LockEngine engine = MakeEngine(db, "n1");
             Tenant tenant = await NewTenantAsync(db, ct).ConfigureAwait(false);
 
@@ -434,9 +407,8 @@ namespace Test.Shared
 
         #region Soak-Test
 
-        private static async Task SoakRandomizedAsync(CancellationToken ct)
+        private static async Task SoakRandomizedAsync(DatabaseDriverBase db, CancellationToken ct)
         {
-            DatabaseDriverBase db = Db();
             LockEngine engine = MakeEngine(db, "soak");
             Tenant tenant = await NewTenantAsync(db, ct).ConfigureAwait(false);
 
@@ -444,7 +416,6 @@ namespace Test.Shared
             int clientCount = EnvInt("CLUTCH_SOAK_CLIENTS", 16);
             int seed = EnvInt("CLUTCH_SOAK_SEED", 20260808);
 
-            // Fixed array of keys with varied policies, set by pre-seeding definitions.
             int keyCount = 8;
             string[] keys = new string[keyCount];
             for (int i = 0; i < keyCount; i++)
@@ -491,7 +462,6 @@ namespace Test.Shared
                 }, CancellationToken.None));
             }
 
-            // Invariant checker.
             Task checker = Task.Run(async () =>
             {
                 Random rng = new Random(seed + 9999);
@@ -509,7 +479,6 @@ namespace Test.Shared
             await Task.WhenAll(clients).ConfigureAwait(false);
             await checker.ConfigureAwait(false);
 
-            // Final invariant sweep and quiescence check.
             foreach (string key in keys)
             {
                 string? problem = await CheckKeyInvariantAsync(db, tenant.Id, key, ct).ConfigureAwait(false);
@@ -546,18 +515,31 @@ namespace Test.Shared
 
         #endregion
 
-        #region Private-Helpers
+        #region Provider-Initialization
 
-        private static void InitDatabase()
+        private static void InitProviders()
         {
-            if (_Database != null || _DbAvailable) return;
-            DatabaseSettings settings = new DatabaseSettings();
-            settings.Host = Env("CLUTCH_TEST_DB_HOST", "localhost");
-            settings.Port = EnvInt("CLUTCH_TEST_DB_PORT", 5544);
-            settings.DatabaseName = Env("CLUTCH_TEST_DB_DATABASE", "clutch");
-            settings.Username = Env("CLUTCH_TEST_DB_USERNAME", "postgres");
-            settings.Password = Env("CLUTCH_TEST_DB_PASSWORD", "postgres");
-            _DbHint = settings.Host + ":" + settings.Port + "/" + settings.DatabaseName;
+            if (_Initialized) return;
+            _Initialized = true;
+
+            string list = Env("CLUTCH_TEST_PROVIDERS", Env("CLUTCH_TEST_DB_TYPE", "sqlite"));
+            HashSet<string> requested = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (string part in list.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)) requested.Add(part);
+
+            if (requested.Contains("sqlite")) _Providers.Add(BuildProvider("SQLite", "clutch-sqlite", SqliteSettings()));
+            if (requested.Contains("postgresql") || requested.Contains("postgres")) _Providers.Add(BuildProvider("PostgreSQL", "clutch-postgresql", PostgresSettings()));
+            if (requested.Contains("mysql")) _Providers.Add(BuildProvider("MySQL", "clutch-mysql", MysqlSettings()));
+            if (requested.Contains("sqlserver") || requested.Contains("mssql")) _Providers.Add(BuildProvider("SQL Server", "clutch-sqlserver", SqlServerSettings()));
+
+            if (_Providers.Count == 0) _Providers.Add(BuildProvider("SQLite", "clutch-sqlite", SqliteSettings()));
+        }
+
+        private static ProviderContext BuildProvider(string name, string suiteId, DatabaseSettings settings)
+        {
+            ProviderContext context = new ProviderContext();
+            context.Name = name;
+            context.SuiteId = suiteId;
+            context.Hint = settings.Type == DatabaseTypeEnum.Sqlite ? settings.FilePath : settings.Host + ":" + settings.Port + "/" + settings.DatabaseName;
 
             try
             {
@@ -566,8 +548,8 @@ namespace Test.Shared
                 bool ok = driver.PingAsync().GetAwaiter().GetResult();
                 if (ok)
                 {
-                    _Database = driver;
-                    _DbAvailable = true;
+                    context.Driver = driver;
+                    context.Available = true;
                 }
                 else
                 {
@@ -576,16 +558,60 @@ namespace Test.Shared
             }
             catch (Exception e)
             {
-                _DbHint = _DbHint + "; " + e.Message;
-                _DbAvailable = false;
+                context.Hint = context.Hint + "; " + e.Message;
+                context.Available = false;
             }
+
+            return context;
         }
 
-        private static DatabaseDriverBase Db()
+        private static DatabaseSettings SqliteSettings()
         {
-            if (_Database == null) throw new Exception("Database is not available.");
-            return _Database;
+            DatabaseSettings settings = new DatabaseSettings();
+            settings.Type = DatabaseTypeEnum.Sqlite;
+            settings.FilePath = Path.Combine(Path.GetTempPath(), "clutch-test-" + Guid.NewGuid().ToString("N") + ".db");
+            return settings;
         }
+
+        private static DatabaseSettings PostgresSettings()
+        {
+            DatabaseSettings settings = new DatabaseSettings();
+            settings.Type = DatabaseTypeEnum.Postgresql;
+            settings.Host = Env("CLUTCH_TEST_PG_HOST", "localhost");
+            settings.Port = EnvInt("CLUTCH_TEST_PG_PORT", 5432);
+            settings.DatabaseName = Env("CLUTCH_TEST_PG_DATABASE", "clutch");
+            settings.Username = Env("CLUTCH_TEST_PG_USERNAME", "postgres");
+            settings.Password = Env("CLUTCH_TEST_PG_PASSWORD", "postgres");
+            return settings;
+        }
+
+        private static DatabaseSettings MysqlSettings()
+        {
+            DatabaseSettings settings = new DatabaseSettings();
+            settings.Type = DatabaseTypeEnum.Mysql;
+            settings.Host = Env("CLUTCH_TEST_MYSQL_HOST", "localhost");
+            settings.Port = EnvInt("CLUTCH_TEST_MYSQL_PORT", 3306);
+            settings.DatabaseName = Env("CLUTCH_TEST_MYSQL_DATABASE", "clutch");
+            settings.Username = Env("CLUTCH_TEST_MYSQL_USERNAME", "root");
+            settings.Password = Env("CLUTCH_TEST_MYSQL_PASSWORD", "root");
+            return settings;
+        }
+
+        private static DatabaseSettings SqlServerSettings()
+        {
+            DatabaseSettings settings = new DatabaseSettings();
+            settings.Type = DatabaseTypeEnum.SqlServer;
+            settings.Host = Env("CLUTCH_TEST_MSSQL_HOST", "localhost");
+            settings.Port = EnvInt("CLUTCH_TEST_MSSQL_PORT", 1433);
+            settings.DatabaseName = Env("CLUTCH_TEST_MSSQL_DATABASE", "clutch");
+            settings.Username = Env("CLUTCH_TEST_MSSQL_USERNAME", "sa");
+            settings.Password = Env("CLUTCH_TEST_MSSQL_PASSWORD", "Clutch_Test_123");
+            return settings;
+        }
+
+        #endregion
+
+        #region Private-Helpers
 
         private static LockEngine MakeEngine(DatabaseDriverBase db, string nodeId)
         {
@@ -641,10 +667,10 @@ namespace Test.Shared
             return fallback;
         }
 
-        private static TestCaseDescriptor SyncCase(string caseId, string displayName, Action execute)
+        private static TestCaseDescriptor SyncCase(string suiteId, string caseId, string displayName, Action execute)
         {
             return new TestCaseDescriptor(
-                _SuiteId,
+                suiteId,
                 caseId,
                 displayName,
                 token =>
@@ -653,25 +679,38 @@ namespace Test.Shared
                     execute();
                     return Task.CompletedTask;
                 },
-                new[] { _SuiteId });
+                new[] { suiteId });
         }
 
-        private static TestCaseDescriptor AsyncCase(string caseId, string displayName, Func<CancellationToken, Task> executeAsync, bool skip = false, string? skipReason = null)
+        private static TestCaseDescriptor DbCase(string suiteId, string caseId, string displayName, ProviderContext provider, Func<DatabaseDriverBase, CancellationToken, Task> executeAsync, bool skip, string skipReason)
         {
             return new TestCaseDescriptor(
-                _SuiteId,
+                suiteId,
                 caseId,
                 displayName,
                 async token =>
                 {
                     token.ThrowIfCancellationRequested();
-                    await executeAsync(token).ConfigureAwait(false);
+                    await executeAsync(provider.Driver!, token).ConfigureAwait(false);
                 },
-                new[] { _SuiteId })
+                new[] { suiteId })
             {
                 Skip = skip,
                 SkipReason = skip ? skipReason : null
             };
+        }
+
+        #endregion
+
+        #region Provider-Context
+
+        private class ProviderContext
+        {
+            public string Name { get; set; } = string.Empty;
+            public string SuiteId { get; set; } = string.Empty;
+            public string Hint { get; set; } = string.Empty;
+            public bool Available { get; set; } = false;
+            public DatabaseDriverBase? Driver { get; set; } = null;
         }
 
         #endregion

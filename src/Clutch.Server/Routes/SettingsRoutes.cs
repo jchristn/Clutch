@@ -2,6 +2,7 @@ namespace Clutch.Server.Routes
 {
     using System;
     using System.Threading.Tasks;
+    using Clutch.Core.Database;
     using Clutch.Core.Security;
     using Clutch.Server.Serialization;
     using Clutch.Server.Services;
@@ -55,6 +56,7 @@ namespace Clutch.Server.Routes
             server.Routes.PostAuthentication.Static.Add(HttpMethod.GET, "/v1.0/api/settings", GetAsync, null, openApiMetadata: OpenApiRouteMetadata.Create("Read server settings", "Settings"));
             server.Routes.PostAuthentication.Static.Add(HttpMethod.PUT, "/v1.0/api/settings", UpdateAsync, null, openApiMetadata: OpenApiRouteMetadata.Create("Update server settings", "Settings"));
             server.Routes.PostAuthentication.Static.Add(HttpMethod.POST, "/v1.0/api/settings/restart", RestartAsync, null, openApiMetadata: OpenApiRouteMetadata.Create("Restart the node", "Settings"));
+            server.Routes.PostAuthentication.Static.Add(HttpMethod.POST, "/v1.0/api/settings/database/test", TestDatabaseAsync, null, openApiMetadata: OpenApiRouteMetadata.Create("Test a database connection", "Settings"));
         }
 
         #endregion
@@ -147,6 +149,49 @@ namespace Clutch.Server.Routes
                 await Task.Delay(750).ConfigureAwait(false);
                 Environment.Exit(0);
             });
+        }
+
+        private async Task TestDatabaseAsync(HttpContextBase context)
+        {
+            RequestContext ctx = RouteHelpers.Context(context);
+            if (!ctx.IsAdmin)
+            {
+                await RouteHelpers.ErrorAsync(context, 403, "Forbidden", "Only a system administrator may test a database connection.").ConfigureAwait(false);
+                return;
+            }
+
+            DatabaseSettings? incoming = RouteHelpers.Body<DatabaseSettings>(context);
+            if (incoming == null)
+            {
+                await RouteHelpers.ErrorAsync(context, 400, "BadRequest", "A database settings body is required.").ConfigureAwait(false);
+                return;
+            }
+
+            // Reuse the running password when the client echoes the redacted placeholder or leaves it blank.
+            if (IsBlankOrRedacted(incoming.Password)) incoming.Password = _Settings.Database.Password;
+
+            bool ok = false;
+            string message;
+            DatabaseDriverBase? driver = null;
+            try
+            {
+                incoming.Validate();
+                driver = DatabaseDriverFactory.Create(incoming);
+                ok = await driver.PingAsync().ConfigureAwait(false);
+                message = ok ? "Connection succeeded." : "The database did not respond to a connectivity probe.";
+            }
+            catch (Exception e)
+            {
+                message = "Connection failed: " + e.Message;
+            }
+            finally
+            {
+                if (driver != null) driver.Dispose();
+            }
+
+            context.Response.StatusCode = 200;
+            context.Response.ContentType = "application/json";
+            await context.Response.Send(Json.Serialize(new { ok, message, provider = incoming.Type.ToString() })).ConfigureAwait(false);
         }
 
         private ClutchSettings Redacted()

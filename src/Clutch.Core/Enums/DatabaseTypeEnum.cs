@@ -3,29 +3,29 @@ namespace Clutch.Core.Enums
     using System.Text.Json.Serialization;
 
     /// <summary>
-    /// Supported database provider types. Clutch implements Postgresql only; the other values exist so
-    /// the provider-neutral abstraction can be extended without a breaking change.
+    /// Supported database provider types. All four are implemented. SQLite is intended for single-node
+    /// deployments; PostgreSQL, MySQL, and SQL Server support multi-node clustering.
     /// </summary>
     [JsonConverter(typeof(JsonStringEnumConverter))]
     public enum DatabaseTypeEnum
     {
         /// <summary>
-        /// PostgreSQL. The only provider implemented by Clutch.
+        /// PostgreSQL. Supports multi-node clustering.
         /// </summary>
         Postgresql,
 
         /// <summary>
-        /// SQLite. Reserved for future implementation.
+        /// SQLite. Single-node, development, and embedded deployments only.
         /// </summary>
         Sqlite,
 
         /// <summary>
-        /// MySQL. Reserved for future implementation.
+        /// MySQL. Supports multi-node clustering.
         /// </summary>
         Mysql,
 
         /// <summary>
-        /// Microsoft SQL Server. Reserved for future implementation.
+        /// Microsoft SQL Server. Supports multi-node clustering.
         /// </summary>
         SqlServer
     }

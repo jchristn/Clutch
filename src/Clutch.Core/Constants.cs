@@ -44,12 +44,5 @@ namespace Clutch.Core
         /// Identifier prefix for request history records.
         /// </summary>
         public const string RequestHistoryPrefix = "req_";
-
-        /// <summary>
-        /// Postgres LISTEN/NOTIFY channel used to signal that a lock on a key was released or expired.
-        /// The payload carries the tenant identifier and lock key so listening nodes can wake the
-        /// correct waiters.
-        /// </summary>
-        public const string LockReleaseChannel = "clutch_lock_release";
     }
 }

@@ -1,12 +1,12 @@
-namespace Clutch.Core.Database.Postgresql.Implementations
+namespace Clutch.Core.Database.Ado
 {
     using Clutch.Core.Enumeration;
 
     /// <summary>
-    /// Helpers for translating an <see cref="EnumerationQuery"/> into PostgreSQL clauses.
-    /// Column names are supplied by the calling data-access method (never from user input).
+    /// Helpers for translating an <see cref="EnumerationQuery"/> into SQL clauses. Column names are supplied
+    /// by the calling data-access method (never from user input).
     /// </summary>
-    internal static class EnumerationSql
+    public static class AdoEnumerationSql
     {
         /// <summary>
         /// Build an ORDER BY clause for the query's ordering, falling back to the created column when the
