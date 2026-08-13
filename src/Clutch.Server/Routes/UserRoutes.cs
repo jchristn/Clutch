@@ -4,6 +4,7 @@ namespace Clutch.Server.Routes
     using System.Collections.Generic;
     using System.Threading.Tasks;
     using Clutch.Core.Database;
+    using Clutch.Core.Enumeration;
     using Clutch.Core.Models;
     using Clutch.Core.Requests;
     using Clutch.Core.Security;
@@ -68,7 +69,7 @@ namespace Clutch.Server.Routes
                 await RouteHelpers.ErrorAsync(context, 403, "Forbidden", "Not permitted to read this tenant.").ConfigureAwait(false);
                 return;
             }
-            var result = await _Database.Users.EnumerateAsync(tid, RouteHelpers.Enumeration(context), context.Token).ConfigureAwait(false);
+            EnumerationResult<User> result = await _Database.Users.EnumerateAsync(tid, RouteHelpers.Enumeration(context), context.Token).ConfigureAwait(false);
             await RouteHelpers.JsonAsync(context, 200, result).ConfigureAwait(false);
         }
 

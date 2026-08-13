@@ -4,7 +4,9 @@ namespace Clutch.Server.Routes
     using System.Collections.Generic;
     using System.Threading.Tasks;
     using Clutch.Core.Database;
+    using Clutch.Core.Enumeration;
     using Clutch.Core.Enums;
+    using Clutch.Core.Models;
     using Clutch.Core.Requests;
     using Clutch.Core.Responses;
     using Clutch.Core.Security;
@@ -76,7 +78,7 @@ namespace Clutch.Server.Routes
             filter.ToUtc = ParseDate(RouteHelpers.Query(context, "toUtc"));
             RouteHelpers.ApplyEnumeration(context, filter);
 
-            var result = await _Database.LockAudit.EnumerateAsync(filter, context.Token).ConfigureAwait(false);
+            EnumerationResult<LockAuditEntry> result = await _Database.LockAudit.EnumerateAsync(filter, context.Token).ConfigureAwait(false);
             await RouteHelpers.JsonAsync(context, 200, result).ConfigureAwait(false);
         }
 

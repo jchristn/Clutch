@@ -5,6 +5,7 @@ namespace Clutch.Server.Routes
     using System.Diagnostics;
     using System.Threading.Tasks;
     using Clutch.Core.Database;
+    using Clutch.Core.Enumeration;
     using Clutch.Core.Enums;
     using Clutch.Core.Models;
     using Clutch.Core.Requests;
@@ -94,7 +95,7 @@ namespace Clutch.Server.Routes
 
             string? name = RouteHelpers.Query(context, "name");
             LockModeEnum? mode = ParseMode(RouteHelpers.Query(context, "mode"));
-            var holders = await _Database.LockHolders.EnumerateByTenantAsync(tid, name, mode, RouteHelpers.Enumeration(context), context.Token).ConfigureAwait(false);
+            EnumerationResult<LockHolder> holders = await _Database.LockHolders.EnumerateByTenantAsync(tid, name, mode, RouteHelpers.Enumeration(context), context.Token).ConfigureAwait(false);
             await RouteHelpers.JsonAsync(context, 200, holders).ConfigureAwait(false);
         }
 

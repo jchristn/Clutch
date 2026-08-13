@@ -10,45 +10,49 @@ namespace Clutch.DataLoader
     /// </summary>
     public static class SettingsLoader
     {
+        #region Private-Members
+
+        private static readonly JsonSerializerOptions _JsonOptions = new JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true
+        };
+
+        #endregion
+
+        #region Public-Methods
+
         /// <summary>Apply the Database section of a settings JSON file to the options.</summary>
         /// <param name="options">Options to update.</param>
         /// <param name="path">Settings file path.</param>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="options"/> or <paramref name="path"/> is null.</exception>
+        /// <exception cref="ArgumentException">Thrown when the settings file does not exist or cannot be parsed as JSON.</exception>
         public static void Apply(LoaderOptions options, string path)
         {
+            if (options == null) throw new ArgumentNullException(nameof(options));
+            if (string.IsNullOrEmpty(path)) throw new ArgumentNullException(nameof(path));
             if (!File.Exists(path)) throw new ArgumentException("--settings file not found: " + path);
-            using JsonDocument doc = JsonDocument.Parse(File.ReadAllText(path));
-            if (!doc.RootElement.TryGetProperty("Database", out JsonElement db)
-                && !doc.RootElement.TryGetProperty("database", out db))
+
+            SettingsDocument? document;
+
+            try
             {
-                return;
+                document = JsonSerializer.Deserialize<SettingsDocument>(File.ReadAllText(path), _JsonOptions);
+            }
+            catch (JsonException e)
+            {
+                throw new ArgumentException("--settings file is not valid JSON: " + path, e);
             }
 
-            if (TryString(db, "Host", "host", out string host)) options.DbHost = host;
-            if (TryInt(db, "Port", "port", out int port)) options.DbPort = port;
-            if (TryString(db, "DatabaseName", "databaseName", out string name)) options.DbName = name;
-            if (TryString(db, "Username", "username", out string user)) options.DbUser = user;
-            if (TryString(db, "Password", "password", out string pw)) options.DbPassword = pw;
+            DatabaseSection? database = document?.Database;
+            if (database == null) return;
+
+            if (!string.IsNullOrEmpty(database.Host)) options.DbHost = database.Host;
+            if (database.Port.HasValue) options.DbPort = database.Port.Value;
+            if (!string.IsNullOrEmpty(database.DatabaseName)) options.DbName = database.DatabaseName;
+            if (!string.IsNullOrEmpty(database.Username)) options.DbUser = database.Username;
+            if (!string.IsNullOrEmpty(database.Password)) options.DbPassword = database.Password;
         }
 
-        private static bool TryString(JsonElement obj, string a, string b, out string value)
-        {
-            if ((obj.TryGetProperty(a, out JsonElement e) || obj.TryGetProperty(b, out e)) && e.ValueKind == JsonValueKind.String)
-            {
-                value = e.GetString() ?? string.Empty;
-                return !string.IsNullOrEmpty(value);
-            }
-            value = string.Empty;
-            return false;
-        }
-
-        private static bool TryInt(JsonElement obj, string a, string b, out int value)
-        {
-            if ((obj.TryGetProperty(a, out JsonElement e) || obj.TryGetProperty(b, out e)) && e.ValueKind == JsonValueKind.Number && e.TryGetInt32(out value))
-            {
-                return true;
-            }
-            value = 0;
-            return false;
-        }
+        #endregion
     }
 }

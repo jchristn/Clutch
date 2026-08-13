@@ -569,7 +569,7 @@ namespace Test.Shared
         {
             DatabaseSettings settings = new DatabaseSettings();
             settings.Type = DatabaseTypeEnum.Sqlite;
-            settings.FilePath = Path.Combine(Path.GetTempPath(), "clutch-test-" + Guid.NewGuid().ToString("N") + ".db");
+            settings.FilePath = Env("CLUTCH_TEST_SQLITE_FILEPATH", Path.Combine(Path.GetTempPath(), "clutch-test-" + Guid.NewGuid().ToString("N") + ".db"));
             return settings;
         }
 
@@ -582,6 +582,7 @@ namespace Test.Shared
             settings.DatabaseName = Env("CLUTCH_TEST_PG_DATABASE", "clutch");
             settings.Username = Env("CLUTCH_TEST_PG_USERNAME", "postgres");
             settings.Password = Env("CLUTCH_TEST_PG_PASSWORD", "postgres");
+            settings.Schema = EnvOrNull("CLUTCH_TEST_PG_SCHEMA");
             return settings;
         }
 
@@ -606,6 +607,7 @@ namespace Test.Shared
             settings.DatabaseName = Env("CLUTCH_TEST_MSSQL_DATABASE", "clutch");
             settings.Username = Env("CLUTCH_TEST_MSSQL_USERNAME", "sa");
             settings.Password = Env("CLUTCH_TEST_MSSQL_PASSWORD", "Clutch_Test_123");
+            settings.Schema = EnvOrNull("CLUTCH_TEST_MSSQL_SCHEMA");
             return settings;
         }
 
@@ -658,6 +660,12 @@ namespace Test.Shared
         {
             string? value = Environment.GetEnvironmentVariable(name);
             return string.IsNullOrEmpty(value) ? fallback : value;
+        }
+
+        private static string? EnvOrNull(string name)
+        {
+            string? value = Environment.GetEnvironmentVariable(name);
+            return string.IsNullOrEmpty(value) ? null : value;
         }
 
         private static int EnvInt(string name, int fallback)

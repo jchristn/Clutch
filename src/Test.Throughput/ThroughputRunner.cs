@@ -18,6 +18,11 @@ namespace Test.Throughput
 
         private static readonly string[] _ModeNames = { "Read", "Write", "Delete" };
 
+        private static readonly JsonSerializerOptions _JsonOptions = new JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true
+        };
+
         #endregion
 
         #region Public-Methods
@@ -156,13 +161,10 @@ namespace Test.Throughput
             if (string.IsNullOrEmpty(json)) return string.Empty;
             try
             {
-                using (JsonDocument document = JsonDocument.Parse(json))
-                {
-                    JsonElement root = document.RootElement;
-                    string type = root.TryGetProperty("type", out JsonElement typeElement) ? (typeElement.GetString() ?? string.Empty) : string.Empty;
-                    if (root.TryGetProperty("holderId", out JsonElement holderElement)) holderId = holderElement.GetString();
-                    return type;
-                }
+                ThroughputMessage? message = JsonSerializer.Deserialize<ThroughputMessage>(json, _JsonOptions);
+                if (message == null) return string.Empty;
+                holderId = message.HolderId;
+                return message.Type ?? string.Empty;
             }
             catch (JsonException)
             {

@@ -3,6 +3,7 @@ namespace Clutch.Server.Routes
     using System;
     using System.Threading.Tasks;
     using Clutch.Core.Database;
+    using Clutch.Core.Enumeration;
     using Clutch.Core.Models;
     using Clutch.Core.Requests;
     using Clutch.Core.Responses;
@@ -78,7 +79,7 @@ namespace Clutch.Server.Routes
         {
             RequestContext ctx = RouteHelpers.Context(context);
             RequestHistoryFilter filter = BuildFilter(context, ctx);
-            var result = await _Database.RequestHistory.EnumerateAsync(filter, context.Token).ConfigureAwait(false);
+            EnumerationResult<RequestHistoryEntry> result = await _Database.RequestHistory.EnumerateAsync(filter, context.Token).ConfigureAwait(false);
             await RouteHelpers.JsonAsync(context, 200, result).ConfigureAwait(false);
         }
 

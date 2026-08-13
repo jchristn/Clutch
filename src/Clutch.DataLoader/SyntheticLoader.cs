@@ -39,16 +39,16 @@ namespace Clutch.DataLoader
         private readonly RandomSource _Random;
         private readonly Action<string> _Log;
 
-        private static readonly IReadOnlyList<(LockModeEnum, double)> ModeWeights = new List<(LockModeEnum, double)>
+        private static readonly IReadOnlyList<Weighted<LockModeEnum>> ModeWeights = new List<Weighted<LockModeEnum>>
         {
-            (LockModeEnum.Write, 55), (LockModeEnum.Read, 35), (LockModeEnum.Delete, 10)
+            new Weighted<LockModeEnum>(LockModeEnum.Write, 55), new Weighted<LockModeEnum>(LockModeEnum.Read, 35), new Weighted<LockModeEnum>(LockModeEnum.Delete, 10)
         };
 
-        private static readonly IReadOnlyList<(LockEventTypeEnum, double)> EventWeights = new List<(LockEventTypeEnum, double)>
+        private static readonly IReadOnlyList<Weighted<LockEventTypeEnum>> EventWeights = new List<Weighted<LockEventTypeEnum>>
         {
-            (LockEventTypeEnum.Acquired, 34), (LockEventTypeEnum.Released, 30), (LockEventTypeEnum.HeartbeatRenewed, 14),
-            (LockEventTypeEnum.Waited, 6), (LockEventTypeEnum.Denied, 7), (LockEventTypeEnum.Expired, 5),
-            (LockEventTypeEnum.Revoked, 2), (LockEventTypeEnum.PolicyCreated, 2)
+            new Weighted<LockEventTypeEnum>(LockEventTypeEnum.Acquired, 34), new Weighted<LockEventTypeEnum>(LockEventTypeEnum.Released, 30), new Weighted<LockEventTypeEnum>(LockEventTypeEnum.HeartbeatRenewed, 14),
+            new Weighted<LockEventTypeEnum>(LockEventTypeEnum.Waited, 6), new Weighted<LockEventTypeEnum>(LockEventTypeEnum.Denied, 7), new Weighted<LockEventTypeEnum>(LockEventTypeEnum.Expired, 5),
+            new Weighted<LockEventTypeEnum>(LockEventTypeEnum.Revoked, 2), new Weighted<LockEventTypeEnum>(LockEventTypeEnum.PolicyCreated, 2)
         };
 
         /// <summary>Instantiate.</summary>
@@ -137,7 +137,7 @@ namespace Clutch.DataLoader
         {
             public string Id = string.Empty;
             public string Name = string.Empty;
-            public List<(string Id, string Email, string Name)> Users = new List<(string, string, string)>();
+            public List<UserRef> Users = new List<UserRef>();
             public List<string> Credentials = new List<string>();
             public List<string> Keys = new List<string>();
             public Dictionary<string, long> Fencing = new Dictionary<string, long>();
@@ -187,7 +187,7 @@ namespace Clutch.DataLoader
         {
             List<User> existing = await driver.Users.EnumerateAsync(scope.Id, token).ConfigureAwait(false);
             HashSet<string> emails = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            foreach (User u in existing) { emails.Add(u.Email); scope.Users.Add((u.Id, u.Email, (u.FirstName + " " + u.LastName).Trim())); }
+            foreach (User u in existing) { emails.Add(u.Email); scope.Users.Add(new UserRef(u.Id, u.Email, (u.FirstName + " " + u.LastName).Trim())); }
             if (!_Options.IncludeUsers) return;
 
             string slug = Slug(scope.Name);
@@ -207,7 +207,7 @@ namespace Clutch.DataLoader
                     IsTenantAdmin = j == 0
                 }, token).ConfigureAwait(false);
                 emails.Add(email);
-                scope.Users.Add((created.Id, email, first + " " + last));
+                scope.Users.Add(new UserRef(created.Id, email, first + " " + last));
             }
         }
 
@@ -292,8 +292,8 @@ namespace Clutch.DataLoader
         private List<RequestHistoryEntry> GenerateRequests(TenantScope tenant)
         {
             List<RequestHistoryEntry> entries = new List<RequestHistoryEntry>();
-            List<(Catalogs.Route, double)> routeWeights = new List<(Catalogs.Route, double)>();
-            foreach (Catalogs.Route r in Catalogs.Routes) routeWeights.Add((r, r.Weight));
+            List<Weighted<Catalogs.Route>> routeWeights = new List<Weighted<Catalogs.Route>>();
+            foreach (Catalogs.Route r in Catalogs.Routes) routeWeights.Add(new Weighted<Catalogs.Route>(r, r.Weight));
 
             double perHourBase = _Options.RequestsPerDay / 24.0;
             DateTime cursor = TruncateToHour(_Options.FromUtc);
@@ -329,7 +329,7 @@ namespace Clutch.DataLoader
             {
                 status = route.CanConflict && _Random.Chance(0.7)
                     ? 409
-                    : _Random.PickWeighted(new List<(int, double)> { (404, 4), (401, 3), (400, 3), (403, 2), (500, 2), (503, 1) });
+                    : _Random.PickWeighted(new List<Weighted<int>> { new Weighted<int>(404, 4), new Weighted<int>(401, 3), new Weighted<int>(400, 3), new Weighted<int>(403, 2), new Weighted<int>(500, 2), new Weighted<int>(503, 1) });
             }
 
             double mean = route.LatencyMean * loadFactor;
@@ -342,7 +342,7 @@ namespace Clutch.DataLoader
             string principal;
             if (asUser)
             {
-                (string Id, string Email, string Name) u = _Random.Pick(tenant.Users);
+                UserRef u = _Random.Pick(tenant.Users);
                 userId = u.Id;
                 principal = u.Email;
             }
@@ -512,7 +512,7 @@ namespace Clutch.DataLoader
 
         private string RandomIp()
         {
-            int a = _Random.PickWeighted(new List<(int, double)> { (10, 5), (172, 3), (192, 2) });
+            int a = _Random.PickWeighted(new List<Weighted<int>> { new Weighted<int>(10, 5), new Weighted<int>(172, 3), new Weighted<int>(192, 2) });
             return a + "." + _Random.NextInt(0, 255) + "." + _Random.NextInt(0, 255) + "." + _Random.NextInt(1, 254);
         }
 

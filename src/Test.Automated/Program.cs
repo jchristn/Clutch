@@ -13,23 +13,39 @@ namespace Test.Automated
         /// <summary>
         /// Main entry point.
         /// </summary>
-        /// <param name="args">Command-line arguments. Supports "--results &lt;path&gt;" to export JSON results.</param>
+        /// <param name="args">
+        /// Command-line arguments. Supports database selection (<c>--type</c>, <c>--host</c>, <c>--port</c>,
+        /// <c>--database</c>, <c>--schema</c>, <c>--username</c>, <c>--password</c>, <c>--filepath</c>,
+        /// <c>--providers</c>), <c>--results &lt;path&gt;</c> to export JSON results, and <c>--help</c>.
+        /// </param>
         /// <returns>Process exit code: 0 on success, non-zero on failure.</returns>
         public static async Task<int> Main(string[] args)
         {
+            DatabaseCliOptions options;
+
+            try
+            {
+                options = DatabaseCliOptions.Parse(args);
+            }
+            catch (ArgumentException e)
+            {
+                Console.Error.WriteLine(e.Message);
+                Console.Error.WriteLine();
+                Console.Error.WriteLine(DatabaseCliOptions.UsageText());
+                return 2;
+            }
+
+            if (options.ShowHelp)
+            {
+                Console.WriteLine(DatabaseCliOptions.UsageText());
+                return 0;
+            }
+
+            options.ApplyToEnvironment();
+
             return await ConsoleRunner.RunAsync(
                 ClutchSuites.GetSuites(),
-                resultsPath: ParseResultsPath(args)).ConfigureAwait(false);
-        }
-
-        private static string? ParseResultsPath(string[] args)
-        {
-            if (args == null || args.Length < 2) return null;
-            for (int i = 0; i < args.Length - 1; i++)
-            {
-                if (String.Equals(args[i], "--results", StringComparison.Ordinal)) return args[i + 1];
-            }
-            return null;
+                resultsPath: options.ResultsPath).ConfigureAwait(false);
         }
     }
 }

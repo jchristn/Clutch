@@ -13,6 +13,22 @@
     "DatabaseName": "clutch",
     "Username": "postgres",
     "Password": "postgres",
+    "FilePath": "clutch.db",
+    "Schema": null,
+    "ManageSchema": true,
+    "Tables": {
+      "Prefix": null,
+      "SchemaMigrations": null,
+      "Tenants": null,
+      "Users": null,
+      "Credentials": null,
+      "AuthSessions": null,
+      "LockDefinitions": null,
+      "LockHolders": null,
+      "LockAudit": null,
+      "RequestHistory": null
+    },
+    "AdditionalOptions": null,
     "MaxPoolSize": 100
   },
   "Logging": {

@@ -72,7 +72,15 @@ To run against **MySQL** or **SQL Server** instead, keep the same two-node-behin
 
 **SQLite** is single-node only. Run exactly one node with `CLUTCH_DB_TYPE=Sqlite` and `CLUTCH_DB_FILEPATH` pointing at a file on a mounted volume, and drop nginx and the second node — a shared SQLite file cannot back multiple nodes safely.
 
-For running the automated provider test matrix, `docker/compose.test.yaml` brings up PostgreSQL, MySQL, and SQL Server on separate host ports; see the comments at the top of that file.
+For running the automated provider test matrix, `docker/compose.test.yaml` brings up PostgreSQL, MySQL, and SQL Server on separate host ports; see the comments at the top of that file. Point the `Test.Automated` runner at one of them with database-selection flags rather than editing environment variables — for example:
+
+```bash
+dotnet run --project src/Test.Automated -- \
+  --type postgresql --host 127.0.0.1 --port 55432 \
+  --database clutch --username postgres --password postgres
+```
+
+The same flags exist for every provider (`--type sqlite|postgresql|mysql|sqlserver`, plus `--host`/`--port`/`--database`/`--schema`/`--username`/`--password`/`--filepath`), or pass `--providers sqlite,postgresql,mysql,sqlserver` to run the whole matrix in one invocation. `--help` lists them, and each flag also has a `CLUTCH_TEST_*` environment equivalent.
 
 ## Observability
 

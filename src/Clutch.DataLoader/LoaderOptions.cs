@@ -73,14 +73,26 @@ namespace Clutch.DataLoader
         /// <summary>Resolve preset-driven densities and validate.</summary>
         public void Resolve()
         {
-            (int lockEvents, int requests, int active, double error) = Load switch
+            int lockEvents;
+            int requests;
+            int active;
+            double error;
+            switch (Load)
             {
-                LoadLevel.Light => (200, 400, 5, 0.08),
-                LoadLevel.Medium => (800, 1500, 8, 0.10),
-                LoadLevel.Heavy => (2000, 4500, 12, 0.12),
-                LoadLevel.Extreme => (5000, 12000, 20, 0.15),
-                _ => (800, 1500, 8, 0.10)
-            };
+                case LoadLevel.Light:
+                    lockEvents = 200; requests = 400; active = 5; error = 0.08;
+                    break;
+                case LoadLevel.Heavy:
+                    lockEvents = 2000; requests = 4500; active = 12; error = 0.12;
+                    break;
+                case LoadLevel.Extreme:
+                    lockEvents = 5000; requests = 12000; active = 20; error = 0.15;
+                    break;
+                case LoadLevel.Medium:
+                default:
+                    lockEvents = 800; requests = 1500; active = 8; error = 0.10;
+                    break;
+            }
             if (LockEventsPerDay <= 0) LockEventsPerDay = lockEvents;
             if (RequestsPerDay <= 0) RequestsPerDay = requests;
             if (ActiveLocksPerTenant <= 0) ActiveLocksPerTenant = active;

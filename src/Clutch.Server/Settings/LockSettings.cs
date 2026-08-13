@@ -75,8 +75,9 @@ namespace Clutch.Server.Settings
         }
 
         /// <summary>
-        /// Polling fallback interval in milliseconds for blocked waiters, used when a LISTEN/NOTIFY
-        /// wakeup is missed. Minimum 50, maximum 60000. Defaults to 1000.
+        /// Polling interval in milliseconds at which a blocked waiter retries its acquire. This is the
+        /// wakeup path for cross-node waiters; same-node waiters are signaled directly by the in-process
+        /// coordinator. Minimum 50, maximum 60000. Defaults to 1000.
         /// </summary>
         public int WaiterPollMs
         {

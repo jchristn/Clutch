@@ -21,10 +21,12 @@ Bring your own database. Clutch now runs on PostgreSQL, MySQL, SQL Server, or SQ
 ### Dashboard
 
 - Server Settings gains a database configuration section: provider selector with provider-appropriate connection fields, per-purpose table-name mapping, a schema-management toggle, and a "Test connection" action.
+- The Server Settings view — including every new database field, the table-name labels, and the test-connection strings — is fully localized in English, German, and Japanese.
 
 ### Testing and operations
 
-- The shared Touchstone suite runs as a provider matrix — the full lock-engine correctness, tenant isolation, polling-wakeup, and randomized concurrency soak suites execute once per available provider. SQLite runs in-process; PostgreSQL, MySQL, and SQL Server run against containers via `docker/compose.test.yaml`.
+- The shared Touchstone suite runs as a provider matrix — the full lock-engine correctness, tenant isolation, polling-wakeup, and randomized concurrency soak suites execute once per available provider. SQLite runs in-process; PostgreSQL, MySQL, and SQL Server run against containers via `docker/compose.test.yaml`. The suite has been run green (22/22 per provider, soak included) against all four engines.
+- The `Test.Automated` runner accepts database-selection flags — `--type`, `--host`, `--port`, `--database`, `--schema`, `--username`, `--password`, `--filepath`, and `--providers` — as an alternative to the `CLUTCH_TEST_*` environment variables, so a single provider or a matrix can be targeted from the command line. `--help` lists them.
 
 ## [0.1.0] - 2026-08-08
 

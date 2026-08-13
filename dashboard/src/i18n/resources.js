@@ -724,7 +724,122 @@ const de = {
     credentials: { title: 'Anmeldedaten' },
     requests: { title: 'Anfrageverlauf' },
     explorer: { title: 'API-Explorer' },
-    settings: { title: 'Serverinfo' }
+    settings: { title: 'Serverinfo' },
+    serverSettings: {
+      title: 'Servereinstellungen',
+      subtitle: 'Bearbeiten Sie die gespeicherte Serverkonfiguration dieses Knotens.',
+      restartBanner: 'Änderungen an diesen Einstellungen werden erst nach einem Neustart des Knotens wirksam.',
+      readOnlyNotice: 'Sie sehen die Servereinstellungen im schreibgeschützten Modus. Nur Systemadministratoren können sie bearbeiten.',
+      save: 'Einstellungen speichern',
+      saved: 'Einstellungen gespeichert.',
+      restartRequiredToast: 'Einstellungen gespeichert. Starten Sie den Knoten neu, um die Änderungen anzuwenden.',
+      restart: 'Knoten neu starten',
+      restartConfirmTitle: 'Knoten neu starten',
+      restartConfirmMessage: 'Diesen Knoten jetzt neu starten? Aktive Verbindungen werden unterbrochen und die Konsole trennt sich kurz.',
+      restarting: 'Der Knoten wird neu gestartet. Verbinden Sie sich in Kürze erneut.',
+      restartToast: 'Neustart angefordert. Der Knoten wird neu gestartet.',
+      secretHint: 'Belassen Sie ***, um den aktuellen Wert beizubehalten.',
+      emptyTitle: 'Einstellungen nicht verfügbar',
+      emptyBody: 'Servereinstellungen konnten von diesem Endpunkt nicht geladen werden.',
+      testConnection: 'Verbindung testen',
+      testingConnection: 'Wird getestet…',
+      testConnectionSuccess: 'Datenbankverbindung erfolgreich.',
+      testConnectionFailure: 'Datenbankverbindung fehlgeschlagen.',
+      sections: {
+        node: 'Knoten',
+        rest: 'REST',
+        database: 'Datenbank',
+        databaseTables: 'Tabellennamen',
+        logging: 'Protokollierung',
+        auth: 'Authentifizierung',
+        lock: 'Sperre',
+        requestHistory: 'Anfrageverlauf',
+        mcp: 'MCP-Server',
+        telemetry: 'Telemetrie'
+      },
+      fields: {
+        node: {
+          nodeId: 'Knoten-ID',
+          createdUtc: 'Erstellt'
+        },
+        rest: {
+          hostname: 'Hostname',
+          port: 'Port',
+          ssl: 'SSL aktiviert'
+        },
+        database: {
+          type: 'Typ',
+          host: 'Host',
+          port: 'Port',
+          databaseName: 'Datenbankname',
+          username: 'Benutzername',
+          password: 'Passwort',
+          maxPoolSize: 'Maximale Poolgröße',
+          filePath: 'Dateipfad',
+          schema: 'Schema',
+          manageSchema: 'Schema verwalten',
+          additionalOptions: 'Zusätzliche Optionen',
+          tables: {
+            prefix: 'Tabellenpräfix',
+            schemaMigrations: 'Schema-Migrationen',
+            tenants: 'Mandanten',
+            users: 'Benutzer',
+            credentials: 'Anmeldedaten',
+            authSessions: 'Authentifizierungssitzungen',
+            lockDefinitions: 'Sperrdefinitionen',
+            lockHolders: 'Sperrhalter',
+            lockAudit: 'Sperr-Audit',
+            requestHistory: 'Anfrageverlauf'
+          }
+        },
+        logging: {
+          consoleLogging: 'Konsolenprotokollierung',
+          fileLogging: 'Dateiprotokollierung',
+          logDirectory: 'Protokollverzeichnis',
+          logFilename: 'Protokolldateiname',
+          minimumSeverity: 'Mindestschweregrad'
+        },
+        auth: {
+          issuer: 'Aussteller',
+          signingKey: 'Signaturschlüssel',
+          tokenLifetimeMinutes: 'Token-Lebensdauer (Minuten)',
+          adminApiKey: 'Admin-API-Schlüssel'
+        },
+        lock: {
+          defaultLeaseMs: 'Standard-Lease (ms)',
+          maxLeaseMs: 'Max. Lease (ms)',
+          maxHoldMs: 'Max. Haltezeit (ms)',
+          maxWaitMs: 'Max. Wartezeit (ms)',
+          waiterPollMs: 'Warteabfrage (ms)',
+          sweepIntervalMs: 'Bereinigungsintervall (ms)'
+        },
+        requestHistory: {
+          enabled: 'Aktiviert',
+          maxRequestBodyBytes: 'Max. Anfragetext (Bytes)',
+          maxResponseBodyBytes: 'Max. Antworttext (Bytes)',
+          retentionDays: 'Aufbewahrung (Tage)'
+        },
+        mcp: {
+          enable: 'Aktiviert',
+          hostname: 'Hostname',
+          port: 'Port',
+          mcpPath: 'MCP-Pfad',
+          serverName: 'Servername'
+        },
+        telemetry: {
+          enabled: 'Aktiviert',
+          serviceName: 'Dienstname',
+          prometheusEnable: 'Prometheus aktiviert',
+          prometheusHostname: 'Prometheus-Hostname',
+          prometheusPort: 'Prometheus-Port',
+          prometheusPath: 'Prometheus-Pfad',
+          otlpEnable: 'OTLP aktiviert',
+          otlpEndpoint: 'OTLP-Endpunkt',
+          metricsIncludeRuntime: 'Laufzeitmetriken einbeziehen',
+          metricsIncludeProcess: 'Prozessmetriken einbeziehen'
+        }
+      }
+    }
   }
 };
 
@@ -863,7 +978,122 @@ const ja = {
     credentials: { title: '認証情報' },
     requests: { title: 'リクエスト履歴' },
     explorer: { title: 'API エクスプローラー' },
-    settings: { title: 'サーバー情報' }
+    settings: { title: 'サーバー情報' },
+    serverSettings: {
+      title: 'サーバー設定',
+      subtitle: 'このノードのディスク上のサーバー構成を編集します。',
+      restartBanner: 'これらの設定の変更を反映するには、ノードの再起動が必要です。',
+      readOnlyNotice: 'サーバー設定を読み取り専用モードで表示しています。編集できるのはシステム管理者のみです。',
+      save: '設定を保存',
+      saved: '設定を保存しました。',
+      restartRequiredToast: '設定を保存しました。変更を適用するにはノードを再起動してください。',
+      restart: 'ノードを再起動',
+      restartConfirmTitle: 'ノードを再起動',
+      restartConfirmMessage: 'このノードを今すぐ再起動しますか？アクティブな接続は中断され、コンソールは一時的に切断されます。',
+      restarting: 'ノードを再起動しています。しばらくしてから再接続してください。',
+      restartToast: '再起動を要求しました。ノードを再起動しています。',
+      secretHint: '現在の値を保持するには *** のままにします。',
+      emptyTitle: '設定を利用できません',
+      emptyBody: 'このエンドポイントからサーバー設定を読み込めませんでした。',
+      testConnection: '接続をテスト',
+      testingConnection: 'テスト中…',
+      testConnectionSuccess: 'データベース接続に成功しました。',
+      testConnectionFailure: 'データベース接続に失敗しました。',
+      sections: {
+        node: 'ノード',
+        rest: 'REST',
+        database: 'データベース',
+        databaseTables: 'テーブル名',
+        logging: 'ログ',
+        auth: '認証',
+        lock: 'ロック',
+        requestHistory: 'リクエスト履歴',
+        mcp: 'MCP サーバー',
+        telemetry: 'テレメトリ'
+      },
+      fields: {
+        node: {
+          nodeId: 'ノード ID',
+          createdUtc: '作成日時'
+        },
+        rest: {
+          hostname: 'ホスト名',
+          port: 'ポート',
+          ssl: 'SSL 有効'
+        },
+        database: {
+          type: '種類',
+          host: 'ホスト',
+          port: 'ポート',
+          databaseName: 'データベース名',
+          username: 'ユーザー名',
+          password: 'パスワード',
+          maxPoolSize: '最大プールサイズ',
+          filePath: 'ファイルパス',
+          schema: 'スキーマ',
+          manageSchema: 'スキーマを管理',
+          additionalOptions: '追加オプション',
+          tables: {
+            prefix: 'テーブル接頭辞',
+            schemaMigrations: 'スキーマ移行',
+            tenants: 'テナント',
+            users: 'ユーザー',
+            credentials: '認証情報',
+            authSessions: '認証セッション',
+            lockDefinitions: 'ロック定義',
+            lockHolders: 'ロック保持者',
+            lockAudit: 'ロック監査',
+            requestHistory: 'リクエスト履歴'
+          }
+        },
+        logging: {
+          consoleLogging: 'コンソールログ',
+          fileLogging: 'ファイルログ',
+          logDirectory: 'ログディレクトリ',
+          logFilename: 'ログファイル名',
+          minimumSeverity: '最小重大度'
+        },
+        auth: {
+          issuer: '発行者',
+          signingKey: '署名キー',
+          tokenLifetimeMinutes: 'トークン有効期間（分）',
+          adminApiKey: '管理 API キー'
+        },
+        lock: {
+          defaultLeaseMs: 'デフォルトリース (ms)',
+          maxLeaseMs: '最大リース (ms)',
+          maxHoldMs: '最大保持 (ms)',
+          maxWaitMs: '最大待機 (ms)',
+          waiterPollMs: 'ウェイターポーリング (ms)',
+          sweepIntervalMs: 'スイープ間隔 (ms)'
+        },
+        requestHistory: {
+          enabled: '有効',
+          maxRequestBodyBytes: '最大リクエストボディ (バイト)',
+          maxResponseBodyBytes: '最大レスポンスボディ (バイト)',
+          retentionDays: '保持期間（日）'
+        },
+        mcp: {
+          enable: '有効',
+          hostname: 'ホスト名',
+          port: 'ポート',
+          mcpPath: 'MCP パス',
+          serverName: 'サーバー名'
+        },
+        telemetry: {
+          enabled: '有効',
+          serviceName: 'サービス名',
+          prometheusEnable: 'Prometheus 有効',
+          prometheusHostname: 'Prometheus ホスト名',
+          prometheusPort: 'Prometheus ポート',
+          prometheusPath: 'Prometheus パス',
+          otlpEnable: 'OTLP 有効',
+          otlpEndpoint: 'OTLP エンドポイント',
+          metricsIncludeRuntime: 'ランタイムメトリクスを含める',
+          metricsIncludeProcess: 'プロセスメトリクスを含める'
+        }
+      }
+    }
   }
 };
 

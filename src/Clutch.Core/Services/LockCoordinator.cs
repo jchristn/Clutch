@@ -6,9 +6,10 @@ namespace Clutch.Core.Services
     using System.Threading.Tasks;
 
     /// <summary>
-    /// Per-node registry of blocked waiters, keyed by tenant and lock key. When a key is signaled — by a
-    /// local release or a cross-node LISTEN/NOTIFY wakeup — all waiters on that key are released early to
-    /// retry. This state is purely an optimization; the database remains the sole authority for grants.
+    /// Per-node registry of blocked waiters, keyed by tenant and lock key. When a key is signaled by a
+    /// local release, revoke, or expiry, all waiters on that key are released early to retry. This is a
+    /// same-node optimization only; cross-node waiters wake via bounded polling (WaiterPollMs). This state
+    /// is purely an optimization; the database remains the sole authority for grants.
     /// </summary>
     public class LockCoordinator
     {

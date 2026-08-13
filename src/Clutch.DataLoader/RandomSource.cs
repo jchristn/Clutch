@@ -85,7 +85,7 @@ namespace Clutch.DataLoader
         }
 
         /// <summary>Pick an element by weight.</summary>
-        public T PickWeighted<T>(IReadOnlyList<(T Item, double Weight)> choices)
+        public T PickWeighted<T>(IReadOnlyList<Weighted<T>> choices)
         {
             double total = 0;
             for (int i = 0; i < choices.Count; i++) total += choices[i].Weight;
