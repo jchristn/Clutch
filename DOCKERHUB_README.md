@@ -6,7 +6,7 @@
 
 > ⚠️ **Alpha (v0.2.0).** Everything — APIs, WebSocket protocol, schema, settings, SDKs, and behavior — is subject to change. Not yet recommended for production.
 
-Clutch is a distributed lock management platform. Client applications connect over WebSockets with a tenant application key and acquire **read**, **write**, or **delete** locks on named keys. Clutch decides — safely and consistently across every node in the fleet — whether a caller may proceed. Postgres is the single source of truth for every lock decision, so two nodes can never hand out conflicting locks.
+Clutch is a distributed lock management platform. Client applications connect over WebSockets with a tenant application key and acquire **read**, **write**, or **delete** locks on named keys. Clutch decides — safely and consistently across every node in the fleet — whether a caller may proceed. You bring the database: Clutch runs on **PostgreSQL, MySQL, SQL Server, or SQLite**, and the database you choose is the single source of truth for every lock decision, so two nodes can never hand out conflicting locks.
 
 ## Images
 
@@ -21,11 +21,11 @@ Clutch is a distributed lock management platform. Client applications connect ov
 
 ## Architecture
 
-Stateless server nodes sit behind an nginx load balancer and share one Postgres. Each acquire/release is a single Postgres transaction serialized per key; blocked waiters on any node are woken via `LISTEN/NOTIFY`. A lock is owned by the WebSocket connection that holds it and is released when the connection closes; a TTL lease renewed by heartbeat backstops half-open connections.
+Stateless server nodes sit behind an nginx load balancer and share one database — PostgreSQL, MySQL, or SQL Server for a multi-node cluster, or SQLite for a single node. Each acquire/release is a single database transaction serialized per key; blocked waiters on any node are woken by bounded polling, so one coordination path runs identically on every provider. A lock is owned by the WebSocket connection that holds it and is released when the connection closes; a TTL lease renewed by heartbeat backstops half-open connections.
 
 ## Quick start
 
-The full stack (Postgres, two nodes, nginx, dashboard, Prometheus, Grafana) is defined in the repository's `docker/compose.yaml`:
+The reference stack (PostgreSQL, two nodes, nginx, dashboard, Prometheus, Grafana) is defined in the repository's `docker/compose.yaml`:
 
 ```bash
 git clone https://github.com/jchristn/Clutch
@@ -39,7 +39,7 @@ Then open the dashboard at `http://localhost:3000` and connect to `http://localh
 
 ## Documentation
 
-Full documentation, the REST and WebSocket API references, and SDKs for C#, JavaScript, and Python are in the [GitHub repository](https://github.com/jchristn/Clutch).
+To point Clutch at your own database — provider choice, connection details, table naming, and whether Clutch manages the schema — see the [Bring Your Own Database guide](https://github.com/jchristn/Clutch/blob/main/BYOD.md). Full documentation, the REST and WebSocket API references, and SDKs for C#, JavaScript, and Python are in the [GitHub repository](https://github.com/jchristn/Clutch).
 
 ## License
 
