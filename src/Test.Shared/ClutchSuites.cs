@@ -5,14 +5,17 @@ namespace Test.Shared
     using System.Collections.Generic;
     using System.IO;
     using System.Linq;
+    using System.Text.Json;
     using System.Threading;
     using System.Threading.Tasks;
     using Clutch.Core.Database;
+    using Clutch.Core.Enumeration;
     using Clutch.Core.Enums;
     using Clutch.Core.Models;
     using Clutch.Core.Requests;
     using Clutch.Core.Responses;
     using Clutch.Core.Services;
+    using Clutch.Server.Services;
     using Touchstone.Core;
 
     /// <summary>
@@ -51,6 +54,16 @@ namespace Test.Shared
             compat.Add(SyncCase("compat", "compat-write-shared", "Compat: shared writers up to max", CompatWriteShared));
             compat.Add(SyncCase("compat", "compat-delete-exclusive", "Compat: delete is fully exclusive", CompatDeleteExclusive));
             suites.Add(new TestSuiteDescriptor("compat", "Clutch Compatibility Suite", compat));
+
+            // MCP tool-argument parsing (no database), run once.
+            List<TestCaseDescriptor> mcp = new List<TestCaseDescriptor>();
+            mcp.Add(SyncCase("mcp-args", "mcp-getstring-present", "MCP: GetString reads string and numeric values", McpGetStringPresent));
+            mcp.Add(SyncCase("mcp-args", "mcp-getstring-absent", "MCP: GetString returns empty for missing/invalid input", McpGetStringAbsent));
+            mcp.Add(SyncCase("mcp-args", "mcp-getint-present", "MCP: GetInt parses numbers and numeric strings", McpGetIntPresent));
+            mcp.Add(SyncCase("mcp-args", "mcp-getint-absent", "MCP: GetInt returns null for missing/non-numeric input", McpGetIntAbsent));
+            mcp.Add(SyncCase("mcp-args", "mcp-buildquery-defaults", "MCP: BuildQuery uses defaults when args are absent", McpBuildQueryDefaults));
+            mcp.Add(SyncCase("mcp-args", "mcp-buildquery-values", "MCP: BuildQuery reads and clamps paging values", McpBuildQueryValues));
+            suites.Add(new TestSuiteDescriptor("mcp-args", "Clutch MCP Argument Suite", mcp));
 
             // Database-backed matrix, one suite per provider.
             foreach (ProviderContext provider in _Providers)
@@ -157,6 +170,74 @@ namespace Test.Shared
             Assert(LockCompatibilityEvaluator.Evaluate(def, counts, LockModeEnum.Delete).Compatible, "delete should be allowed on an empty key");
             counts.Delete = 1;
             Assert(!LockCompatibilityEvaluator.Evaluate(def, counts, LockModeEnum.Read).Compatible, "held delete should block reads");
+        }
+
+        #endregion
+
+        #region Mcp-Argument-Tests
+
+        // MCP clients deliver tool arguments as a JSON object (System.Text.Json). These cases lock in the
+        // parsing behavior of McpToolArguments after the Voltaic.Mcp migration replaced the previous
+        // RpcParameters accessor with raw JsonElement handling.
+
+        private static JsonElement Json(string json)
+        {
+            return JsonDocument.Parse(json).RootElement.Clone();
+        }
+
+        private static void McpGetStringPresent()
+        {
+            JsonElement args = Json("{\"tenantId\":\"t-123\",\"count\":42}");
+            Assert(McpToolArguments.GetString(args, "tenantId") == "t-123", "string property should be returned verbatim");
+            Assert(McpToolArguments.GetString(args, "count") == "42", "numeric property should be returned as its textual form");
+        }
+
+        private static void McpGetStringAbsent()
+        {
+            JsonElement obj = Json("{\"flag\":true,\"nested\":{\"a\":1},\"nothing\":null}");
+            Assert(McpToolArguments.GetString(obj, "missing") == string.Empty, "missing property should yield an empty string");
+            Assert(McpToolArguments.GetString(obj, "flag") == string.Empty, "boolean property should yield an empty string");
+            Assert(McpToolArguments.GetString(obj, "nested") == string.Empty, "object property should yield an empty string");
+            Assert(McpToolArguments.GetString(obj, "nothing") == string.Empty, "JSON null property should yield an empty string");
+            Assert(McpToolArguments.GetString(null, "tenantId") == string.Empty, "null args should yield an empty string");
+            Assert(McpToolArguments.GetString(Json("[1,2,3]"), "tenantId") == string.Empty, "non-object args should yield an empty string");
+        }
+
+        private static void McpGetIntPresent()
+        {
+            JsonElement args = Json("{\"max\":25,\"skipStr\":\"7\",\"neg\":-3}");
+            Assert(McpToolArguments.GetInt(args, "max") == 25, "JSON number should parse to an int");
+            Assert(McpToolArguments.GetInt(args, "skipStr") == 7, "numeric string should parse to an int");
+            Assert(McpToolArguments.GetInt(args, "neg") == -3, "negative JSON number should parse to an int");
+        }
+
+        private static void McpGetIntAbsent()
+        {
+            JsonElement args = Json("{\"word\":\"abc\",\"flag\":false,\"real\":1.5}");
+            Assert(McpToolArguments.GetInt(args, "missing") == null, "missing property should yield null");
+            Assert(McpToolArguments.GetInt(args, "word") == null, "non-numeric string should yield null");
+            Assert(McpToolArguments.GetInt(args, "flag") == null, "boolean property should yield null");
+            Assert(McpToolArguments.GetInt(null, "max") == null, "null args should yield null");
+        }
+
+        private static void McpBuildQueryDefaults()
+        {
+            EnumerationQuery fromNull = McpToolArguments.BuildQuery(null);
+            Assert(fromNull.MaxResults == 25 && fromNull.Skip == 0, "null args should leave the query at its defaults");
+            EnumerationQuery fromEmpty = McpToolArguments.BuildQuery(Json("{}"));
+            Assert(fromEmpty.MaxResults == 25 && fromEmpty.Skip == 0, "empty args should leave the query at its defaults");
+        }
+
+        private static void McpBuildQueryValues()
+        {
+            EnumerationQuery query = McpToolArguments.BuildQuery(Json("{\"maxResults\":50,\"skip\":\"10\"}"));
+            Assert(query.MaxResults == 50, "maxResults should be read from a JSON number");
+            Assert(query.Skip == 10, "skip should be read from a numeric string");
+
+            // EnumerationQuery clamps out-of-range paging values; the parser must feed them through unchanged.
+            EnumerationQuery clamped = McpToolArguments.BuildQuery(Json("{\"maxResults\":5000,\"skip\":-4}"));
+            Assert(clamped.MaxResults == 1000, "oversized maxResults should be clamped to the query maximum");
+            Assert(clamped.Skip == 0, "negative skip should be clamped to zero");
         }
 
         #endregion

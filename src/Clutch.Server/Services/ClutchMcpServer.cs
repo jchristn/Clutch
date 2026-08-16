@@ -10,7 +10,6 @@ namespace Clutch.Server.Services
     using Clutch.Server.Serialization;
     using Clutch.Server.Settings;
     using SyslogLogging;
-    using Voltaic.Core;
     using Voltaic.Mcp;
 
     /// <summary>
@@ -72,7 +71,10 @@ namespace Clutch.Server.Services
             if (!_Settings.Enable) return;
 
             _Cts = CancellationTokenSource.CreateLinkedTokenSource(token);
-            _Server = new McpHttpServer(_Settings.Hostname, _Settings.Port, "/rpc", "/events", true, _Settings.McpPath);
+            // Voltaic.Mcp serves JSON-RPC (POST) at rpcPath and the SSE stream (GET) at eventsPath. Map the
+            // configured McpPath onto rpcPath so the streamable-HTTP endpoint honors the setting, and keep the
+            // SSE stream on the conventional "/events" path.
+            _Server = new McpHttpServer(_Settings.Hostname, _Settings.Port, _Settings.McpPath, "/events", true);
             _Server.ServerName = _Settings.ServerName;
             _Server.ServerVersion = _Version;
             _Server.EnableCors = true;
@@ -110,7 +112,7 @@ namespace Clutch.Server.Services
                 "clutch_server_info",
                 "Returns Clutch server product, version, and node identifier.",
                 new { type = "object", properties = new { } },
-                (RpcParameters? args) => Task.FromResult<object>(Json.Serialize(new { product = _Product, version = _Version, nodeId = _NodeId })));
+                (JsonElement? args) => (object)Json.Serialize(new { product = _Product, version = _Version, nodeId = _NodeId }));
 
             server.RegisterTool(
                 "clutch_list_tenants",
@@ -124,11 +126,11 @@ namespace Clutch.Server.Services
                         skip = new { type = "integer", description = "Records to skip before the page." }
                     }
                 },
-                async (RpcParameters? args) =>
+                (JsonElement? args) =>
                 {
-                    EnumerationQuery query = BuildQuery(args);
-                    EnumerationResult<Core.Models.Tenant> result = await _Database.Tenants.EnumerateAsync(query, _Cts!.Token).ConfigureAwait(false);
-                    return Json.Serialize(result);
+                    EnumerationQuery query = McpToolArguments.BuildQuery(args);
+                    EnumerationResult<Core.Models.Tenant> result = _Database.Tenants.EnumerateAsync(query, _Cts!.Token).GetAwaiter().GetResult();
+                    return (object)Json.Serialize(result);
                 });
 
             server.RegisterTool(
@@ -147,19 +149,19 @@ namespace Clutch.Server.Services
                     },
                     required = new[] { "tenantId" }
                 },
-                async (RpcParameters? args) =>
+                (JsonElement? args) =>
                 {
-                    string tenantId = GetString(args, "tenantId");
+                    string tenantId = McpToolArguments.GetString(args, "tenantId");
                     if (string.IsNullOrEmpty(tenantId)) throw new ArgumentException("tenantId is required.");
-                    string? name = GetString(args, "name");
+                    string? name = McpToolArguments.GetString(args, "name");
                     Core.Enums.LockModeEnum? mode = null;
-                    string modeStr = GetString(args, "mode");
+                    string modeStr = McpToolArguments.GetString(args, "mode");
                     if (!string.IsNullOrEmpty(modeStr) && Enum.TryParse<Core.Enums.LockModeEnum>(modeStr, true, out Core.Enums.LockModeEnum parsed)) mode = parsed;
-                    EnumerationQuery query = BuildQuery(args);
-                    EnumerationResult<Core.Models.LockHolder> result = await _Database.LockHolders
+                    EnumerationQuery query = McpToolArguments.BuildQuery(args);
+                    EnumerationResult<Core.Models.LockHolder> result = _Database.LockHolders
                         .EnumerateByTenantAsync(tenantId, string.IsNullOrEmpty(name) ? null : name, mode, query, _Cts!.Token)
-                        .ConfigureAwait(false);
-                    return Json.Serialize(result);
+                        .GetAwaiter().GetResult();
+                    return (object)Json.Serialize(result);
                 });
 
             server.RegisterTool(
@@ -178,45 +180,24 @@ namespace Clutch.Server.Services
                     },
                     required = new[] { "tenantId" }
                 },
-                async (RpcParameters? args) =>
+                (JsonElement? args) =>
                 {
-                    string tenantId = GetString(args, "tenantId");
+                    string tenantId = McpToolArguments.GetString(args, "tenantId");
                     if (string.IsNullOrEmpty(tenantId)) throw new ArgumentException("tenantId is required.");
                     LockAuditFilter filter = new LockAuditFilter();
                     filter.TenantId = tenantId;
-                    string name = GetString(args, "name");
+                    string name = McpToolArguments.GetString(args, "name");
                     if (!string.IsNullOrEmpty(name)) filter.LockKeyContains = name;
-                    string modeStr = GetString(args, "mode");
+                    string modeStr = McpToolArguments.GetString(args, "mode");
                     if (!string.IsNullOrEmpty(modeStr) && Enum.TryParse<Core.Enums.LockModeEnum>(modeStr, true, out Core.Enums.LockModeEnum parsed))
                         filter.Modes = new System.Collections.Generic.List<Core.Enums.LockModeEnum> { parsed };
-                    EnumerationQuery page = BuildQuery(args);
+                    EnumerationQuery page = McpToolArguments.BuildQuery(args);
                     filter.MaxResults = page.MaxResults;
                     filter.Skip = page.Skip;
                     filter.Ordering = page.Ordering;
-                    EnumerationResult<Core.Models.LockAuditEntry> result = await _Database.LockAudit.EnumerateAsync(filter, _Cts!.Token).ConfigureAwait(false);
-                    return Json.Serialize(result);
+                    EnumerationResult<Core.Models.LockAuditEntry> result = _Database.LockAudit.EnumerateAsync(filter, _Cts!.Token).GetAwaiter().GetResult();
+                    return (object)Json.Serialize(result);
                 });
-        }
-
-        private static EnumerationQuery BuildQuery(RpcParameters? args)
-        {
-            EnumerationQuery query = new EnumerationQuery();
-            int? maxResults = GetInt(args, "maxResults");
-            if (maxResults.HasValue) query.MaxResults = maxResults.Value;
-            int? skip = GetInt(args, "skip");
-            if (skip.HasValue) query.Skip = skip.Value;
-            return query;
-        }
-
-        private static string GetString(RpcParameters? args, string name)
-        {
-            return args?.GetString(name) ?? string.Empty;
-        }
-
-        private static int? GetInt(RpcParameters? args, string name)
-        {
-            long? value = args?.GetInt64(name);
-            return value.HasValue ? (int?)value.Value : null;
         }
 
         #endregion
