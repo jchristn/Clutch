@@ -11,6 +11,8 @@ export const STORAGE_KEYS = {
 
 export const GITHUB_URL = 'https://github.com/jchristn/Clutch';
 
+export const DISCORD_URL = 'https://discord.gg/tRAN8HgvK5';
+
 // Dev defaults pre-filled into the login form for local development.
 export const DEV_DEFAULTS = {
   serverUrl: 'http://localhost:8080',

@@ -68,6 +68,24 @@ if errorlevel 1 (
     exit /b 1
 )
 
+REM The cloud builder only pushes to the registry; pull the freshly pushed
+REM tags back so they also exist in the local Docker image store. This does
+REM NOT re-invoke the cloud builder - it fetches from Docker Hub.
+echo.
+echo Pulling pushed image into the local registry...
+docker pull %IMAGE_NAME%:%IMAGE_TAG%
+if errorlevel 1 (
+    echo.
+    echo ERROR: Failed to pull %IMAGE_NAME%:%IMAGE_TAG% into the local registry
+    exit /b 1
+)
+docker pull %IMAGE_NAME%:latest
+if errorlevel 1 (
+    echo.
+    echo ERROR: Failed to pull %IMAGE_NAME%:latest into the local registry
+    exit /b 1
+)
+
 echo.
 echo ============================================
 echo Build and push completed successfully!

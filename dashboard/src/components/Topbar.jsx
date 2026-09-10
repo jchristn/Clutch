@@ -1,10 +1,10 @@
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
-import { GITHUB_URL } from '../utils/constants';
+import { GITHUB_URL, DISCORD_URL } from '../utils/constants';
 import { roleKey } from '../utils/principal';
 import LanguageSelector from './LanguageSelector';
 import CopyButton from './CopyButton';
-import { MenuIcon, SunIcon, MoonIcon, GithubIcon, LogoutIcon } from './Icons';
+import { MenuIcon, SunIcon, MoonIcon, GithubIcon, DiscordIcon, LogoutIcon } from './Icons';
 
 /** Top bar: context chips on the left, utility actions on the right. */
 export default function Topbar({ onToggleSidebar, health }) {
@@ -53,6 +53,16 @@ export default function Topbar({ onToggleSidebar, health }) {
             title={t('common.actions.openGithub')}
           >
             <GithubIcon />
+          </a>
+          <a
+            className="icon-button"
+            href={DISCORD_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label={t('common.actions.openDiscord')}
+            title={t('common.actions.openDiscord')}
+          >
+            <DiscordIcon />
           </a>
           <button
             type="button"

@@ -38,7 +38,8 @@ const en = {
       execute: 'Execute',
       logout: 'Log out',
       back: 'Back',
-      openGithub: 'Open the repository on GitHub'
+      openGithub: 'Open the repository on GitHub',
+      openDiscord: 'Join our Discord community'
     },
     boolean: { yes: 'Yes', no: 'No' },
     generic: {
@@ -624,7 +625,8 @@ const de = {
       execute: 'Ausführen',
       logout: 'Abmelden',
       back: 'Zurück',
-      openGithub: 'Repository auf GitHub öffnen'
+      openGithub: 'Repository auf GitHub öffnen',
+      openDiscord: 'Tritt unserer Discord-Community bei'
     },
     boolean: { yes: 'Ja', no: 'Nein' },
     generic: {
@@ -878,7 +880,8 @@ const ja = {
       execute: '実行',
       logout: 'ログアウト',
       back: '戻る',
-      openGithub: 'GitHub でリポジトリを開く'
+      openGithub: 'GitHub でリポジトリを開く',
+      openDiscord: 'Discord コミュニティに参加する'
     },
     boolean: { yes: 'はい', no: 'いいえ' },
     generic: {
