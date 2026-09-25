@@ -62,9 +62,8 @@ services:
       - /bin/bash
       - -c
       - >
-        for i in $(seq 1 40); do
-          /opt/mssql-tools18/bin/sqlcmd -S sqlserver -U sa -P "Clutch_Test_123" -C
-          -Q "IF DB_ID(N'clutch') IS NULL CREATE DATABASE clutch;" && break;
-          echo "waiting for sqlserver ($i)"; sleep 3;
+        for i in $$(seq 1 40); do
+        /opt/mssql-tools18/bin/sqlcmd -S sqlserver -U sa -P "Clutch_Test_123" -C -Q "IF DB_ID(N'clutch') IS NULL CREATE DATABASE clutch;" && break;
+        echo "waiting for sqlserver ($$i)"; sleep 3;
         done
     restart: "no"
