@@ -17,6 +17,7 @@ namespace Test.Shared
     using Clutch.Core.Services;
     using Clutch.Server.Services;
     using Touchstone.Core;
+    using Voltaic.Core;
 
     /// <summary>
     /// Clutch shared test suites: pure compatibility logic plus a database-backed matrix that runs the lock
@@ -63,6 +64,8 @@ namespace Test.Shared
             mcp.Add(SyncCase("mcp-args", "mcp-getint-absent", "MCP: GetInt returns null for missing/non-numeric input", McpGetIntAbsent));
             mcp.Add(SyncCase("mcp-args", "mcp-buildquery-defaults", "MCP: BuildQuery uses defaults when args are absent", McpBuildQueryDefaults));
             mcp.Add(SyncCase("mcp-args", "mcp-buildquery-values", "MCP: BuildQuery reads and clamps paging values", McpBuildQueryValues));
+            mcp.Add(SyncCase("mcp-args", "mcp-parse-rpcparameters", "MCP: Parse converts Voltaic RpcParameters to JSON", McpParseRpcParameters));
+            mcp.Add(SyncCase("mcp-args", "mcp-parse-empty", "MCP: Parse yields null for absent RpcParameters", McpParseEmpty));
             suites.Add(new TestSuiteDescriptor("mcp-args", "Clutch MCP Argument Suite", mcp));
 
             // Database-backed matrix, one suite per provider.
@@ -177,8 +180,8 @@ namespace Test.Shared
         #region Mcp-Argument-Tests
 
         // MCP clients deliver tool arguments as a JSON object (System.Text.Json). These cases lock in the
-        // parsing behavior of McpToolArguments after the Voltaic.Mcp migration replaced the previous
-        // RpcParameters accessor with raw JsonElement handling.
+        // parsing behavior of McpToolArguments, including the Parse adapter that converts the Voltaic
+        // RpcParameters payload into the JsonElement consumed by the lenient accessors.
 
         private static JsonElement Json(string json)
         {
@@ -238,6 +241,25 @@ namespace Test.Shared
             EnumerationQuery clamped = McpToolArguments.BuildQuery(Json("{\"maxResults\":5000,\"skip\":-4}"));
             Assert(clamped.MaxResults == 1000, "oversized maxResults should be clamped to the query maximum");
             Assert(clamped.Skip == 0, "negative skip should be clamped to zero");
+        }
+
+        private static void McpParseRpcParameters()
+        {
+            JsonElement? args = McpToolArguments.Parse(new RpcParameters("{\"tenantId\":\"t-9\",\"maxResults\":\"40\",\"skip\":5}"));
+            Assert(args.HasValue && args.Value.ValueKind == JsonValueKind.Object, "object parameters should parse to a JSON object");
+            Assert(McpToolArguments.GetString(args, "tenantId") == "t-9", "string property should survive the conversion");
+            EnumerationQuery query = McpToolArguments.BuildQuery(args);
+            Assert(query.MaxResults == 40 && query.Skip == 5, "paging values should survive the conversion");
+
+            JsonElement? fromObject = McpToolArguments.Parse(RpcParameters.FromObject(new { tenantId = "t-10" }));
+            Assert(McpToolArguments.GetString(fromObject, "tenantId") == "t-10", "parameters built from a CLR object should parse");
+        }
+
+        private static void McpParseEmpty()
+        {
+            Assert(McpToolArguments.Parse(null) == null, "null parameters should yield null");
+            Assert(McpToolArguments.Parse(new RpcParameters(null!)) == null, "parameters with no JSON should yield null");
+            Assert(McpToolArguments.BuildQuery(McpToolArguments.Parse(null)).MaxResults == 25, "absent parameters should leave the query at its defaults");
         }
 
         #endregion

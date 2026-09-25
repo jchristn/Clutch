@@ -2,14 +2,28 @@ namespace Clutch.Server.Services
 {
     using System.Text.Json;
     using Clutch.Core.Enumeration;
+    using Voltaic.Core;
 
     /// <summary>
-    /// Helpers for reading MCP tool-call arguments out of the <see cref="JsonElement"/> payload delivered by
-    /// the Voltaic.Mcp server. MCP clients send tool arguments as a JSON object, so these helpers tolerate a
-    /// missing object, absent properties, and values encoded either as native JSON types or as strings.
+    /// Helpers for reading MCP tool-call arguments delivered by the Voltaic server. The
+    /// <see cref="RpcParameters"/> payload is converted to a <see cref="JsonElement"/> via <see cref="Parse"/>.
+    /// MCP clients send tool arguments as a JSON object, so these helpers tolerate a missing object, absent
+    /// properties, and values encoded either as native JSON types or as strings.
     /// </summary>
     internal static class McpToolArguments
     {
+        /// <summary>
+        /// Convert Voltaic tool-call parameters into a <see cref="JsonElement"/> for the lenient accessors below.
+        /// </summary>
+        /// <param name="args">The tool-call parameters, or null when the client sent none.</param>
+        /// <returns>The parsed JSON element, or null when no parameters were supplied.</returns>
+        public static JsonElement? Parse(RpcParameters? args)
+        {
+            if (args == null || !args.HasValue || string.IsNullOrEmpty(args.RawJson)) return null;
+            using JsonDocument doc = JsonDocument.Parse(args.RawJson);
+            return doc.RootElement.Clone();
+        }
+
         /// <summary>
         /// Build a pagination query from the optional <c>maxResults</c> and <c>skip</c> arguments. Absent or
         /// unparseable values leave the query at its defaults (which the query itself clamps to valid ranges).

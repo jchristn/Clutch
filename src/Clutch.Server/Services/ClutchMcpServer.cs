@@ -10,6 +10,7 @@ namespace Clutch.Server.Services
     using Clutch.Server.Serialization;
     using Clutch.Server.Settings;
     using SyslogLogging;
+    using Voltaic.Core;
     using Voltaic.Mcp;
 
     /// <summary>
@@ -71,7 +72,7 @@ namespace Clutch.Server.Services
             if (!_Settings.Enable) return;
 
             _Cts = CancellationTokenSource.CreateLinkedTokenSource(token);
-            // Voltaic.Mcp serves JSON-RPC (POST) at rpcPath and the SSE stream (GET) at eventsPath. Map the
+            // Voltaic serves JSON-RPC (POST) at rpcPath and the SSE stream (GET) at eventsPath. Map the
             // configured McpPath onto rpcPath so the streamable-HTTP endpoint honors the setting, and keep the
             // SSE stream on the conventional "/events" path.
             _Server = new McpHttpServer(_Settings.Hostname, _Settings.Port, _Settings.McpPath, "/events", true);
@@ -112,7 +113,7 @@ namespace Clutch.Server.Services
                 "clutch_server_info",
                 "Returns Clutch server product, version, and node identifier.",
                 new { type = "object", properties = new { } },
-                (JsonElement? args) => (object)Json.Serialize(new { product = _Product, version = _Version, nodeId = _NodeId }));
+                (RpcParameters? args) => (object)Json.Serialize(new { product = _Product, version = _Version, nodeId = _NodeId }));
 
             server.RegisterTool(
                 "clutch_list_tenants",
@@ -126,8 +127,9 @@ namespace Clutch.Server.Services
                         skip = new { type = "integer", description = "Records to skip before the page." }
                     }
                 },
-                (JsonElement? args) =>
+                (RpcParameters? rpcArgs) =>
                 {
+                    JsonElement? args = McpToolArguments.Parse(rpcArgs);
                     EnumerationQuery query = McpToolArguments.BuildQuery(args);
                     EnumerationResult<Core.Models.Tenant> result = _Database.Tenants.EnumerateAsync(query, _Cts!.Token).GetAwaiter().GetResult();
                     return (object)Json.Serialize(result);
@@ -149,8 +151,9 @@ namespace Clutch.Server.Services
                     },
                     required = new[] { "tenantId" }
                 },
-                (JsonElement? args) =>
+                (RpcParameters? rpcArgs) =>
                 {
+                    JsonElement? args = McpToolArguments.Parse(rpcArgs);
                     string tenantId = McpToolArguments.GetString(args, "tenantId");
                     if (string.IsNullOrEmpty(tenantId)) throw new ArgumentException("tenantId is required.");
                     string? name = McpToolArguments.GetString(args, "name");
@@ -180,8 +183,9 @@ namespace Clutch.Server.Services
                     },
                     required = new[] { "tenantId" }
                 },
-                (JsonElement? args) =>
+                (RpcParameters? rpcArgs) =>
                 {
+                    JsonElement? args = McpToolArguments.Parse(rpcArgs);
                     string tenantId = McpToolArguments.GetString(args, "tenantId");
                     if (string.IsNullOrEmpty(tenantId)) throw new ArgumentException("tenantId is required.");
                     LockAuditFilter filter = new LockAuditFilter();
