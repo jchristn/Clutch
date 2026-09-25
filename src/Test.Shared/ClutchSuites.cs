@@ -104,6 +104,14 @@ namespace Test.Shared
             cases.Add(DbCase(suiteId, "db-credential-accesskey", "Database: credential by access key", provider, DbCredentialByAccessKeyAsync, skip, reason));
             cases.Add(DbCase(suiteId, "db-cascade-delete", "Database: tenant cascade delete", provider, DbCascadeDeleteAsync, skip, reason));
             cases.Add(DbCase(suiteId, "soak-randomized", "Soak: randomized concurrency invariants", provider, SoakRandomizedAsync, skip, reason));
+            cases.Add(DbCase(suiteId, "mcp-tools-list-app-only", "MCP: tools/list publishes only the Clutch tools", provider, McpToolsListAppOnlyAsync, skip, reason));
+            cases.Add(DbCase(suiteId, "mcp-ping-empty", "MCP: protocol ping returns an empty object", provider, McpPingEmptyAsync, skip, reason));
+            cases.Add(DbCase(suiteId, "mcp-call-server-info", "MCP: tools/call clutch_server_info returns the node", provider, McpCallServerInfoAsync, skip, reason));
+            cases.Add(DbCase(suiteId, "mcp-call-list-tenants", "MCP: tools/call clutch_list_tenants returns tenants", provider, McpCallListTenantsAsync, skip, reason));
+            cases.Add(DbCase(suiteId, "mcp-call-list-locks", "MCP: tools/call clutch_list_locks returns held locks", provider, McpCallListLocksAsync, skip, reason));
+            cases.Add(DbCase(suiteId, "mcp-bare-tool-rejected", "MCP: calling a tool as a bare method returns -32601", provider, McpBareToolRejectedAsync, skip, reason));
+            cases.Add(DbCase(suiteId, "mcp-diagnostics-absent", "MCP: Voltaic demo tools are not callable", provider, McpDiagnosticsAbsentAsync, skip, reason));
+            cases.Add(DbCase(suiteId, "mcp-missing-required-arg", "MCP: missing required tenantId is rejected", provider, McpMissingRequiredArgAsync, skip, reason));
             return cases;
         }
 
@@ -260,6 +268,173 @@ namespace Test.Shared
             Assert(McpToolArguments.Parse(null) == null, "null parameters should yield null");
             Assert(McpToolArguments.Parse(new RpcParameters(null!)) == null, "parameters with no JSON should yield null");
             Assert(McpToolArguments.BuildQuery(McpToolArguments.Parse(null)).MaxResults == 25, "absent parameters should leave the query at its defaults");
+        }
+
+        #endregion
+
+        #region Mcp-Server-Tests
+
+        // These cases host ClutchMcpServer on a free loopback port against the provider's database and drive it
+        // with raw JSON-RPC over streamable HTTP, so they pin the wire behavior MCP clients see: only the Clutch
+        // tools are published, ping answers {}, and tools are reachable only through tools/call.
+
+        private static readonly string[] _ClutchToolNames = new[] { "clutch_server_info", "clutch_list_tenants", "clutch_list_locks", "clutch_lock_audit" };
+
+        private static async Task McpToolsListAppOnlyAsync(DatabaseDriverBase db, CancellationToken ct)
+        {
+            await WithMcpServerAsync(db, async client =>
+            {
+                JsonElement response = await client.SendAsync("tools/list", new { }, ct).ConfigureAwait(false);
+                Assert(!response.TryGetProperty("error", out _), "tools/list should succeed: " + response.GetRawText());
+                List<string> names = response.GetProperty("result").GetProperty("tools").EnumerateArray()
+                    .Select(t => t.GetProperty("name").GetString() ?? string.Empty).OrderBy(n => n, StringComparer.Ordinal).ToList();
+                List<string> expected = _ClutchToolNames.OrderBy(n => n, StringComparer.Ordinal).ToList();
+                Assert(names.SequenceEqual(expected), "tools/list should contain exactly the Clutch tools, got: " + string.Join(", ", names));
+            }, ct).ConfigureAwait(false);
+        }
+
+        private static async Task McpPingEmptyAsync(DatabaseDriverBase db, CancellationToken ct)
+        {
+            await WithMcpServerAsync(db, async client =>
+            {
+                JsonElement response = await client.SendAsync("ping", null, ct).ConfigureAwait(false);
+                Assert(!response.TryGetProperty("error", out _), "ping should succeed: " + response.GetRawText());
+                JsonElement result = response.GetProperty("result");
+                Assert(result.ValueKind == JsonValueKind.Object, "ping result should be an object, got " + result.GetRawText());
+                Assert(!result.EnumerateObject().Any(), "ping result should be empty, got " + result.GetRawText());
+            }, ct).ConfigureAwait(false);
+        }
+
+        private static async Task McpCallServerInfoAsync(DatabaseDriverBase db, CancellationToken ct)
+        {
+            await WithMcpServerAsync(db, async client =>
+            {
+                string text = await client.CallToolTextAsync("clutch_server_info", new { }, ct).ConfigureAwait(false);
+                using JsonDocument info = JsonDocument.Parse(text);
+                Assert(info.RootElement.GetProperty("nodeId").GetString() == "mcp-test-node", "server info should report the node id, got " + text);
+                Assert(info.RootElement.GetProperty("product").GetString() == "Clutch", "server info should report the product, got " + text);
+            }, ct).ConfigureAwait(false);
+        }
+
+        private static async Task McpCallListTenantsAsync(DatabaseDriverBase db, CancellationToken ct)
+        {
+            Tenant tenant = await NewTenantAsync(db, ct).ConfigureAwait(false);
+            await WithMcpServerAsync(db, async client =>
+            {
+                string text = await client.CallToolTextAsync("clutch_list_tenants", new { maxResults = 1000 }, ct).ConfigureAwait(false);
+                Assert(text.Contains(tenant.Id, StringComparison.Ordinal), "tenant list should include the new tenant " + tenant.Id);
+            }, ct).ConfigureAwait(false);
+        }
+
+        private static async Task McpCallListLocksAsync(DatabaseDriverBase db, CancellationToken ct)
+        {
+            LockEngine engine = MakeEngine(db, "n1");
+            Tenant tenant = await NewTenantAsync(db, ct).ConfigureAwait(false);
+            string key = NewKey();
+            LockResult granted = await engine.AcquireAsync(Req(tenant.Id, key, LockModeEnum.Write, "mcp-session"), LockBehaviorEnum.FailFast, null, ct).ConfigureAwait(false);
+            Assert(granted.IsGranted(), "setup write should be granted");
+
+            await WithMcpServerAsync(db, async client =>
+            {
+                string held = await client.CallToolTextAsync("clutch_list_locks", new { tenantId = tenant.Id }, ct).ConfigureAwait(false);
+                Assert(held.Contains(key, StringComparison.Ordinal), "lock list should include the held key " + key);
+
+                string filtered = await client.CallToolTextAsync("clutch_list_locks", new { tenantId = tenant.Id, mode = "Read" }, ct).ConfigureAwait(false);
+                Assert(!filtered.Contains(key, StringComparison.Ordinal), "a Read mode filter should exclude the held write");
+            }, ct).ConfigureAwait(false);
+        }
+
+        private static async Task McpBareToolRejectedAsync(DatabaseDriverBase db, CancellationToken ct)
+        {
+            await WithMcpServerAsync(db, async client =>
+            {
+                foreach (string tool in _ClutchToolNames)
+                {
+                    JsonElement response = await client.SendAsync(tool, new { tenantId = "t" }, ct).ConfigureAwait(false);
+                    Assert(ErrorCode(response) == -32601, "bare call to " + tool + " should return -32601, got " + response.GetRawText());
+                }
+            }, ct).ConfigureAwait(false);
+        }
+
+        private static async Task McpDiagnosticsAbsentAsync(DatabaseDriverBase db, CancellationToken ct)
+        {
+            await WithMcpServerAsync(db, async client =>
+            {
+                foreach (string tool in new[] { "echo", "getTime", "getSessions", "getClients" })
+                {
+                    JsonElement viaToolsCall = await client.SendAsync("tools/call", new { name = tool, arguments = new { } }, ct).ConfigureAwait(false);
+                    Assert(IsToolFailure(viaToolsCall), "tools/call " + tool + " should fail, got " + viaToolsCall.GetRawText());
+
+                    JsonElement bare = await client.SendAsync(tool, null, ct).ConfigureAwait(false);
+                    Assert(ErrorCode(bare) == -32601, "bare " + tool + " should return -32601, got " + bare.GetRawText());
+                }
+            }, ct).ConfigureAwait(false);
+        }
+
+        private static async Task McpMissingRequiredArgAsync(DatabaseDriverBase db, CancellationToken ct)
+        {
+            await WithMcpServerAsync(db, async client =>
+            {
+                foreach (string tool in new[] { "clutch_list_locks", "clutch_lock_audit" })
+                {
+                    JsonElement missing = await client.SendAsync("tools/call", new { name = tool, arguments = new { } }, ct).ConfigureAwait(false);
+                    Assert(ErrorCode(missing) == -32602, tool + " without tenantId should return -32602, got " + missing.GetRawText());
+
+                    JsonElement wrongType = await client.SendAsync("tools/call", new { name = tool, arguments = new { tenantId = 42 } }, ct).ConfigureAwait(false);
+                    Assert(ErrorCode(wrongType) == -32602, tool + " with a numeric tenantId should return -32602, got " + wrongType.GetRawText());
+
+                    JsonElement empty = await client.SendAsync("tools/call", new { name = tool, arguments = new { tenantId = "" } }, ct).ConfigureAwait(false);
+                    Assert(IsToolFailure(empty), tool + " with an empty tenantId should fail, got " + empty.GetRawText());
+                }
+            }, ct).ConfigureAwait(false);
+        }
+
+        private static int? ErrorCode(JsonElement response)
+        {
+            if (response.TryGetProperty("error", out JsonElement error) && error.TryGetProperty("code", out JsonElement code) && code.TryGetInt32(out int value)) return value;
+            return null;
+        }
+
+        private static bool IsToolFailure(JsonElement response)
+        {
+            if (response.TryGetProperty("error", out _)) return true;
+            return response.TryGetProperty("result", out JsonElement result)
+                && result.ValueKind == JsonValueKind.Object
+                && result.TryGetProperty("isError", out JsonElement isError)
+                && isError.ValueKind == JsonValueKind.True;
+        }
+
+        private static async Task WithMcpServerAsync(DatabaseDriverBase db, Func<McpTestClient, Task> body, CancellationToken ct)
+        {
+            Clutch.Server.Settings.McpSettings settings = new Clutch.Server.Settings.McpSettings();
+            settings.Hostname = "127.0.0.1";
+            settings.Port = FreeTcpPort();
+            settings.McpPath = "/mcp";
+
+            SyslogLogging.LoggingModule logging = new SyslogLogging.LoggingModule();
+            logging.Settings.EnableConsole = false;
+
+            using ClutchMcpServer server = new ClutchMcpServer(settings, db, logging, "mcp-test-node", "Clutch", "v-test");
+            server.Start(ct);
+            try
+            {
+                using McpTestClient client = new McpTestClient("http://127.0.0.1:" + settings.Port + settings.McpPath);
+                await client.InitializeAsync(ct).ConfigureAwait(false);
+                await body(client).ConfigureAwait(false);
+            }
+            finally
+            {
+                server.Stop();
+            }
+        }
+
+        private static int FreeTcpPort()
+        {
+            System.Net.Sockets.TcpListener listener = new System.Net.Sockets.TcpListener(System.Net.IPAddress.Loopback, 0);
+            listener.Start();
+            int port = ((System.Net.IPEndPoint)listener.LocalEndpoint).Port;
+            listener.Stop();
+            return port;
         }
 
         #endregion

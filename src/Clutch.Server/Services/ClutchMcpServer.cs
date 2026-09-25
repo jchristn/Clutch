@@ -74,8 +74,9 @@ namespace Clutch.Server.Services
             _Cts = CancellationTokenSource.CreateLinkedTokenSource(token);
             // Voltaic serves JSON-RPC (POST) at rpcPath and the SSE stream (GET) at eventsPath. Map the
             // configured McpPath onto rpcPath so the streamable-HTTP endpoint honors the setting, and keep the
-            // SSE stream on the conventional "/events" path.
-            _Server = new McpHttpServer(_Settings.Hostname, _Settings.Port, _Settings.McpPath, "/events", true);
+            // SSE stream on the conventional "/events" path. Voltaic's optional diagnostic tools (echo, getTime)
+            // are left off so tools/list publishes only the Clutch tools below.
+            _Server = new McpHttpServer(_Settings.Hostname, _Settings.Port, _Settings.McpPath, "/events");
             _Server.ServerName = _Settings.ServerName;
             _Server.ServerVersion = _Version;
             _Server.EnableCors = true;
