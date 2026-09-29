@@ -9,8 +9,13 @@
 		<AssemblyName>Clutch.Sdk</AssemblyName>
 		<PackageId>Clutch.Sdk</PackageId>
 		<Version>0.2.0</Version>
+		<AssemblyVersion>0.2.0.0</AssemblyVersion>
+		<FileVersion>0.2.0.0</FileVersion>
 		<Authors>Joel Christner</Authors>
+		<Company>Joel Christner</Company>
+		<Product>Clutch</Product>
 		<Copyright>(c)2026 Joel Christner</Copyright>
+		<NeutralLanguage>en-US</NeutralLanguage>
 		<Description>SDK for Clutch, a distributed lock platform. Includes a REST administration and observability client and a WebSocket lock client with automatic heartbeat management.</Description>
 		<Title>Clutch SDK for .NET</Title>
 		<PackageTags>distributed-lock;locking;clutch;websocket</PackageTags>
@@ -20,11 +25,19 @@
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<PackageLicenseFile>LICENSE.md</PackageLicenseFile>
 		<PackageIcon>logo.png</PackageIcon>
-		<PackageReleaseNotes>Initial alpha release.</PackageReleaseNotes>
+		<PackageReleaseNotes>v0.2.0 release. See https://github.com/jchristn/Clutch/blob/main/CHANGELOG.md for details.</PackageReleaseNotes>
+		<PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
 		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+		<!-- Symbols: portable PDBs shipped in a .snupkg, with Source Link metadata. -->
+		<DebugType>portable</DebugType>
+		<DebugSymbols>true</DebugSymbols>
 		<IncludeSymbols>true</IncludeSymbols>
 		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
+		<PublishRepositoryUrl>true</PublishRepositoryUrl>
+		<EmbedUntrackedSources>true</EmbedUntrackedSources>
+		<Deterministic>true</Deterministic>
+		<ContinuousIntegrationBuild Condition="'$(Configuration)' == 'Release'">true</ContinuousIntegrationBuild>
 	</PropertyGroup>
 
 	<ItemGroup>
