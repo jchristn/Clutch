@@ -28,6 +28,14 @@ Bring your own database. Clutch now runs on PostgreSQL, MySQL, SQL Server, or SQ
 - The shared Touchstone suite runs as a provider matrix — the full lock-engine correctness, tenant isolation, polling-wakeup, and randomized concurrency soak suites execute once per available provider. SQLite runs in-process; PostgreSQL, MySQL, and SQL Server run against containers via `docker/compose.test.yaml`. The suite has been run green (22/22 per provider, soak included) against all four engines.
 - The `Test.Automated` runner accepts database-selection flags — `--type`, `--host`, `--port`, `--database`, `--schema`, `--username`, `--password`, `--filepath`, and `--providers` — as an alternative to the `CLUTCH_TEST_*` environment variables, so a single provider or a matrix can be targeted from the command line. `--help` lists them.
 
+### Maintenance (2026-10-03, images rebuilt as `v0.2.0` and `latest`)
+
+- Dependencies: Microsoft.Data.SqlClient 7.1.0 → 7.1.1, Voltaic 2.0.0 → 2.2.1, Watson 7.2.0 → 7.2.2, SyslogLogging 2.2.2 → 2.3.1; test tooling Touchstone 0.1.12 → 0.2.0, NUnit 4.6.1 → 5.0.0, coverlet.collector 10.0.1 → 10.1.0.
+- MCP: with Voltaic 2.2, a `tools/call` whose arguments fail the tool's input schema (for example, missing or non-string `tenantId`) now returns a tool result with `isError: true` naming the property, instead of a JSON-RPC `-32602` error, as the MCP specification prescribes. An empty `tenantId` is reported with the message `tenantId is required.` rather than a generic internal-error text.
+- Fix: tenant delete and tenant nuke now retry on transient database conflicts (deadlock, serialization failure, lock-wait timeout), like every lock mutation. Previously a tenant delete that collided with concurrent lock activity on SQL Server could fail as a deadlock victim.
+- Tests: the MCP required-argument suite asserts the new `isError` contract, and the NUnit per-case runner executes through `TestExecutor.ExecuteCaseAsync`, so each provider's cases are reported individually (110 cases plus the run-all test).
+- The Clutch.Sdk NuGet package is unchanged (it has no third-party dependencies) and remains at 0.2.0.
+
 ## [0.1.0] - 2026-08-08
 
 Initial alpha release. Everything — APIs, WebSocket protocol, database schema, settings, SDK surfaces, and behavior — is subject to change without notice and is not yet recommended for production.

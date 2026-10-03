@@ -155,6 +155,13 @@ namespace Clutch.Core.Database.Ado
                 _Driver.Catalog.AuthSessions, _Driver.Catalog.Credentials, _Driver.Catalog.Users, _Driver.Catalog.RequestHistory
             };
 
+            // The multi-table delete can collide with concurrent lock mutations on the same tables (row/range
+            // locks); a transient deadlock or serialization failure is rolled back and the whole delete retried.
+            return await _Driver.RetryOnConflictAsync(t => DeleteOnceAsync(id, childTables, t), token).ConfigureAwait(false);
+        }
+
+        private async Task<bool> DeleteOnceAsync(string id, string[] childTables, CancellationToken token)
+        {
             await using (DbConnection connection = await _Driver.OpenConnectionAsync(token).ConfigureAwait(false))
             await using (DbTransaction transaction = await _Driver.BeginTransactionAsync(connection, false, token).ConfigureAwait(false))
             {
@@ -195,6 +202,11 @@ namespace Clutch.Core.Database.Ado
             if (includeAuditRecords) targets.Insert(2, new KeyValuePair<string, string>(_Driver.Catalog.LockAudit, "lockAudit"));
             if (includeRequestHistory) targets.Add(new KeyValuePair<string, string>(_Driver.Catalog.RequestHistory, "requestHistory"));
 
+            return await _Driver.RetryOnConflictAsync(t => NukeOnceAsync(id, targets, t), token).ConfigureAwait(false);
+        }
+
+        private async Task<Dictionary<string, long>> NukeOnceAsync(string id, List<KeyValuePair<string, string>> targets, CancellationToken token)
+        {
             Dictionary<string, long> counts = new Dictionary<string, long>();
 
             await using (DbConnection connection = await _Driver.OpenConnectionAsync(token).ConfigureAwait(false))

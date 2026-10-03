@@ -377,14 +377,18 @@ namespace Test.Shared
             {
                 foreach (string tool in new[] { "clutch_list_locks", "clutch_lock_audit" })
                 {
+                    // Voltaic 2.2+ reports input-schema violations as tool execution errors (isError results), not -32602.
                     JsonElement missing = await client.SendAsync("tools/call", new { name = tool, arguments = new { } }, ct).ConfigureAwait(false);
-                    Assert(ErrorCode(missing) == -32602, tool + " without tenantId should return -32602, got " + missing.GetRawText());
+                    Assert(IsToolError(missing), tool + " without tenantId should return an isError result, got " + missing.GetRawText());
+                    Assert(ToolErrorText(missing).Contains("tenantId"), tool + " missing-argument error should name tenantId, got " + missing.GetRawText());
 
                     JsonElement wrongType = await client.SendAsync("tools/call", new { name = tool, arguments = new { tenantId = 42 } }, ct).ConfigureAwait(false);
-                    Assert(ErrorCode(wrongType) == -32602, tool + " with a numeric tenantId should return -32602, got " + wrongType.GetRawText());
+                    Assert(IsToolError(wrongType), tool + " with a numeric tenantId should return an isError result, got " + wrongType.GetRawText());
+                    Assert(ToolErrorText(wrongType).Contains("tenantId"), tool + " wrong-type error should name tenantId, got " + wrongType.GetRawText());
 
                     JsonElement empty = await client.SendAsync("tools/call", new { name = tool, arguments = new { tenantId = "" } }, ct).ConfigureAwait(false);
-                    Assert(IsToolFailure(empty), tool + " with an empty tenantId should fail, got " + empty.GetRawText());
+                    Assert(IsToolError(empty), tool + " with an empty tenantId should return an isError result, got " + empty.GetRawText());
+                    Assert(ToolErrorText(empty).Contains("tenantId is required."), tool + " empty-tenantId error should surface the handler message, got " + empty.GetRawText());
                 }
             }, ct).ConfigureAwait(false);
         }
@@ -402,6 +406,24 @@ namespace Test.Shared
                 && result.ValueKind == JsonValueKind.Object
                 && result.TryGetProperty("isError", out JsonElement isError)
                 && isError.ValueKind == JsonValueKind.True;
+        }
+
+        private static bool IsToolError(JsonElement response)
+        {
+            if (response.TryGetProperty("error", out _)) return false;
+            return IsToolFailure(response);
+        }
+
+        private static string ToolErrorText(JsonElement response)
+        {
+            if (!response.TryGetProperty("result", out JsonElement result) || result.ValueKind != JsonValueKind.Object) return "";
+            if (!result.TryGetProperty("content", out JsonElement content) || content.ValueKind != JsonValueKind.Array) return "";
+            System.Text.StringBuilder sb = new System.Text.StringBuilder();
+            foreach (JsonElement item in content.EnumerateArray())
+            {
+                if (item.TryGetProperty("text", out JsonElement text) && text.ValueKind == JsonValueKind.String) sb.Append(text.GetString());
+            }
+            return sb.ToString();
         }
 
         private static async Task WithMcpServerAsync(DatabaseDriverBase db, Func<McpTestClient, Task> body, CancellationToken ct)

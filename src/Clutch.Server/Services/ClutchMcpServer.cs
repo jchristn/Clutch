@@ -156,7 +156,7 @@ namespace Clutch.Server.Services
                 {
                     JsonElement? args = McpToolArguments.Parse(rpcArgs);
                     string tenantId = McpToolArguments.GetString(args, "tenantId");
-                    if (string.IsNullOrEmpty(tenantId)) throw new ArgumentException("tenantId is required.");
+                    if (string.IsNullOrEmpty(tenantId)) throw new McpToolException("tenantId is required.");
                     string? name = McpToolArguments.GetString(args, "name");
                     Core.Enums.LockModeEnum? mode = null;
                     string modeStr = McpToolArguments.GetString(args, "mode");
@@ -188,7 +188,7 @@ namespace Clutch.Server.Services
                 {
                     JsonElement? args = McpToolArguments.Parse(rpcArgs);
                     string tenantId = McpToolArguments.GetString(args, "tenantId");
-                    if (string.IsNullOrEmpty(tenantId)) throw new ArgumentException("tenantId is required.");
+                    if (string.IsNullOrEmpty(tenantId)) throw new McpToolException("tenantId is required.");
                     LockAuditFilter filter = new LockAuditFilter();
                     filter.TenantId = tenantId;
                     string name = McpToolArguments.GetString(args, "name");
