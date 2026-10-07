@@ -3,6 +3,7 @@ namespace Clutch.Server.Routes
     using System;
     using System.Reflection;
     using System.Threading.Tasks;
+    using Clutch.Core;
     using Clutch.Core.Security;
     using Clutch.Server.Settings;
     using Clutch.Server.WebSocket;
@@ -57,7 +58,7 @@ namespace Clutch.Server.Routes
         private async Task InfoAsync(HttpContextBase context)
         {
             RequestContext ctx = RouteHelpers.Context(context);
-            string version = Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "0.3.0";
+            string version = Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? Constants.ProductVersion;
 
             await RouteHelpers.JsonAsync(context, 200, new ServerInfoResponse
             {

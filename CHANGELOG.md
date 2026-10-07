@@ -14,15 +14,21 @@ Native AOT. The server, `Clutch.Core`, and the `Clutch.Sdk` package are now trim
 - `Clutch.Server` and `Clutch.Core` are `IsAotCompatible`, with trimming and AOT warnings treated as build errors. The server publishes as a native binary with `-p:PublishAot=true`. Microsoft.Data.SqlClient still reports its own trimming and AOT warnings, so test SQL Server deployments before running them natively.
 - The server and Core assemblies are now versioned `0.3.0`, so `GET /v1.0/api/server-info` reports `0.3.0.0` (it previously reported the default `1.0.0.0`).
 - Dependencies: Voltaic 2.2.1 → 2.3.0 and Watson 7.2.2 → 7.3.0, both of which are themselves Native AOT compatible.
+- The MCP server and the OpenAPI document report the product version (`v0.3.0` and `0.3.0`) instead of a hardcoded `v1.0`; the version lives in `Constants.ProductVersion`.
+
+### Fixed
+
+- The in-process Prometheus endpoint no longer fails at startup with default settings. The former default `Telemetry.PrometheusHostname` of `*` is not accepted by the OpenTelemetry listener (`Invalid URI`), which disabled telemetry entirely. The default is now `localhost`, and wildcard values (`*`, `+`, `0.0.0.0`, `::`, `[::]`), including the `*` saved in existing settings files, are treated as `localhost` and rewritten on the next start. The listener answers only requests addressed to its configured hostname, so scrape it by that name. The Docker deployment pushes OTLP and is unaffected.
 
 ### SDK
 
 - `Clutch.Sdk` 0.3.0 is `IsAotCompatible` and works in trimmed and Native AOT applications. Request bodies are named internal types and the clients use source-generated metadata; the public API and the JSON they send are unchanged.
 - The SDK test application's checks moved into `SdkChecks`, which the Native AOT test also compiles.
+- The JavaScript SDK package version moves to 0.3.0 to match the platform release.
 
 ### Testing and CI
 
-- New `src/Test.Aot`: a Native AOT console application that starts a full node in-process on SQLite and runs 55 checks against it: the settings file, raw REST (OpenAPI, tokens, error bodies, tenants, users, credentials, the HTTP lock lifecycle, lock audit, settings, request history, and the tenant purge), the SDK checks, WebSocket ping and error frames, and MCP (handshake, `tools/list` schemas, and every tool). It is published with trimming and AOT warnings as errors and passes as a native binary on net8.0 and net10.0.
+- New `src/Test.Aot`: a Native AOT console application that starts a full node in-process on SQLite and runs 56 checks against it: the settings file, raw REST (OpenAPI, tokens, error bodies, tenants, users, credentials, the HTTP lock lifecycle, lock audit, settings, request history, and the tenant purge), the SDK checks, WebSocket ping and error frames, and MCP (handshake, `tools/list` schemas, and every tool). It is published with trimming and AOT warnings as errors and passes as a native binary on net8.0 and net10.0. It also scrapes the Prometheus endpoint, as does a new telemetry suite in the shared Touchstone tests.
 - New GitHub Actions workflows. `tests.yml` runs on every commit on Linux, Windows, and macOS for net8.0 and net10.0: the Touchstone suite through the console, xUnit, and NUnit runners (SQLite everywhere; PostgreSQL, MySQL, and SQL Server on Linux), the Native AOT checks under the JIT, the C#, JavaScript, and Python SDK harnesses against a live server, and the dashboard lint and build. `native-aot.yml` publishes and runs `Test.Aot` and publishes `Clutch.Server` natively on all three platforms, failing on any trimming or AOT warning outside the SqlClient allow-list.
 
 ## [0.2.0] - 2026-08-12

@@ -166,7 +166,7 @@ The `Database` settings object selects and configures the backing database: `{ T
 
 ## Telemetry
 
-Prometheus metrics are exposed on a separate port (default `9464`) at `/metrics`, not on the REST port. Metrics include `clutch_lock_acquire_total{mode,outcome}`, `clutch_lock_release_total` (recorded on explicit release, session release, and admin force-release), `clutch_lock_acquire_duration`, `clutch_http_request_total`, `clutch_ws_connections`, `clutch_lock_waiters`, and process/runtime series.
+Prometheus metrics are exposed on a separate port (default `9464`) at `/metrics`, not on the REST port. The listener binds `Telemetry.PrometheusHostname` (default `localhost`) and answers only requests addressed to that hostname. Metrics include `clutch_lock_acquire_total{mode,outcome}`, `clutch_lock_release_total` (recorded on explicit release, session release, and admin force-release), `clutch_lock_acquire_duration`, `clutch_http_request_total`, `clutch_ws_connections`, `clutch_lock_waiters`, and process/runtime series.
 
 ## MCP server
 

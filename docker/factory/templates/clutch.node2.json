@@ -46,7 +46,7 @@
     "Enabled": true,
     "ServiceName": "clutch",
     "PrometheusEnable": false,
-    "PrometheusHostname": "\u002B",
+    "PrometheusHostname": "localhost",
     "PrometheusPort": 9464,
     "PrometheusPath": "/metrics",
     "OtlpEnable": true,

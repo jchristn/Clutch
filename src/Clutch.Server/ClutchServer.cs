@@ -113,7 +113,7 @@ namespace Clutch.Server
 
             _Server = new Webserver(webserverSettings, DefaultRouteAsync);
 
-            _Mcp = new ClutchMcpServer(settings.Mcp, database, logging, settings.NodeId, "Clutch", "v1.0");
+            _Mcp = new ClutchMcpServer(settings.Mcp, database, logging, settings.NodeId, "Clutch", "v" + Constants.ProductVersion);
         }
 
         #endregion
@@ -168,7 +168,7 @@ namespace Clutch.Server
             _Server.UseOpenApi(openApi =>
             {
                 openApi.Info.Title = "Clutch API";
-                openApi.Info.Version = "v1.0";
+                openApi.Info.Version = Constants.ProductVersion;
                 openApi.Info.Description = "Clutch distributed lock management platform.";
             });
         }

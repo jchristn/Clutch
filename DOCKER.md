@@ -84,9 +84,9 @@ The same flags exist for every provider (`--type sqlite|postgresql|mysql|sqlserv
 
 ## Observability
 
-Each node pushes OTLP metrics to an `otel-collector`, which re-exposes them in Prometheus format for Prometheus to scrape (this path is used because .NET's in-process Prometheus `HttpListener` exporter is not hostable on Linux). Grafana loads a provisioned **Clutch Overview** dashboard (acquires/denials by outcome, release rate, acquire-latency p95, HTTP request rate, active WebSocket connections, blocked waiters, process memory).
+Each node pushes OTLP metrics to an `otel-collector`, which re-exposes them in Prometheus format for Prometheus to scrape (the in-process Prometheus listener cannot bind every interface: it answers only requests addressed to its configured hostname, so a push pipeline is simpler for a multi-node stack). Grafana loads a provisioned **Clutch Overview** dashboard (acquires/denials by outcome, release rate, acquire-latency p95, HTTP request rate, active WebSocket connections, blocked waiters, process memory).
 
-For a standalone (non-Docker) node, set `Telemetry.PrometheusEnable=true` to host `/metrics` directly on `PrometheusPort` (9464) instead of pushing OTLP.
+For a standalone (non-Docker) node, `Telemetry.PrometheusEnable=true` (the default) hosts `/metrics` directly on `PrometheusPort` (9464). The listener binds `Telemetry.PrometheusHostname` (default `localhost`) and answers only requests addressed to that name, so scrape it by the same name. Wildcards (`*`, `+`, `0.0.0.0`) are not supported by the underlying OpenTelemetry listener and are treated as `localhost`.
 
 ## Factory reset
 

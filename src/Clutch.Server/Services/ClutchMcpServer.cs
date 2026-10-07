@@ -4,6 +4,7 @@ namespace Clutch.Server.Services
     using System.Text.Json;
     using System.Threading;
     using System.Threading.Tasks;
+    using Clutch.Core;
     using Clutch.Core.Database;
     using Clutch.Core.Enumeration;
     using Clutch.Core.Requests;
@@ -57,7 +58,7 @@ namespace Clutch.Server.Services
             _Logging = logging ?? throw new ArgumentNullException(nameof(logging));
             _NodeId = nodeId ?? throw new ArgumentNullException(nameof(nodeId));
             _Product = product ?? "Clutch";
-            _Version = version ?? "v1.0";
+            _Version = version ?? "v" + Constants.ProductVersion;
         }
 
         #endregion

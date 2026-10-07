@@ -2,12 +2,16 @@ namespace Test.Aot
 {
     using System;
     using System.IO;
+    using System.Net;
+    using System.Net.Http;
+    using System.Net.Sockets;
     using System.Runtime.CompilerServices;
     using System.Text.Json;
     using System.Threading.Tasks;
     using Clutch.Core.Services;
     using Clutch.Sdk.Test;
     using Clutch.Server.Settings;
+    using Clutch.Server.Telemetry;
 
     /// <summary>
     /// Native AOT smoke test. Publish as a native binary (dotnet publish -c Release -f net10.0 -r &lt;rid&gt;) and run
@@ -43,6 +47,20 @@ namespace Test.Aot
                     return Task.CompletedTask;
                 }).ConfigureAwait(false);
 
+                await SdkChecks.CheckAsync("Telemetry: the Prometheus endpoint serves a scrape (former \"*\" default)", async () =>
+                {
+                    TelemetrySettings telemetrySettings = new TelemetrySettings();
+                    telemetrySettings.Enabled = true;
+                    telemetrySettings.PrometheusEnable = true;
+                    telemetrySettings.PrometheusHostname = "*";
+                    telemetrySettings.PrometheusPort = FreeTcpPort();
+                    using ClutchTelemetry telemetry = new ClutchTelemetry(telemetrySettings, "aot-telemetry", null);
+                    telemetry.RecordRelease("Write");
+                    using HttpClient http = new HttpClient();
+                    using HttpResponseMessage response = await http.GetAsync("http://localhost:" + telemetrySettings.PrometheusPort + telemetrySettings.PrometheusPath).ConfigureAwait(false);
+                    SdkChecks.Assert((int)response.StatusCode == 200, "scrape returned " + (int)response.StatusCode);
+                }).ConfigureAwait(false);
+
                 host = await AotServerHost.StartAsync(workDirectory).ConfigureAwait(false);
                 Console.WriteLine("Node             : " + host.Endpoint + " (MCP " + host.McpUrl + ")");
                 Console.WriteLine();
@@ -76,6 +94,15 @@ namespace Test.Aot
             Console.WriteLine();
             Console.WriteLine("Total: " + total + "  Passed: " + SdkChecks.Passed + "  Failed: " + SdkChecks.Failed);
             return SdkChecks.Failed == 0 && total > 0 ? 0 : 1;
+        }
+
+        private static int FreeTcpPort()
+        {
+            TcpListener listener = new TcpListener(IPAddress.Loopback, 0);
+            listener.Start();
+            int port = ((IPEndPoint)listener.LocalEndpoint).Port;
+            listener.Stop();
+            return port;
         }
     }
 }

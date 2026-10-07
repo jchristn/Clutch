@@ -68,6 +68,12 @@ namespace Test.Shared
             mcp.Add(SyncCase("mcp-args", "mcp-parse-empty", "MCP: Parse yields null for absent RpcParameters", McpParseEmpty));
             suites.Add(new TestSuiteDescriptor("mcp-args", "Clutch MCP Argument Suite", mcp));
 
+            // Telemetry settings and the in-process Prometheus scrape endpoint (no database), run once.
+            List<TestCaseDescriptor> telemetry = new List<TestCaseDescriptor>();
+            telemetry.Add(SyncCase("telemetry", "telemetry-wildcard-hostname", "Telemetry: wildcard Prometheus hostnames become localhost", TelemetryWildcardHostname));
+            telemetry.Add(new TestCaseDescriptor("telemetry", "telemetry-prometheus-scrape", "Telemetry: default settings serve a Prometheus scrape", TelemetryPrometheusScrapeAsync));
+            suites.Add(new TestSuiteDescriptor("telemetry", "Clutch Telemetry Suite", telemetry));
+
             // Database-backed matrix, one suite per provider.
             foreach (ProviderContext provider in _Providers)
             {
@@ -448,6 +454,50 @@ namespace Test.Shared
             {
                 server.Stop();
             }
+        }
+
+        private static void TelemetryWildcardHostname()
+        {
+            Clutch.Server.Settings.TelemetrySettings settings = new Clutch.Server.Settings.TelemetrySettings();
+            Assert(settings.PrometheusHostname == "localhost", "default should be localhost, was " + settings.PrometheusHostname);
+            foreach (string wildcard in new[] { "*", "+", "0.0.0.0", "::", "[::]", " * ", "" })
+            {
+                settings.PrometheusHostname = wildcard;
+                Assert(settings.PrometheusHostname == "localhost", "'" + wildcard + "' should become localhost, was " + settings.PrometheusHostname);
+            }
+            settings.PrometheusHostname = "clutch-node1";
+            Assert(settings.PrometheusHostname == "clutch-node1", "a concrete hostname should be kept");
+        }
+
+        private static async Task TelemetryPrometheusScrapeAsync(CancellationToken token)
+        {
+            // A settings file written by an older build carries the former "*" default; it must still start.
+            Clutch.Server.Settings.TelemetrySettings settings = new Clutch.Server.Settings.TelemetrySettings();
+            settings.Enabled = true;
+            settings.PrometheusEnable = true;
+            settings.PrometheusHostname = "*";
+            settings.PrometheusPort = FreeTcpPort();
+            settings.OtlpEnable = false;
+
+            using Clutch.Server.Telemetry.ClutchTelemetry telemetry = new Clutch.Server.Telemetry.ClutchTelemetry(settings, "telemetry-test-node", null);
+            telemetry.RecordRelease("Write");
+
+            using System.Net.Http.HttpClient http = new System.Net.Http.HttpClient();
+            string url = "http://localhost:" + settings.PrometheusPort + settings.PrometheusPath;
+            int status = 0;
+            for (int attempt = 0; attempt < 20 && status != 200; attempt++)
+            {
+                try
+                {
+                    using System.Net.Http.HttpResponseMessage response = await http.GetAsync(url, token).ConfigureAwait(false);
+                    status = (int)response.StatusCode;
+                }
+                catch (System.Net.Http.HttpRequestException)
+                {
+                    await Task.Delay(100, token).ConfigureAwait(false);
+                }
+            }
+            Assert(status == 200, "the Prometheus endpoint " + url + " should answer 200, got " + status);
         }
 
         private static int FreeTcpPort()

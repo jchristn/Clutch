@@ -6,6 +6,11 @@ namespace Clutch.Core
     public static class Constants
     {
         /// <summary>
+        /// Clutch product version, reported by the MCP server and the OpenAPI document.
+        /// </summary>
+        public const string ProductVersion = "0.3.0";
+
+        /// <summary>
         /// Identifier prefix for tenant records.
         /// </summary>
         public const string TenantPrefix = "ten_";

@@ -46,8 +46,8 @@ namespace Clutch.Server.Telemetry
                 radiant.Prometheus.Port = settings.PrometheusPort;
                 radiant.Prometheus.Path = settings.PrometheusPath;
 
-                // OTLP push export (used by the Docker deployment, where the in-process Prometheus
-                // HttpListener is not supported on Linux; metrics are pushed to an otel-collector).
+                // OTLP push export (used by the Docker deployment, which pushes metrics to an otel-collector
+                // instead of having Prometheus scrape each node's in-process listener).
                 radiant.Otlp.Enable = settings.Enabled && settings.OtlpEnable;
                 if (!string.IsNullOrEmpty(settings.OtlpEndpoint)) radiant.Otlp.Endpoint = settings.OtlpEndpoint;
 
