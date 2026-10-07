@@ -17,6 +17,7 @@ namespace Clutch.Server.Routes
     using WatsonWebserver;
     using WatsonWebserver.Core;
     using WatsonWebserver.Core.OpenApi;
+    using Clutch.Server.Responses;
 
     /// <summary>
     /// Lock routes. In addition to observing state and force-releasing a key (administration), these routes
@@ -112,7 +113,7 @@ namespace Clutch.Server.Routes
 
             LockDefinition? definition = await _Database.LockDefinitions.ReadAsync(tid, key, context.Token).ConfigureAwait(false);
             List<LockHolder> holders = await _Database.LockHolders.EnumerateByKeyAsync(tid, key, context.Token).ConfigureAwait(false);
-            await RouteHelpers.JsonAsync(context, 200, new { definition = definition, holders = holders }).ConfigureAwait(false);
+            await RouteHelpers.JsonAsync(context, 200, new LockKeyResponse { Definition = definition, Holders = holders }).ConfigureAwait(false);
         }
 
         private async Task AcquireAsync(HttpContextBase context)
@@ -153,27 +154,25 @@ namespace Clutch.Server.Routes
 
             if (result.IsGranted() && result.Holder != null)
             {
-                await RouteHelpers.JsonAsync(context, 201, new
+                await RouteHelpers.JsonAsync(context, 201, new LockAcquireGrantedResponse
                 {
-                    result = result.Result.ToString(),
-                    granted = true,
-                    key = key,
-                    mode = body.Mode.ToString(),
-                    holderId = result.Holder.Id,
-                    sessionId = sessionId,
-                    fencingToken = result.FencingToken,
-                    leaseExpiresUtc = result.LeaseExpiresUtc
+                    Result = result.Result.ToString(),
+                    Key = key,
+                    Mode = body.Mode.ToString(),
+                    HolderId = result.Holder.Id,
+                    SessionId = sessionId,
+                    FencingToken = result.FencingToken,
+                    LeaseExpiresUtc = result.LeaseExpiresUtc
                 }).ConfigureAwait(false);
                 return;
             }
 
-            await RouteHelpers.JsonAsync(context, 409, new
+            await RouteHelpers.JsonAsync(context, 409, new LockAcquireDeniedResponse
             {
-                result = result.Result.ToString(),
-                granted = false,
-                key = key,
-                sessionId = sessionId,
-                reason = result.Reason
+                Result = result.Result.ToString(),
+                Key = key,
+                SessionId = sessionId,
+                Reason = result.Reason
             }).ConfigureAwait(false);
         }
 
@@ -197,7 +196,7 @@ namespace Clutch.Server.Routes
 
             bool released = await _Engine.ReleaseAsync(tid, body.HolderId!, body.SessionId!, context.Token).ConfigureAwait(false);
             if (released) _Telemetry.RecordRelease("any");
-            await RouteHelpers.JsonAsync(context, 200, new { key = key, holderId = body.HolderId, released = released }).ConfigureAwait(false);
+            await RouteHelpers.JsonAsync(context, 200, new LockReleaseResponse { Key = key, HolderId = body.HolderId, Released = released }).ConfigureAwait(false);
         }
 
         private async Task HeartbeatAsync(HttpContextBase context)
@@ -215,12 +214,12 @@ namespace Clutch.Server.Routes
             List<string> ids = body?.HolderIds ?? new List<string>();
             List<LockHolder> renewed = await _Engine.HeartbeatAsync(sid, ids, context.Token).ConfigureAwait(false);
 
-            List<object> summary = new List<object>();
+            List<RenewedLease> summary = new List<RenewedLease>();
             foreach (LockHolder holder in renewed)
             {
-                summary.Add(new { holderId = holder.Id, leaseExpiresUtc = holder.LeaseExpiresUtc });
+                summary.Add(new RenewedLease { HolderId = holder.Id, LeaseExpiresUtc = holder.LeaseExpiresUtc });
             }
-            await RouteHelpers.JsonAsync(context, 200, new { sessionId = sid, renewed = summary }).ConfigureAwait(false);
+            await RouteHelpers.JsonAsync(context, 200, new SessionHeartbeatResponse { SessionId = sid, Renewed = summary }).ConfigureAwait(false);
         }
 
         private async Task ReleaseSessionAsync(HttpContextBase context)
@@ -236,7 +235,7 @@ namespace Clutch.Server.Routes
 
             List<string> released = await _Engine.ReleaseAllForSessionAsync(sid, context.Token).ConfigureAwait(false);
             foreach (string _ in released) _Telemetry.RecordRelease("any");
-            await RouteHelpers.JsonAsync(context, 200, new { sessionId = sid, released = released, count = released.Count }).ConfigureAwait(false);
+            await RouteHelpers.JsonAsync(context, 200, new SessionReleaseResponse { SessionId = sid, Released = released, Count = released.Count }).ConfigureAwait(false);
         }
 
         private async Task ForceReleaseAsync(HttpContextBase context)
@@ -261,7 +260,7 @@ namespace Clutch.Server.Routes
                     _Telemetry.RecordRelease(revoked.Mode.ToString());
                 }
             }
-            await RouteHelpers.JsonAsync(context, 200, new { key = key, released = released }).ConfigureAwait(false);
+            await RouteHelpers.JsonAsync(context, 200, new ForceReleaseResponse { Key = key, Released = released }).ConfigureAwait(false);
         }
 
         private static LockModeEnum? ParseMode(string? value)

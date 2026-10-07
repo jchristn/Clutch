@@ -5,7 +5,7 @@ namespace Clutch.Core.Enums
     /// <summary>
     /// The outcome of a full acquire operation, including waiting.
     /// </summary>
-    [JsonConverter(typeof(JsonStringEnumConverter))]
+    [JsonConverter(typeof(JsonStringEnumConverter<LockResultEnum>))]
     public enum LockResultEnum
     {
         /// <summary>

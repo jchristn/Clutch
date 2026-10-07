@@ -12,6 +12,7 @@ namespace Clutch.Server.Routes
     using WatsonWebserver;
     using WatsonWebserver.Core;
     using WatsonWebserver.Core.OpenApi;
+    using Clutch.Server.Responses;
 
     /// <summary>
     /// Request history routes. Tenant-scoped from the request context; a system administrator may widen
@@ -125,7 +126,7 @@ namespace Clutch.Server.Routes
             RequestContext ctx = RouteHelpers.Context(context);
             RequestHistoryFilter filter = BuildFilter(context, ctx);
             int deleted = await _Database.RequestHistory.DeleteManyAsync(filter, context.Token).ConfigureAwait(false);
-            await RouteHelpers.JsonAsync(context, 200, new { deletedCount = deleted }).ConfigureAwait(false);
+            await RouteHelpers.JsonAsync(context, 200, new DeleteCountResponse { DeletedCount = deleted }).ConfigureAwait(false);
         }
 
         private static DateTime? ParseDate(string? value)

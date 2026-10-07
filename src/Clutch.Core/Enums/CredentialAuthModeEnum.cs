@@ -5,7 +5,7 @@ namespace Clutch.Core.Enums
     /// <summary>
     /// How a credential (application key) presents its secret when authenticating.
     /// </summary>
-    [JsonConverter(typeof(JsonStringEnumConverter))]
+    [JsonConverter(typeof(JsonStringEnumConverter<CredentialAuthModeEnum>))]
     public enum CredentialAuthModeEnum
     {
         /// <summary>

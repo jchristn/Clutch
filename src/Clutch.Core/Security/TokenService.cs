@@ -5,7 +5,7 @@ namespace Clutch.Core.Security
     using System.Security.Cryptography;
     using System.Text;
     using System.Text.Json;
-    using System.Text.Json.Serialization;
+    using Clutch.Core.Serialization;
 
     /// <summary>
     /// Issues and validates opaque session tokens. A token is the AES-256-CBC ciphertext of a JSON
@@ -18,7 +18,6 @@ namespace Clutch.Core.Security
         private readonly byte[] _Key;
         private readonly string _Issuer;
         private readonly int _LifetimeMinutes;
-        private static readonly JsonSerializerOptions _JsonOptions = BuildJsonOptions();
 
         #endregion
 
@@ -69,7 +68,7 @@ namespace Clutch.Core.Security
             payload.Issuer = _Issuer;
             if (payload.IssuedUtc == default) payload.IssuedUtc = DateTime.UtcNow;
 
-            string json = JsonSerializer.Serialize(payload, _JsonOptions);
+            string json = JsonSerializer.Serialize(payload, CoreJsonContext.Default.TokenPayload);
             byte[] plaintext = Encoding.UTF8.GetBytes(json);
 
             using (Aes aes = Aes.Create())
@@ -122,7 +121,7 @@ namespace Clutch.Core.Security
                     {
                         crypto.CopyTo(output);
                         string json = Encoding.UTF8.GetString(output.ToArray());
-                        TokenPayload? payload = JsonSerializer.Deserialize<TokenPayload>(json, _JsonOptions);
+                        TokenPayload? payload = JsonSerializer.Deserialize(json, CoreJsonContext.Default.TokenPayload);
                         if (payload == null) return null;
                         if (payload.ExpiresUtc < DateTime.UtcNow) return null;
                         return payload;
@@ -141,17 +140,6 @@ namespace Clutch.Core.Security
             {
                 return null;
             }
-        }
-
-        #endregion
-
-        #region Private-Methods
-
-        private static JsonSerializerOptions BuildJsonOptions()
-        {
-            JsonSerializerOptions options = new JsonSerializerOptions();
-            options.Converters.Add(new JsonStringEnumConverter());
-            return options;
         }
 
         #endregion

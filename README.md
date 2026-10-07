@@ -4,7 +4,7 @@
 
 # Clutch
 
-> ⚠️ **Alpha (v0.2.0).** This is an early alpha release. Everything — the REST API, the WebSocket protocol, the database schema, settings, SDK surfaces, and runtime behavior — is subject to change without notice. It is not yet recommended for production use.
+> ⚠️ **Alpha (v0.3.0).** This is an early alpha release. Everything — the REST API, the WebSocket protocol, the database schema, settings, SDK surfaces, and runtime behavior — is subject to change without notice. It is not yet recommended for production use.
 
 Clutch is a distributed lock management platform for coordinating access to shared resources across many nodes. A client acquires a **read** (non-mutating), **write** (mutating), or **delete** lock on a named key, and Clutch decides — safely, and consistently across every node in the fleet — whether that client may proceed.
 
@@ -101,6 +101,16 @@ docker compose up -d
 That stack is the canonical example of Clutch clustered — two interchangeable nodes coordinating through one shared database. To run against MySQL or SQL Server instead, keep the same two-node-behind-nginx shape and change only the backing service and the nodes' `CLUTCH_DB_*` environment. To run against SQLite, run a single node with a file volume.
 
 See [`BYOD.md`](BYOD.md) for the complete guide to configuring Clutch against your own database, [`REST_API.md`](REST_API.md) and [`WEBSOCKETS_API.md`](WEBSOCKETS_API.md) for the protocols, [`DOCKER.md`](DOCKER.md) for the deployment details, and the `sdk/` directory for C#, JavaScript, and Python clients.
+
+## Native AOT
+
+The server, `Clutch.Core`, and the C# SDK are trimming and Native AOT compatible. Every type the server reads or writes (REST bodies, WebSocket frames, MCP tool results, and the settings file) comes from source-generated `System.Text.Json` metadata, and trimming and AOT warnings in Clutch code fail the build. The server publishes as a native binary with `dotnet publish src/Clutch.Server/Clutch.Server.csproj -c Release -f net10.0 -r <rid> -p:PublishAot=true`. Microsoft.Data.SqlClient still reports its own trimming warnings, so test SQL Server deployments before running them natively; the PostgreSQL, MySQL, and SQLite drivers report none.
+
+## Testing
+
+Every commit runs the full suite on Linux, Windows, and macOS for `net8.0` and `net10.0` (see `.github/workflows`). The shared Touchstone suite runs through a console runner (`src/Test.Automated`) and the xUnit and NUnit adapters, against SQLite everywhere and against PostgreSQL, MySQL, and SQL Server on Linux. The C#, JavaScript, and Python SDK harnesses run against a live server, and the dashboard is linted and built. `src/Test.Aot` is published as a native binary on all three platforms: it starts a full node in-process and exercises the settings file, REST, the SDK, WebSocket locks, OpenAPI, and MCP, failing on any missing serialization metadata.
+
+To run the database matrix locally, start the engines with `docker compose -f docker/compose.test.yaml up -d` and follow the instructions at the top of that file.
 
 ## Scope notes
 

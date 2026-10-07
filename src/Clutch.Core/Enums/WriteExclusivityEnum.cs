@@ -5,7 +5,7 @@ namespace Clutch.Core.Enums
     /// <summary>
     /// The exclusivity policy applied to write (mutating) locks on a key.
     /// </summary>
-    [JsonConverter(typeof(JsonStringEnumConverter))]
+    [JsonConverter(typeof(JsonStringEnumConverter<WriteExclusivityEnum>))]
     public enum WriteExclusivityEnum
     {
         /// <summary>

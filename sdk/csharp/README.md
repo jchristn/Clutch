@@ -5,7 +5,7 @@
 - **`ClutchAdminClient`** — a REST client for administration and observability: tokens, tenants, users, application keys, lock inspection, audit, request history, health, and server info.
 - **`ClutchLockClient`** — a WebSocket client that acquires and releases locks, correlates responses by request identifier, and automatically sends heartbeats to keep held leases alive.
 
-> Alpha (v0.2.0). Endpoints and shapes are subject to change.
+> Alpha (v0.3.0). Endpoints and shapes are subject to change.
 
 ## Installation
 
@@ -13,7 +13,9 @@
 dotnet add package Clutch.Sdk
 ```
 
-Target framework: `net8.0`.
+Target frameworks: `net8.0` and `net10.0`.
+
+The package is trimming and Native AOT compatible (`IsAotCompatible`): every type it sends or receives comes from source-generated `System.Text.Json` metadata, so it works in trimmed and Native AOT applications without extra configuration.
 
 ## Admin client
 

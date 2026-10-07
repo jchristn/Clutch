@@ -1,6 +1,6 @@
 # Clutch REST API
 
-> Alpha (v0.2.0). Endpoints and shapes are subject to change.
+> Alpha (v0.3.0). Endpoints and shapes are subject to change.
 
 The REST API handles administration and observability: tokens, tenants, users, application keys, lock inspection, audit, request history, and server info. It also exposes **client lock operations** (acquire, release, heartbeat) so a caller can manage locks over REST exactly as a client does over the [WebSocket API](WEBSOCKETS_API.md) — the same lock engine backs both.
 

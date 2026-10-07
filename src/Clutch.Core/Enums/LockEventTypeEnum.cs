@@ -5,7 +5,7 @@ namespace Clutch.Core.Enums
     /// <summary>
     /// The category of a lock audit event.
     /// </summary>
-    [JsonConverter(typeof(JsonStringEnumConverter))]
+    [JsonConverter(typeof(JsonStringEnumConverter<LockEventTypeEnum>))]
     public enum LockEventTypeEnum
     {
         /// <summary>

@@ -6,7 +6,7 @@ namespace Clutch.Core.Enums
     /// Supported database provider types. All four are implemented. SQLite is intended for single-node
     /// deployments; PostgreSQL, MySQL, and SQL Server support multi-node clustering.
     /// </summary>
-    [JsonConverter(typeof(JsonStringEnumConverter))]
+    [JsonConverter(typeof(JsonStringEnumConverter<DatabaseTypeEnum>))]
     public enum DatabaseTypeEnum
     {
         /// <summary>

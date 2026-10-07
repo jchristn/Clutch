@@ -9,6 +9,7 @@ namespace Clutch.Sdk
     using System.Text;
     using System.Text.Json;
     using System.Text.Json.Serialization;
+    using System.Text.Json.Serialization.Metadata;
     using System.Threading;
     using System.Threading.Tasks;
 
@@ -87,9 +88,12 @@ namespace Clutch.Sdk
             {
                 PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
                 PropertyNameCaseInsensitive = true,
-                DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+                DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+                TypeInfoResolver = SdkJsonContext.Default
             };
-            _JsonOptions.Converters.Add(new JsonStringEnumConverter());
+            _JsonOptions.Converters.Add(new JsonStringEnumConverter<LockMode>());
+            _JsonOptions.Converters.Add(new JsonStringEnumConverter<LockBehavior>());
+            _JsonOptions.Converters.Add(new JsonStringEnumConverter<AcquireResult>());
         }
 
         #region Tokens
@@ -106,7 +110,7 @@ namespace Clutch.Sdk
         {
             if (accessKey == null) throw new ArgumentNullException(nameof(accessKey));
 
-            object body = new { accessKey = accessKey };
+            AccessKeyLoginBody body = new AccessKeyLoginBody { AccessKey = accessKey };
             TokenResponse response = await SendAsync<TokenResponse>(HttpMethod.Post, "/v1.0/token", body, false, cancellationToken).ConfigureAwait(false);
             _Token = response.Token;
             return response;
@@ -128,7 +132,7 @@ namespace Clutch.Sdk
             if (email == null) throw new ArgumentNullException(nameof(email));
             if (password == null) throw new ArgumentNullException(nameof(password));
 
-            object body = new { tenantId = tenantId, email = email, password = password };
+            PasswordLoginBody body = new PasswordLoginBody { TenantId = tenantId, Email = email, Password = password };
             TokenResponse response = await SendAsync<TokenResponse>(HttpMethod.Post, "/v1.0/token", body, false, cancellationToken).ConfigureAwait(false);
             _Token = response.Token;
             return response;
@@ -231,7 +235,7 @@ namespace Clutch.Sdk
         public async Task<Tenant> CreateTenantAsync(string name, int? lockHistoryRetentionDays = null, int? defaultLeaseMs = null, int? maxLeaseMs = null, CancellationToken cancellationToken = default)
         {
             if (name == null) throw new ArgumentNullException(nameof(name));
-            object body = new { name = name, lockHistoryRetentionDays = lockHistoryRetentionDays, defaultLeaseMs = defaultLeaseMs, maxLeaseMs = maxLeaseMs };
+            TenantBody body = new TenantBody { Name = name, LockHistoryRetentionDays = lockHistoryRetentionDays, DefaultLeaseMs = defaultLeaseMs, MaxLeaseMs = maxLeaseMs };
             return await SendAsync<Tenant>(HttpMethod.Post, "/v1.0/api/tenants", body, true, cancellationToken).ConfigureAwait(false);
         }
 
@@ -251,7 +255,7 @@ namespace Clutch.Sdk
         public async Task<Tenant> UpdateTenantAsync(string tenantId, string? name = null, int? lockHistoryRetentionDays = null, int? defaultLeaseMs = null, int? maxLeaseMs = null, bool? active = null, CancellationToken cancellationToken = default)
         {
             if (tenantId == null) throw new ArgumentNullException(nameof(tenantId));
-            object body = new { name = name, lockHistoryRetentionDays = lockHistoryRetentionDays, defaultLeaseMs = defaultLeaseMs, maxLeaseMs = maxLeaseMs, active = active };
+            TenantBody body = new TenantBody { Name = name, LockHistoryRetentionDays = lockHistoryRetentionDays, DefaultLeaseMs = defaultLeaseMs, MaxLeaseMs = maxLeaseMs, Active = active };
             return await SendAsync<Tenant>(HttpMethod.Put, $"/v1.0/api/tenants/{Uri.EscapeDataString(tenantId)}", body, true, cancellationToken).ConfigureAwait(false);
         }
 
@@ -328,7 +332,7 @@ namespace Clutch.Sdk
             if (tenantId == null) throw new ArgumentNullException(nameof(tenantId));
             if (email == null) throw new ArgumentNullException(nameof(email));
             if (password == null) throw new ArgumentNullException(nameof(password));
-            object body = new { email = email, password = password, firstName = firstName, lastName = lastName, isSystemAdmin = isSystemAdmin, isTenantAdmin = isTenantAdmin, active = active };
+            CreateUserBody body = new CreateUserBody { Email = email, Password = password, FirstName = firstName, LastName = lastName, IsSystemAdmin = isSystemAdmin, IsTenantAdmin = isTenantAdmin, Active = active };
             return await SendAsync<User>(HttpMethod.Post, $"/v1.0/api/tenants/{Uri.EscapeDataString(tenantId)}/users", body, true, cancellationToken).ConfigureAwait(false);
         }
 
@@ -351,7 +355,7 @@ namespace Clutch.Sdk
         {
             if (tenantId == null) throw new ArgumentNullException(nameof(tenantId));
             if (userId == null) throw new ArgumentNullException(nameof(userId));
-            object body = new { email = email, password = password, firstName = firstName, lastName = lastName, isTenantAdmin = isTenantAdmin, active = active };
+            UpdateUserBody body = new UpdateUserBody { Email = email, Password = password, FirstName = firstName, LastName = lastName, IsTenantAdmin = isTenantAdmin, Active = active };
             return await SendAsync<User>(HttpMethod.Put, $"/v1.0/api/tenants/{Uri.EscapeDataString(tenantId)}/users/{Uri.EscapeDataString(userId)}", body, true, cancellationToken).ConfigureAwait(false);
         }
 
@@ -425,7 +429,7 @@ namespace Clutch.Sdk
         {
             if (tenantId == null) throw new ArgumentNullException(nameof(tenantId));
             if (name == null) throw new ArgumentNullException(nameof(name));
-            object body = new { name = name, userId = userId, expiresUtc = expiresUtc };
+            CreateCredentialBody body = new CreateCredentialBody { Name = name, UserId = userId, ExpiresUtc = expiresUtc };
             return await SendAsync<Credential>(HttpMethod.Post, $"/v1.0/api/tenants/{Uri.EscapeDataString(tenantId)}/credentials", body, true, cancellationToken).ConfigureAwait(false);
         }
 
@@ -716,7 +720,7 @@ namespace Clutch.Sdk
 
             try
             {
-                T? result = JsonSerializer.Deserialize<T>(responseBody, _JsonOptions);
+                T? result = JsonSerializer.Deserialize(responseBody, (JsonTypeInfo<T>)_JsonOptions.GetTypeInfo(typeof(T)));
                 if (result == null)
                 {
                     throw new ClutchException($"The server response for {method} {path} deserialized to null.");
@@ -753,7 +757,7 @@ namespace Clutch.Sdk
 
             if (body != null)
             {
-                string json = JsonSerializer.Serialize(body, _JsonOptions);
+                string json = JsonSerializer.Serialize(body, _JsonOptions.GetTypeInfo(body.GetType()));
                 request.Content = new StringContent(json, Encoding.UTF8, "application/json");
             }
 

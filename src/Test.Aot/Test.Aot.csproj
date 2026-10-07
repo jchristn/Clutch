@@ -1,0 +1,34 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <IsPackable>false</IsPackable>
+    <NoWarn>1701;1702</NoWarn>
+    <!-- Published as a Native AOT binary (dotnet publish -c Release -f net10.0 -r <rid>). A plain build or run
+         behaves like a trimmed app: reflection-based JSON is off, so every type must come from a source-generated
+         context, exactly as in the published binary. -->
+    <PublishAot>true</PublishAot>
+    <JsonSerializerIsReflectionEnabledByDefault>false</JsonSerializerIsReflectionEnabledByDefault>
+    <!-- Clutch.Server is an executable; this project uses it as a library inside its own native binary. -->
+    <ValidateExecutableReferencesMatchSelfContained>false</ValidateExecutableReferencesMatchSelfContained>
+    <!-- Trimming and AOT warnings in Clutch, Voltaic, and Watson code are build errors. Microsoft.Data.SqlClient
+         (and System.Configuration.ConfigurationManager, which it pulls in) still report summary warnings
+         (IL2104/IL3053) that Clutch cannot fix; CI checks those against an allow-list (see .github/scripts). -->
+    <WarningsAsErrors>$(WarningsAsErrors);IL2026;IL2046;IL2057;IL2067;IL2070;IL2072;IL2075;IL2087;IL2090;IL2091;IL3050;IL3051</WarningsAsErrors>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Clutch.Server\Clutch.Server.csproj" />
+    <ProjectReference Include="..\..\sdk\csharp\Clutch.Sdk\Clutch.Sdk.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The SDK test application's checks, compiled into this binary so they run as native code. -->
+    <Compile Include="..\..\sdk\csharp\Clutch.Sdk.Test\SdkChecks.cs" Link="SdkChecks.cs" />
+  </ItemGroup>
+
+</Project>

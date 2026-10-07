@@ -5,7 +5,7 @@ namespace Clutch.Core.Enums
     /// <summary>
     /// How an acquire request behaves when the lock is not immediately available.
     /// </summary>
-    [JsonConverter(typeof(JsonStringEnumConverter))]
+    [JsonConverter(typeof(JsonStringEnumConverter<LockBehaviorEnum>))]
     public enum LockBehaviorEnum
     {
         /// <summary>

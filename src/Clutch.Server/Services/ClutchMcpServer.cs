@@ -7,6 +7,7 @@ namespace Clutch.Server.Services
     using Clutch.Core.Database;
     using Clutch.Core.Enumeration;
     using Clutch.Core.Requests;
+    using Clutch.Server.Responses;
     using Clutch.Server.Serialization;
     using Clutch.Server.Settings;
     using SyslogLogging;
@@ -113,21 +114,15 @@ namespace Clutch.Server.Services
             server.RegisterTool(
                 "clutch_server_info",
                 "Returns Clutch server product, version, and node identifier.",
-                new { type = "object", properties = new { } },
-                (RpcParameters? args) => (object)Json.Serialize(new { product = _Product, version = _Version, nodeId = _NodeId }));
+                Schema("{\"type\":\"object\",\"properties\":{}}"),
+                (RpcParameters? args) => (object)Json.Serialize(new McpServerInfoResult { Product = _Product, Version = _Version, NodeId = _NodeId }));
 
             server.RegisterTool(
                 "clutch_list_tenants",
                 "Lists tenants (paginated). Optional args: maxResults (1-1000), skip.",
-                new
-                {
-                    type = "object",
-                    properties = new
-                    {
-                        maxResults = new { type = "integer", description = "Page size, 1-1000 (default 25)." },
-                        skip = new { type = "integer", description = "Records to skip before the page." }
-                    }
-                },
+                Schema("{\"type\":\"object\",\"properties\":{" +
+                    "\"maxResults\":{\"type\":\"integer\",\"description\":\"Page size, 1-1000 (default 25).\"}," +
+                    "\"skip\":{\"type\":\"integer\",\"description\":\"Records to skip before the page.\"}}}"),
                 (RpcParameters? rpcArgs) =>
                 {
                     JsonElement? args = McpToolArguments.Parse(rpcArgs);
@@ -139,19 +134,13 @@ namespace Clutch.Server.Services
             server.RegisterTool(
                 "clutch_list_locks",
                 "Lists active lock holders in a tenant (paginated). Required arg: tenantId. Optional: name, mode, maxResults, skip.",
-                new
-                {
-                    type = "object",
-                    properties = new
-                    {
-                        tenantId = new { type = "string", description = "Tenant identifier." },
-                        name = new { type = "string", description = "Optional lock-key substring filter." },
-                        mode = new { type = "string", description = "Optional mode filter: Read, Write, or Delete." },
-                        maxResults = new { type = "integer" },
-                        skip = new { type = "integer" }
-                    },
-                    required = new[] { "tenantId" }
-                },
+                Schema("{\"type\":\"object\",\"properties\":{" +
+                    "\"tenantId\":{\"type\":\"string\",\"description\":\"Tenant identifier.\"}," +
+                    "\"name\":{\"type\":\"string\",\"description\":\"Optional lock-key substring filter.\"}," +
+                    "\"mode\":{\"type\":\"string\",\"description\":\"Optional mode filter: Read, Write, or Delete.\"}," +
+                    "\"maxResults\":{\"type\":\"integer\"}," +
+                    "\"skip\":{\"type\":\"integer\"}}," +
+                    "\"required\":[\"tenantId\"]}"),
                 (RpcParameters? rpcArgs) =>
                 {
                     JsonElement? args = McpToolArguments.Parse(rpcArgs);
@@ -171,19 +160,13 @@ namespace Clutch.Server.Services
             server.RegisterTool(
                 "clutch_lock_audit",
                 "Lists lock audit entries for a tenant (paginated). Required arg: tenantId. Optional: name, mode, maxResults, skip.",
-                new
-                {
-                    type = "object",
-                    properties = new
-                    {
-                        tenantId = new { type = "string", description = "Tenant identifier." },
-                        name = new { type = "string", description = "Optional lock-key substring filter." },
-                        mode = new { type = "string", description = "Optional mode filter: Read, Write, or Delete." },
-                        maxResults = new { type = "integer" },
-                        skip = new { type = "integer" }
-                    },
-                    required = new[] { "tenantId" }
-                },
+                Schema("{\"type\":\"object\",\"properties\":{" +
+                    "\"tenantId\":{\"type\":\"string\",\"description\":\"Tenant identifier.\"}," +
+                    "\"name\":{\"type\":\"string\",\"description\":\"Optional lock-key substring filter.\"}," +
+                    "\"mode\":{\"type\":\"string\",\"description\":\"Optional mode filter: Read, Write, or Delete.\"}," +
+                    "\"maxResults\":{\"type\":\"integer\"}," +
+                    "\"skip\":{\"type\":\"integer\"}}," +
+                    "\"required\":[\"tenantId\"]}"),
                 (RpcParameters? rpcArgs) =>
                 {
                     JsonElement? args = McpToolArguments.Parse(rpcArgs);
@@ -203,6 +186,18 @@ namespace Clutch.Server.Services
                     EnumerationResult<Core.Models.LockAuditEntry> result = _Database.LockAudit.EnumerateAsync(filter, _Cts!.Token).GetAwaiter().GetResult();
                     return (object)Json.Serialize(result);
                 });
+        }
+
+        /// <summary>
+        /// Parse a tool input schema from JSON text. Schemas are handed to Voltaic as <see cref="JsonElement"/>
+        /// values (not anonymous objects) so they serialize without reflection under trimming and Native AOT.
+        /// </summary>
+        /// <param name="json">JSON schema text.</param>
+        /// <returns>The parsed schema.</returns>
+        private static JsonElement Schema(string json)
+        {
+            using JsonDocument doc = JsonDocument.Parse(json);
+            return doc.RootElement.Clone();
         }
 
         #endregion

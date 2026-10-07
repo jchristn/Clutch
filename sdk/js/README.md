@@ -5,7 +5,7 @@ The official JavaScript/Node.js SDK for [Clutch](https://github.com/jchristn/Clu
 - **`ClutchAdminClient`** (`clutch-admin-sdk.js`) — a REST client for administration and observability, built on the global `fetch` API.
 - **`ClutchLockClient`** (`clutch-lock-sdk.js`) — a WebSocket client for lock acquisition, built on the [`ws`](https://www.npmjs.com/package/ws) package.
 
-> Alpha (v0.2.0). Endpoints and shapes are subject to change.
+> Alpha (v0.3.0). Endpoints and shapes are subject to change.
 
 ## Requirements
 

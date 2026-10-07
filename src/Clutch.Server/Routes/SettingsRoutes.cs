@@ -11,6 +11,7 @@ namespace Clutch.Server.Routes
     using WatsonWebserver;
     using WatsonWebserver.Core;
     using WatsonWebserver.Core.OpenApi;
+    using Clutch.Server.Responses;
 
     /// <summary>
     /// Server settings routes. A system administrator can read the running settings, update them (which
@@ -119,12 +120,12 @@ namespace Clutch.Server.Routes
 
             context.Response.StatusCode = 200;
             context.Response.ContentType = "application/json";
-            await context.Response.Send(Json.Serialize(new
+            await context.Response.Send(Json.Serialize(new SettingsSaveResponse
             {
-                saved = true,
-                restartRequired = true,
-                message = "Settings saved to disk. Most changes take effect after a restart.",
-                settings = Redacted()
+                Saved = true,
+                RestartRequired = true,
+                Message = "Settings saved to disk. Most changes take effect after a restart.",
+                Settings = Redacted()
             })).ConfigureAwait(false);
         }
 
@@ -140,7 +141,7 @@ namespace Clutch.Server.Routes
             _Logging.Warn("[Clutch] restart requested by administrator; exiting so the process manager relaunches with updated settings.");
             context.Response.StatusCode = 202;
             context.Response.ContentType = "application/json";
-            await context.Response.Send(Json.Serialize(new { restarting = true, node = _Settings.NodeId })).ConfigureAwait(false);
+            await context.Response.Send(Json.Serialize(new RestartResponse { Restarting = true, Node = _Settings.NodeId })).ConfigureAwait(false);
 
             // Exit shortly after the response is flushed. Under Docker (restart: unless-stopped) the
             // container relaunches and reloads the settings file written above.
@@ -191,7 +192,7 @@ namespace Clutch.Server.Routes
 
             context.Response.StatusCode = 200;
             context.Response.ContentType = "application/json";
-            await context.Response.Send(Json.Serialize(new { ok, message, provider = incoming.Type.ToString() })).ConfigureAwait(false);
+            await context.Response.Send(Json.Serialize(new DatabaseTestResponse { Ok = ok, Message = message, Provider = incoming.Type.ToString() })).ConfigureAwait(false);
         }
 
         private ClutchSettings Redacted()

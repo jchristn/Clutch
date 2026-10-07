@@ -12,7 +12,7 @@ if [ $# -lt 1 ] || [ -z "$1" ]; then
   echo "ERROR: Image tag is required"
   echo
   echo "Usage: build-server.sh <tag>"
-  echo "Example: build-server.sh v0.2.0"
+  echo "Example: build-server.sh v0.3.0"
   exit 1
 fi
 

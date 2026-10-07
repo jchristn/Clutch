@@ -5,7 +5,7 @@ namespace Clutch.Core.Enumeration
     /// <summary>
     /// Ordering options for paginated enumeration.
     /// </summary>
-    [JsonConverter(typeof(JsonStringEnumConverter))]
+    [JsonConverter(typeof(JsonStringEnumConverter<EnumerationOrderEnum>))]
     public enum EnumerationOrderEnum
     {
         /// <summary>

@@ -5,7 +5,10 @@
     <ImplicitUsings>disable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <LangVersion>latest</LangVersion>
+    <Version>0.3.0</Version>
     <NoWarn>1701;1702</NoWarn>
+    <IsAotCompatible>true</IsAotCompatible>
+    <WarningsAsErrors>$(WarningsAsErrors);IL2026;IL2046;IL2057;IL2067;IL2070;IL2072;IL2075;IL2087;IL2090;IL2091;IL3050;IL3051</WarningsAsErrors>
   </PropertyGroup>
 
   <ItemGroup>

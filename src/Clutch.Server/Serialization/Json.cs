@@ -2,6 +2,7 @@ namespace Clutch.Server.Serialization
 {
     using System.Text.Json;
     using System.Text.Json.Serialization;
+    using System.Text.Json.Serialization.Metadata;
 
     /// <summary>
     /// Centralized JSON serialization for API responses and WebSocket messages. Enums serialize as
@@ -35,7 +36,8 @@ namespace Clutch.Server.Serialization
         /// <returns>JSON string.</returns>
         public static string Serialize(object? value)
         {
-            return JsonSerializer.Serialize(value, _Options);
+            if (value == null) return "null";
+            return JsonSerializer.Serialize(value, _Options.GetTypeInfo(value.GetType()));
         }
 
         /// <summary>
@@ -47,7 +49,7 @@ namespace Clutch.Server.Serialization
         public static T? Deserialize<T>(string json)
         {
             if (string.IsNullOrEmpty(json)) return default;
-            return JsonSerializer.Deserialize<T>(json, _Options);
+            return JsonSerializer.Deserialize(json, (JsonTypeInfo<T>)_Options.GetTypeInfo(typeof(T)));
         }
 
         #endregion
@@ -60,7 +62,7 @@ namespace Clutch.Server.Serialization
             options.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
             options.PropertyNameCaseInsensitive = true;
             options.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
-            options.Converters.Add(new JsonStringEnumConverter());
+            options.TypeInfoResolver = ServerJsonContext.Default;
             return options;
         }
 

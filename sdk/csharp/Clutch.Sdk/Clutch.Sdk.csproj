@@ -5,12 +5,14 @@
 		<ImplicitUsings>disable</ImplicitUsings>
 		<Nullable>enable</Nullable>
 		<LangVersion>latest</LangVersion>
+		<IsAotCompatible>true</IsAotCompatible>
+		<WarningsAsErrors>$(WarningsAsErrors);IL2026;IL2046;IL2057;IL2067;IL2070;IL2072;IL2075;IL2087;IL2090;IL2091;IL3050;IL3051</WarningsAsErrors>
 		<RootNamespace>Clutch.Sdk</RootNamespace>
 		<AssemblyName>Clutch.Sdk</AssemblyName>
 		<PackageId>Clutch.Sdk</PackageId>
-		<Version>0.2.0</Version>
-		<AssemblyVersion>0.2.0.0</AssemblyVersion>
-		<FileVersion>0.2.0.0</FileVersion>
+		<Version>0.3.0</Version>
+		<AssemblyVersion>0.3.0.0</AssemblyVersion>
+		<FileVersion>0.3.0.0</FileVersion>
 		<Authors>Joel Christner</Authors>
 		<Company>Joel Christner</Company>
 		<Product>Clutch</Product>
@@ -25,7 +27,7 @@
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<PackageLicenseFile>LICENSE.md</PackageLicenseFile>
 		<PackageIcon>logo.png</PackageIcon>
-		<PackageReleaseNotes>v0.2.0 release. See https://github.com/jchristn/Clutch/blob/main/CHANGELOG.md for details.</PackageReleaseNotes>
+		<PackageReleaseNotes>v0.3.0 release. See https://github.com/jchristn/Clutch/blob/main/CHANGELOG.md for details.</PackageReleaseNotes>
 		<PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
 		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>

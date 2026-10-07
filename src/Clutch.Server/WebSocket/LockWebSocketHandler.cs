@@ -18,6 +18,7 @@ namespace Clutch.Server.WebSocket
     using SyslogLogging;
     using WatsonWebserver.Core;
     using WatsonWebserver.Core.WebSockets;
+    using Clutch.Server.Responses;
 
     /// <summary>
     /// Handles the lock WebSocket protocol. Clients authenticate on the upgrade request, then send
@@ -97,13 +98,12 @@ namespace Clutch.Server.WebSocket
             _Manager.Add(clutchSession);
             _Logging.Debug("[Clutch.Ws] session " + sessionId + " connected (tenant " + auth.TenantId + ")");
 
-            await clutchSession.SendAsync(new
+            await clutchSession.SendAsync(new WsWelcomeMessage
             {
-                type = "welcome",
-                sessionId = sessionId,
-                tenantId = auth.TenantId,
-                defaultLeaseMs = _DefaultLeaseMs,
-                heartbeatIntervalMs = _HeartbeatIntervalMs
+                SessionId = sessionId,
+                TenantId = auth.TenantId,
+                DefaultLeaseMs = _DefaultLeaseMs,
+                HeartbeatIntervalMs = _HeartbeatIntervalMs
             }, context.Token).ConfigureAwait(false);
 
             try
@@ -115,7 +115,7 @@ namespace Clutch.Server.WebSocket
                     WsInboundMessage? inbound = Json.Deserialize<WsInboundMessage>(message.Text);
                     if (inbound == null)
                     {
-                        await clutchSession.SendAsync(new { type = "error", message = "Invalid message." }, context.Token).ConfigureAwait(false);
+                        await clutchSession.SendAsync(new WsErrorMessage { Message = "Invalid message." }, context.Token).ConfigureAwait(false);
                         continue;
                     }
 
@@ -162,9 +162,9 @@ namespace Clutch.Server.WebSocket
                 case "heartbeat":
                     return HandleHeartbeatAsync(session, message, token);
                 case "ping":
-                    return session.SendAsync(new { type = "pong" }, token);
+                    return session.SendAsync(new WsTypeMessage { Type = "pong" }, token);
                 default:
-                    return session.SendAsync(new { type = "error", requestId = message.RequestId, message = "Unknown message type '" + message.Type + "'." }, token);
+                    return session.SendAsync(new WsErrorMessage { RequestId = message.RequestId, Message = "Unknown message type '" + message.Type + "'." }, token);
             }
         }
 
@@ -174,7 +174,7 @@ namespace Clutch.Server.WebSocket
             {
                 if (string.IsNullOrEmpty(message.Key) || !message.Mode.HasValue)
                 {
-                    await session.SendAsync(new { type = "error", requestId = message.RequestId, message = "acquire requires 'key' and 'mode'." }, token).ConfigureAwait(false);
+                    await session.SendAsync(new WsErrorMessage { RequestId = message.RequestId, Message = "acquire requires 'key' and 'mode'." }, token).ConfigureAwait(false);
                     return;
                 }
 
@@ -196,26 +196,24 @@ namespace Clutch.Server.WebSocket
 
                 if (result.IsGranted() && result.Holder != null)
                 {
-                    await session.SendAsync(new
+                    await session.SendAsync(new WsAcquiredMessage
                     {
-                        type = "acquired",
-                        requestId = message.RequestId,
-                        key = message.Key,
-                        mode = message.Mode.Value.ToString(),
-                        holderId = result.Holder.Id,
-                        fencingToken = result.FencingToken,
-                        leaseExpiresUtc = result.LeaseExpiresUtc
+                        RequestId = message.RequestId,
+                        Key = message.Key,
+                        Mode = message.Mode.Value.ToString(),
+                        HolderId = result.Holder.Id,
+                        FencingToken = result.FencingToken,
+                        LeaseExpiresUtc = result.LeaseExpiresUtc
                     }, token).ConfigureAwait(false);
                 }
                 else
                 {
-                    await session.SendAsync(new
+                    await session.SendAsync(new WsDeniedMessage
                     {
-                        type = "denied",
-                        requestId = message.RequestId,
-                        key = message.Key,
-                        result = result.Result.ToString(),
-                        reason = result.Reason
+                        RequestId = message.RequestId,
+                        Key = message.Key,
+                        Result = result.Result.ToString(),
+                        Reason = result.Reason
                     }, token).ConfigureAwait(false);
                 }
             }
@@ -225,7 +223,7 @@ namespace Clutch.Server.WebSocket
             }
             catch (Exception e)
             {
-                await session.SendAsync(new { type = "error", requestId = message.RequestId, message = e.Message }, token).ConfigureAwait(false);
+                await session.SendAsync(new WsErrorMessage { RequestId = message.RequestId, Message = e.Message }, token).ConfigureAwait(false);
             }
         }
 
@@ -233,19 +231,18 @@ namespace Clutch.Server.WebSocket
         {
             if (string.IsNullOrEmpty(message.HolderId))
             {
-                await session.SendAsync(new { type = "error", requestId = message.RequestId, message = "release requires 'holderId'." }, token).ConfigureAwait(false);
+                await session.SendAsync(new WsErrorMessage { RequestId = message.RequestId, Message = "release requires 'holderId'." }, token).ConfigureAwait(false);
                 return;
             }
 
             bool released = await _Engine.ReleaseAsync(session.TenantId, message.HolderId, session.SessionId, token).ConfigureAwait(false);
             if (released) _Telemetry.RecordRelease(message.Mode?.ToString() ?? "any");
-            await session.SendAsync(new
+            await session.SendAsync(new WsReleasedMessage
             {
-                type = "released",
-                requestId = message.RequestId,
-                key = message.Key,
-                holderId = message.HolderId,
-                released = released
+                RequestId = message.RequestId,
+                Key = message.Key,
+                HolderId = message.HolderId,
+                Released = released
             }, token).ConfigureAwait(false);
         }
 
@@ -253,12 +250,12 @@ namespace Clutch.Server.WebSocket
         {
             List<string> ids = message.HolderIds ?? new List<string>();
             List<LockHolder> renewed = await _Engine.HeartbeatAsync(session.SessionId, ids, token).ConfigureAwait(false);
-            List<object> summary = new List<object>();
+            List<RenewedLease> summary = new List<RenewedLease>();
             foreach (LockHolder holder in renewed)
             {
-                summary.Add(new { holderId = holder.Id, leaseExpiresUtc = holder.LeaseExpiresUtc });
+                summary.Add(new RenewedLease { HolderId = holder.Id, LeaseExpiresUtc = holder.LeaseExpiresUtc });
             }
-            await session.SendAsync(new { type = "heartbeat", requestId = message.RequestId, renewed = summary }, token).ConfigureAwait(false);
+            await session.SendAsync(new WsHeartbeatMessage { RequestId = message.RequestId, Renewed = summary }, token).ConfigureAwait(false);
         }
 
         #endregion

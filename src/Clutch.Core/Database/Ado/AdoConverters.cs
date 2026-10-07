@@ -6,6 +6,7 @@ namespace Clutch.Core.Database.Ado
     using System.Text.Json;
     using Clutch.Core.Enums;
     using Clutch.Core.Models;
+    using Clutch.Core.Serialization;
 
     /// <summary>
     /// Maps <see cref="DbDataReader"/> rows to Clutch domain models across every provider. Column access is
@@ -339,7 +340,7 @@ namespace Clutch.Core.Database.Ado
         /// <returns>JSON string.</returns>
         public static string SerializeHeaders(Dictionary<string, string> headers)
         {
-            return JsonSerializer.Serialize(headers ?? new Dictionary<string, string>());
+            return JsonSerializer.Serialize(headers ?? new Dictionary<string, string>(), CoreJsonContext.Default.DictionaryStringString);
         }
 
         #endregion
@@ -349,7 +350,7 @@ namespace Clutch.Core.Database.Ado
         private static Dictionary<string, string> DeserializeHeaders(string? json)
         {
             if (string.IsNullOrEmpty(json)) return new Dictionary<string, string>();
-            Dictionary<string, string>? result = JsonSerializer.Deserialize<Dictionary<string, string>>(json);
+            Dictionary<string, string>? result = JsonSerializer.Deserialize(json, CoreJsonContext.Default.DictionaryStringString);
             return result ?? new Dictionary<string, string>();
         }
 

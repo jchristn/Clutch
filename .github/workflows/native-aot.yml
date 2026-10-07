@@ -1,0 +1,90 @@
+name: Native AOT
+
+# Publishes src/Test.Aot and the Clutch server itself as Native AOT binaries on Linux, Windows, and macOS for
+# net8.0 and net10.0. Trimming and AOT warnings in Clutch code are build errors, and every publish log is
+# checked against the allow-list in .github/scripts/check-aot-warnings.sh (only Microsoft.Data.SqlClient and
+# its dependencies may report warnings). The Test.Aot binary then runs a full node in-process and exercises
+# REST, the SDK, WebSocket locks, OpenAPI, and MCP; exit code 0 means every check passed.
+
+on:
+  push:
+    branches: [ '**' ]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  native-aot:
+    name: ${{ matrix.rid }} / ${{ matrix.framework }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            rid: linux-x64
+            framework: net8.0
+          - os: ubuntu-latest
+            rid: linux-x64
+            framework: net10.0
+          - os: windows-latest
+            rid: win-x64
+            framework: net8.0
+          - os: windows-latest
+            rid: win-x64
+            framework: net10.0
+          - os: macos-latest
+            rid: osx-arm64
+            framework: net8.0
+          - os: macos-latest
+            rid: osx-arm64
+            framework: net10.0
+
+    env:
+      DOTNET_NOLOGO: true
+      DOTNET_CLI_TELEMETRY_OPTOUT: true
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            8.0.x
+            10.0.x
+
+      - name: Install Native AOT prerequisites (Linux)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y clang zlib1g-dev
+
+      - name: Publish Test.Aot
+        shell: bash
+        run: |
+          set -o pipefail
+          dotnet publish src/Test.Aot/Test.Aot.csproj -c Release -f ${{ matrix.framework }} -r ${{ matrix.rid }} -o artifacts/aot/test 2>&1 | tee publish-test-aot.log
+
+      - name: Check Test.Aot publish warnings
+        shell: bash
+        run: bash .github/scripts/check-aot-warnings.sh publish-test-aot.log
+
+      - name: Run the Test.Aot native binary
+        shell: bash
+        run: |
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            ./artifacts/aot/test/Test.Aot.exe
+          else
+            ./artifacts/aot/test/Test.Aot
+          fi
+
+      - name: Publish Clutch.Server as a native binary
+        shell: bash
+        run: |
+          set -o pipefail
+          dotnet publish src/Clutch.Server/Clutch.Server.csproj -c Release -f ${{ matrix.framework }} -r ${{ matrix.rid }} -p:PublishAot=true -o artifacts/aot/server 2>&1 | tee publish-server.log
+
+      - name: Check Clutch.Server publish warnings
+        shell: bash
+        run: bash .github/scripts/check-aot-warnings.sh publish-server.log

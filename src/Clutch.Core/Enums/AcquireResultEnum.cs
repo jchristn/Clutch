@@ -5,7 +5,7 @@ namespace Clutch.Core.Enums
     /// <summary>
     /// The result of a single (non-waiting) acquire attempt against the database.
     /// </summary>
-    [JsonConverter(typeof(JsonStringEnumConverter))]
+    [JsonConverter(typeof(JsonStringEnumConverter<AcquireResultEnum>))]
     public enum AcquireResultEnum
     {
         /// <summary>

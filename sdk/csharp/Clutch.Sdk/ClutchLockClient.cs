@@ -7,6 +7,7 @@ namespace Clutch.Sdk
     using System.Net.WebSockets;
     using System.Text;
     using System.Text.Json;
+    using System.Text.Json.Serialization.Metadata;
     using System.Threading;
     using System.Threading.Tasks;
 
@@ -100,7 +101,8 @@ namespace Clutch.Sdk
             _JsonOptions = new JsonSerializerOptions
             {
                 PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-                PropertyNameCaseInsensitive = true
+                PropertyNameCaseInsensitive = true,
+                TypeInfoResolver = SdkJsonContext.Default
             };
         }
 
@@ -316,7 +318,7 @@ namespace Clutch.Sdk
 
         private async Task SendFrameAsync(Dictionary<string, object?> frame, CancellationToken cancellationToken)
         {
-            byte[] payload = JsonSerializer.SerializeToUtf8Bytes(frame, _JsonOptions);
+            byte[] payload = JsonSerializer.SerializeToUtf8Bytes(frame, (JsonTypeInfo<Dictionary<string, object?>>)_JsonOptions.GetTypeInfo(typeof(Dictionary<string, object?>)));
 
             await _SendLock.WaitAsync(cancellationToken).ConfigureAwait(false);
             try

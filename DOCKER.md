@@ -1,6 +1,6 @@
 # Running Clutch with Docker
 
-> Alpha (v0.2.0).
+> Alpha (v0.3.0).
 
 The supported deployment runs Clutch as a small cluster: Postgres, two stateless server nodes behind an nginx load balancer, the dashboard, and Prometheus + Grafana for observability. Everything is in `docker/compose.yaml`.
 
@@ -28,11 +28,11 @@ Both nodes are stateless and share one Postgres, which is the sole authority for
 
 ## First run
 
-`compose.yaml` references published image tags (`jchristn77/clutch-server:v0.2.0`, `jchristn77/clutch-ui:v0.2.0`) only — it never builds from a local context. Build and push the images first with the root build scripts, which build multi-platform on Docker Build Cloud and push both the given tag and `latest`:
+`compose.yaml` references published image tags (`jchristn77/clutch-server:v0.3.0`, `jchristn77/clutch-ui:v0.3.0`) only — it never builds from a local context. Build and push the images first with the root build scripts, which build multi-platform on Docker Build Cloud and push both the given tag and `latest`:
 
 ```bat
 REM from the repository root
-build-all.bat v0.2.0
+build-all.bat v0.3.0
 ```
 
 `build-all.bat` runs `build-server.bat` (`jchristn77/clutch-server`) and `build-dashboard.bat` (`jchristn77/clutch-ui`); each also accepts a tag on its own. Once the tags exist in the registry, start the stack:

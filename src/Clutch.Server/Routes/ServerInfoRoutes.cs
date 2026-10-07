@@ -9,6 +9,7 @@ namespace Clutch.Server.Routes
     using WatsonWebserver;
     using WatsonWebserver.Core;
     using WatsonWebserver.Core.OpenApi;
+    using Clutch.Server.Responses;
 
     /// <summary>
     /// Server info route. Reports node identity, version, endpoint, and live connection counts.
@@ -56,28 +57,28 @@ namespace Clutch.Server.Routes
         private async Task InfoAsync(HttpContextBase context)
         {
             RequestContext ctx = RouteHelpers.Context(context);
-            string version = Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "0.2.0";
+            string version = Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "0.3.0";
 
-            await RouteHelpers.JsonAsync(context, 200, new
+            await RouteHelpers.JsonAsync(context, 200, new ServerInfoResponse
             {
-                product = "Clutch",
-                version = version,
-                node = _Settings.NodeId,
-                database = _Settings.Database.Type.ToString(),
-                webSocketConnections = _WsManager.Count,
-                telemetry = new
+                Product = "Clutch",
+                Version = version,
+                Node = _Settings.NodeId,
+                Database = _Settings.Database.Type.ToString(),
+                WebSocketConnections = _WsManager.Count,
+                Telemetry = new ServerTelemetryInfo
                 {
-                    enabled = _Settings.Telemetry.Enabled,
-                    prometheusPort = _Settings.Telemetry.PrometheusPort,
-                    prometheusPath = _Settings.Telemetry.PrometheusPath
+                    Enabled = _Settings.Telemetry.Enabled,
+                    PrometheusPort = _Settings.Telemetry.PrometheusPort,
+                    PrometheusPath = _Settings.Telemetry.PrometheusPath
                 },
-                principal = new
+                Principal = new ServerPrincipalInfo
                 {
-                    authenticated = ctx.IsAuthenticated,
-                    tenantId = ctx.TenantId,
-                    isAdmin = ctx.IsAdmin,
-                    isTenantAdmin = ctx.IsTenantAdmin,
-                    principalName = ctx.PrincipalName
+                    Authenticated = ctx.IsAuthenticated,
+                    TenantId = ctx.TenantId,
+                    IsAdmin = ctx.IsAdmin,
+                    IsTenantAdmin = ctx.IsTenantAdmin,
+                    PrincipalName = ctx.PrincipalName
                 }
             }).ConfigureAwait(false);
         }

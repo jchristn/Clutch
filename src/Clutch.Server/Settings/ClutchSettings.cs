@@ -4,7 +4,9 @@ namespace Clutch.Server.Settings
     using System.IO;
     using System.Text.Json;
     using System.Text.Json.Serialization;
+    using System.Text.Json.Serialization.Metadata;
     using Clutch.Core.Database;
+    using Clutch.Server.Serialization;
 
     /// <summary>
     /// Top-level server settings. Loaded from a JSON file at startup and re-serialized back to disk so
@@ -174,6 +176,7 @@ namespace Clutch.Server.Settings
         private RequestHistorySettings _RequestHistory = new RequestHistorySettings();
         private TelemetrySettings _Telemetry = new TelemetrySettings();
         private McpSettings _Mcp = new McpSettings();
+        private static readonly JsonTypeInfo<ClutchSettings> _FileTypeInfo = BuildFileTypeInfo();
 
         #endregion
 
@@ -209,7 +212,7 @@ namespace Clutch.Server.Settings
             }
 
             string json = File.ReadAllText(filename);
-            ClutchSettings? settings = JsonSerializer.Deserialize<ClutchSettings>(json, GetJsonSerializerOptions());
+            ClutchSettings? settings = JsonSerializer.Deserialize(json, _FileTypeInfo);
             settings ??= new ClutchSettings();
             settings.SourceFile = filename;
             return settings;
@@ -234,7 +237,7 @@ namespace Clutch.Server.Settings
         {
             if (String.IsNullOrEmpty(filename)) throw new ArgumentNullException(nameof(filename));
 
-            string json = JsonSerializer.Serialize(this, GetJsonSerializerOptions());
+            string json = JsonSerializer.Serialize(this, _FileTypeInfo);
             File.WriteAllText(filename, json);
         }
 
@@ -242,16 +245,16 @@ namespace Clutch.Server.Settings
 
         #region Private-Methods
 
-        private static JsonSerializerOptions GetJsonSerializerOptions()
+        private static JsonTypeInfo<ClutchSettings> BuildFileTypeInfo()
         {
             JsonSerializerOptions options = new JsonSerializerOptions
             {
                 WriteIndented = true,
                 PropertyNamingPolicy = null,
-                DefaultIgnoreCondition = JsonIgnoreCondition.Never
+                DefaultIgnoreCondition = JsonIgnoreCondition.Never,
+                TypeInfoResolver = ServerJsonContext.Default
             };
-            options.Converters.Add(new JsonStringEnumConverter());
-            return options;
+            return (JsonTypeInfo<ClutchSettings>)options.GetTypeInfo(typeof(ClutchSettings));
         }
 
         #endregion

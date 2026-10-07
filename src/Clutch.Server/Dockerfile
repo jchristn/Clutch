@@ -1,5 +1,5 @@
 # Clutch server image. Build context is the repository root:
-#   docker build -f src/Clutch.Server/Dockerfile -t jchristn77/clutch-server:v0.1.0 .
+#   docker build -f src/Clutch.Server/Dockerfile -t jchristn77/clutch-server:v0.3.0 .
 # The projects multi-target net8.0;net10.0, so the build uses the .NET 10 SDK
 # (which can compile both) and pins the published output to net8.0 to match the
 # net8.0 runtime base image below.

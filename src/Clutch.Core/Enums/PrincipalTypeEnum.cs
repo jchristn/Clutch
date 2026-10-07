@@ -5,7 +5,7 @@ namespace Clutch.Core.Enums
     /// <summary>
     /// The type of authenticated principal behind a request or session.
     /// </summary>
-    [JsonConverter(typeof(JsonStringEnumConverter))]
+    [JsonConverter(typeof(JsonStringEnumConverter<PrincipalTypeEnum>))]
     public enum PrincipalTypeEnum
     {
         /// <summary>

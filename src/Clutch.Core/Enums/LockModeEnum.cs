@@ -5,7 +5,7 @@ namespace Clutch.Core.Enums
     /// <summary>
     /// The kind of access a lock request represents.
     /// </summary>
-    [JsonConverter(typeof(JsonStringEnumConverter))]
+    [JsonConverter(typeof(JsonStringEnumConverter<LockModeEnum>))]
     public enum LockModeEnum
     {
         /// <summary>
